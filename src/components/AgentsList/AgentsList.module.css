@@ -1,0 +1,12 @@
+.agentsContent {
+  color: #bdc3c7;
+  line-height: 1.5;
+}
+
+.agentsContent p {
+  margin: 0 0 8px 0;
+}
+
+.agentsContent p:last-child {
+  margin-bottom: 0;
+}
