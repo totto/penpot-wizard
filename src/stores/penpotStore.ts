@@ -1,4 +1,4 @@
-import { atom, getDefaultStore } from 'jotai';
+import { atom } from 'nanostores';
 import { Theme, PluginToAppMessage } from '../types';
 
 // Initialize theme from URL parameters
@@ -9,13 +9,12 @@ const getInitialTheme = (): Theme => {
 };
 
 // Create the penpot theme atom
-export const penpotThemeAtom = atom<Theme>(getInitialTheme());
+export const $penpotTheme = atom<Theme>(getInitialTheme());
 
 // Listen for theme change messages from Penpot app
 window.addEventListener('message', (event) => {
   const { type, payload } = event.data;
   if (type === PluginToAppMessage.THEME_CHANGE && payload?.theme) {
-    const store = getDefaultStore();
-    store.set(penpotThemeAtom, payload.theme);
+    $penpotTheme.set(payload.theme);
   }
 });

@@ -1,9 +1,10 @@
-import { atom, getDefaultStore } from 'jotai';
+import { atom, computed } from 'nanostores';
 import { Experimental_Agent as Agent } from 'ai';
 import agentsConfig from '../assets/agents.json';
-import { selectedLanguageModelAtom, isValidatedOpenaiAtom, isConnectedAtom } from './settingsStore';
+import { $selectedLanguageModel, $isValidatedOpenai, $isConnected } from './settingsStore';
 import { createModelInstance } from '../utils/modelUtils';
 
+let modelIdInitialized = '';
 export interface Tool {
   id: string;
   type: 'function' | 'rag';
@@ -34,7 +35,7 @@ export interface AgentsData {
 }
 
 // Base atoms for agents data
-const agentsDataAtom = atom<AgentsData>({
+export const $agentsData = atom<AgentsData>({
   ...agentsConfig,
   directors: agentsConfig.directors.map(director => ({
     ...director,
@@ -42,28 +43,28 @@ const agentsDataAtom = atom<AgentsData>({
   }))
 } as AgentsData);
 
-const activeDirectorAgentAtom = atom<string | null>(
+export const $activeDirectorAgent = atom<string | null>(
   agentsConfig.directors.length > 0 ? agentsConfig.directors[0].id : null
 );
 
-// Derived atoms for getters
-export const getDirectorByIdAtom = atom((get) => (agentId: string) => {
-  const agentsData = get(agentsDataAtom);
+// Derived functions for getters
+export const getDirectorById = (agentId: string) => {
+  const agentsData = $agentsData.get();
   return agentsData.directors.find(d => d.id === agentId);
-});
+};
 
-export const getSpecializedAgentByIdAtom = atom((get) => (agentId: string) => {
-  const agentsData = get(agentsDataAtom);
+export const getSpecializedAgentById = (agentId: string) => {
+  const agentsData = $agentsData.get();
   return agentsData.specializedAgents.find(a => a.id === agentId);
-});
+};
 
-export const getToolByIdAtom = atom((get) => (toolId: string) => {
-  const agentsData = get(agentsDataAtom);
+export const getToolById = (toolId: string) => {
+  const agentsData = $agentsData.get();
   return agentsData.tools.find(t => t.id === toolId);
-});
+};
 
-export const getDirectorWithDetailsAtom = atom((get) => (agentId: string) => {
-  const agentsData = get(agentsDataAtom);
+export const getDirectorWithDetails = (agentId: string) => {
+  const agentsData = $agentsData.get();
   const director = agentsData.directors.find(d => d.id === agentId);
   
   if (!director) return null;
@@ -81,82 +82,70 @@ export const getDirectorWithDetailsAtom = atom((get) => (agentId: string) => {
     specializedAgents,
     tools
   };
-});
-
-// Action atoms
-export const setActiveDirectorAgentAtom = atom(
-  null,
-  (get, set, agentId: string) => {
-    console.log('setActiveDirectorAgent', agentId);
-    set(activeDirectorAgentAtom, agentId);
-  }
-);
-
-// Async action atom for initializing director agents
-export const initializeDirectorAgentsAtom = atom(
-  null,
-  async (get, set) => {
-    const agentsData = get(agentsDataAtom);
-    const isConnected = get(isConnectedAtom);
-    if (!isConnected) {
-      console.log('Not connected, skipping initialization');
-      return;
-    }
-    try {
-      const modelInstance = createModelInstance();
-      
-      const updatedDirectors = agentsData.directors.map(director => {
-        try {
-          const agentInstance = new Agent({
-            model: modelInstance,
-            system: director.system
-          });
-          
-          return {
-            ...director,
-            instance: agentInstance
-          };
-        } catch (error) {
-          console.error(`Failed to initialize agent ${director.id}:`, error);
-          return {
-            ...director,
-            instance: null
-          };
-        }
-      });
-      
-      set(agentsDataAtom, {
-        ...agentsData,
-        directors: updatedDirectors
-      });
-      console.log('Director agents initialized', updatedDirectors);
-    } catch (error) {
-      console.error('Failed to initialize director agents:', error);
-    }
-  }
-);
-
-// Function to check and handle model changes
-// Set up subscriptions
-const store = getDefaultStore();
-
-// Subscribe to model changes
-store.sub(selectedLanguageModelAtom, () => {
-  store.set(initializeDirectorAgentsAtom);
-});
-
-// Subscribe to validation changes
-store.sub(isValidatedOpenaiAtom, () => {
-  store.set(initializeDirectorAgentsAtom);
-});
-
-store.sub(isConnectedAtom, () => {
-  store.set(initializeDirectorAgentsAtom);
-});
-
-// Export all atoms for use in components
-export {
-  agentsDataAtom,
-  activeDirectorAgentAtom,
 };
+
+// Action functions
+export const setActiveDirectorAgent = (agentId: string) => {
+  console.log('setActiveDirectorAgent', agentId);
+  $activeDirectorAgent.set(agentId);
+};
+
+// Async action function for initializing director agents
+export const initializeDirectorAgents = async () => {
+  const agentsData = $agentsData.get();
+  const isConnected = $isConnected.get();
+  if (!isConnected) {
+    console.log('Not connected, skipping initialization');
+    return;
+  }
+  if (modelIdInitialized === $selectedLanguageModel.get()) {
+    console.log('Model ID already initialized, skipping initialization');
+    return;
+  }
+  try {
+    const modelInstance = createModelInstance();
+    
+    const updatedDirectors = agentsData.directors.map(director => {
+      try {
+        const agentInstance = new Agent({
+          model: modelInstance,
+          system: director.system
+        });
+        
+        return {
+          ...director,
+          instance: agentInstance
+        };
+      } catch (error) {
+        console.error(`Failed to initialize agent ${director.id}:`, error);
+        return {
+          ...director,
+          instance: null
+        };
+      }
+    });
+    
+    $agentsData.set({
+      ...agentsData,
+      directors: updatedDirectors
+    });
+
+    modelIdInitialized = $selectedLanguageModel.get();
+    console.log('Director agents initialized', updatedDirectors);
+  } catch (error) {
+    console.error('Failed to initialize director agents:', error);
+  }
+};
+
+$selectedLanguageModel.subscribe((newValue, oldValue) => {
+  if (newValue !== oldValue) {
+    initializeDirectorAgents();
+  }
+});
+
+$isConnected.subscribe((newValue, oldValue) => {
+  if (newValue !== oldValue) {
+    initializeDirectorAgents();
+  }
+});
 

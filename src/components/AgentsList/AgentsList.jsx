@@ -1,14 +1,12 @@
 import { useEffect } from 'react';
-import { useAtomValue, useSetAtom } from 'jotai';
+import { useStore } from '@nanostores/react';
 import AgentCard from './AgentCard/AgentCard';
-import { agentsDataAtom, activeDirectorAgentAtom, setActiveDirectorAgentAtom, getDirectorWithDetailsAtom } from '../../stores/agentsStore';
+import { $agentsData, $activeDirectorAgent, setActiveDirectorAgent, getDirectorWithDetails } from '../../stores/agentsStore';
 import styles from './AgentsList.module.css';
 
 function AgentsList() {
-  const agentsData = useAtomValue(agentsDataAtom);
-  const activeDirectorAgent = useAtomValue(activeDirectorAgentAtom);
-  const setActiveDirectorAgent = useSetAtom(setActiveDirectorAgentAtom);
-  const getDirectorWithDetails = useAtomValue(getDirectorWithDetailsAtom);
+  const agentsData = useStore($agentsData);
+  const activeDirectorAgent = useStore($activeDirectorAgent);
 
   const handleAgentSelect = (agentId) => {
     setActiveDirectorAgent(agentId);

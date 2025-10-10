@@ -1,40 +1,34 @@
-import { useAtomValue, useSetAtom } from 'jotai';
+import { useStore } from '@nanostores/react';
 import {
-  openaiApiKeyAtom,
-  openrouterApiKeyAtom,
-  selectedLanguageModelAtom,
-  availableModelsAtom,
-  isLoadingModelsAtom,
-  lastFetchTimeAtom,
-  isValidatedOpenaiAtom,
-  isValidatedOpenrouterAtom,
-  openaiErrorAtom,
-  openrouterErrorAtom,
-  setOpenaiApiKeyAtom,
-  setOpenrouterApiKeyAtom,
-  setSelectedLanguageModelAtom,
-  checkApiKeysAtom,
-  clearErrorsAtom,
+  $openaiApiKey,
+  $openrouterApiKey,
+  $selectedLanguageModel,
+  $availableModels,
+  $isLoadingModels,
+  $lastFetchTime,
+  $isValidatedOpenai,
+  $isValidatedOpenrouter,
+  $openaiError,
+  $openrouterError,
+  setOpenaiApiKey,
+  setOpenrouterApiKey,
+  setSelectedLanguageModel,
+  checkApiKeys,
+  clearErrors,
 } from '../../stores/settingsStore';
 import styles from './SettingsForm.module.css';
 
 function SettingsForm() {
-  const openaiApiKey = useAtomValue(openaiApiKeyAtom);
-  const openrouterApiKey = useAtomValue(openrouterApiKeyAtom);
-  const selectedLanguageModel = useAtomValue(selectedLanguageModelAtom);
-  const availableModels = useAtomValue(availableModelsAtom);
-  const isLoadingModels = useAtomValue(isLoadingModelsAtom);
-  const lastFetchTime = useAtomValue(lastFetchTimeAtom);
-  const isValidatedOpenai = useAtomValue(isValidatedOpenaiAtom);
-  const isValidatedOpenrouter = useAtomValue(isValidatedOpenrouterAtom);
-  const openaiError = useAtomValue(openaiErrorAtom);
-  const openrouterError = useAtomValue(openrouterErrorAtom);
-  
-  const setOpenaiApiKey = useSetAtom(setOpenaiApiKeyAtom);
-  const setOpenrouterApiKey = useSetAtom(setOpenrouterApiKeyAtom);
-  const setSelectedLanguageModel = useSetAtom(setSelectedLanguageModelAtom);
-  const checkApiKeys = useSetAtom(checkApiKeysAtom);
-  const clearErrors = useSetAtom(clearErrorsAtom);
+  const openaiApiKey = useStore($openaiApiKey);
+  const openrouterApiKey = useStore($openrouterApiKey);
+  const selectedLanguageModel = useStore($selectedLanguageModel);
+  const availableModels = useStore($availableModels);
+  const isLoadingModels = useStore($isLoadingModels);
+  const lastFetchTime = useStore($lastFetchTime);
+  const isValidatedOpenai = useStore($isValidatedOpenai);
+  const isValidatedOpenrouter = useStore($isValidatedOpenrouter);
+  const openaiError = useStore($openaiError);
+  const openrouterError = useStore($openrouterError);
 
   // Remove automatic fetching on mount
   // useEffect(() => {
@@ -51,6 +45,14 @@ function SettingsForm() {
 
   const handleModelChange = (e) => {
     setSelectedLanguageModel(e.target.value);
+  };
+
+  const handleCheckApiKeys = () => {
+    checkApiKeys();
+  };
+
+  const handleClearErrors = () => {
+    clearErrors();
   };
 
   return (
@@ -109,7 +111,7 @@ function SettingsForm() {
           <div className={styles.buttonRow}>
             <button
               type="button"
-              onClick={checkApiKeys}
+              onClick={handleCheckApiKeys}
               disabled={isLoadingModels || (!openaiApiKey?.trim() && !openrouterApiKey?.trim())}
               className={styles.checkButton}
             >
@@ -118,7 +120,7 @@ function SettingsForm() {
             {(openaiError || openrouterError) && (
               <button
                 type="button"
-                onClick={clearErrors}
+                onClick={handleClearErrors}
                 className={styles.clearButton}
               >
                 Clear Errors

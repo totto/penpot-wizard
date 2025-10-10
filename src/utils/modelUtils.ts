@@ -1,13 +1,12 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { getDefaultStore } from 'jotai';
 import { 
-  selectedLanguageModelAtom, 
-  availableModelsAtom, 
-  openaiApiKeyAtom, 
-  openrouterApiKeyAtom, 
-  isValidatedOpenaiAtom, 
-  isValidatedOpenrouterAtom 
+  $selectedLanguageModel, 
+  $availableModels, 
+  $openaiApiKey, 
+  $openrouterApiKey, 
+  $isValidatedOpenai, 
+  $isValidatedOpenrouter 
 } from '../stores/settingsStore';
 
 /**
@@ -16,13 +15,12 @@ import {
  * @throws Error if API key is not available or provider is not supported
  */
 export function createModelInstance() {
-  const store = getDefaultStore();
-  const selectedLanguageModel = store.get(selectedLanguageModelAtom);
-  const availableModels = store.get(availableModelsAtom);
-  const openaiApiKey = store.get(openaiApiKeyAtom);
-  const openrouterApiKey = store.get(openrouterApiKeyAtom);
-  const isValidatedOpenai = store.get(isValidatedOpenaiAtom);
-  const isValidatedOpenrouter = store.get(isValidatedOpenrouterAtom);
+  const selectedLanguageModel = $selectedLanguageModel.get();
+  const availableModels = $availableModels.get();
+  const openaiApiKey = $openaiApiKey.get();
+  const openrouterApiKey = $openrouterApiKey.get();
+  const isValidatedOpenai = $isValidatedOpenai.get();
+  const isValidatedOpenrouter = $isValidatedOpenrouter.get();
   
   // Find the selected model in available models to get the provider
   const selectedModel = availableModels.find(model => model.id === selectedLanguageModel);
