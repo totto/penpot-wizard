@@ -41,7 +41,8 @@ function SettingsForm() {
     <div className={styles.settingsForm}>
       <div className={styles.formGroup}>
         <label htmlFor="openai-key" className={styles.label}>
-          OpenAI API Key <span className={styles.required}>*</span>
+          <span>OpenAI API Key <span className={styles.required}>*</span></span>
+          {isValidatedOpenai && <span className={styles.validatedIndicator}> ✓ Validated</span>}
         </label>
         <input
           id="openai-key"
@@ -55,7 +56,6 @@ function SettingsForm() {
         />
         <small className={styles.helpText}>
           Required for OpenAI models
-          {isValidatedOpenai && <span className={styles.validatedIndicator}> ✓ Validated</span>}
         </small>
         {openaiError && (
           <div className={styles.errorMessage}>
@@ -67,6 +67,7 @@ function SettingsForm() {
       <div className={styles.formGroup}>
         <label htmlFor="openrouter-key" className={styles.label}>
           OpenRouter API Key
+          {isValidatedOpenrouter && <span className={styles.validatedIndicator}> ✓ Validated</span>}
         </label>
         <input
           id="openrouter-key"
@@ -79,7 +80,6 @@ function SettingsForm() {
         />
         <small className={styles.helpText}>
           Optional - enables access to additional models
-          {isValidatedOpenrouter && <span className={styles.validatedIndicator}> ✓ Validated</span>}
         </small>
         {openrouterError && (
           <div className={styles.errorMessage}>
@@ -126,7 +126,7 @@ function SettingsForm() {
           value={selectedLanguageModel}
           onChange={handleModelChange}
           className={styles.select}
-          disabled={!isValidatedOpenai && !isValidatedOpenrouter || isLoadingModels}
+          disabled={!isValidatedOpenai || isLoadingModels}
         >
           {isLoadingModels ? (
             <option value="">Loading models...</option>
@@ -141,7 +141,7 @@ function SettingsForm() {
         <small className={styles.helpText}>
           {isLoadingModels
             ? 'Fetching available models...'
-            : !isValidatedOpenai && !isValidatedOpenrouter
+            : !isValidatedOpenai || !isValidatedOpenrouter
             ? 'Add API keys and click "Check API Keys" to validate and see available models'
             : availableModels.length === 0 
             ? 'Click "Check API Keys" to fetch available models'

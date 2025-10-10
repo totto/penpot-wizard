@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import SettingsForm from '../SettingsForm/SettingsForm'
 import AgentsList from '../AgentsList/AgentsList'
-import SidebarSection from '../SidebarSection/SidebarSection'
 import { useSettingsStore } from '../../stores/settingsStore'
 import styles from './LeftSidebar.module.css'
 
 function LeftSidebar() {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [activeTab, setActiveTab] = useState('agents')
   const { openaiApiKey, getIsConnected } = useSettingsStore()
   
   // Get computed connection status from settings store
@@ -20,6 +20,7 @@ function LeftSidebar() {
   useEffect(() => {
     if (!isConfigComplete) {
       setIsExpanded(true)
+      setActiveTab('settings')
     }
   }, [isConfigComplete])
 
@@ -29,20 +30,35 @@ function LeftSidebar() {
       setIsExpanded(!isExpanded)
     }
   }
-
   return (
     <div className={`${styles.sidebar} ${isExpanded ? styles.expanded : styles.collapsed}`}>
       <div className={styles.content}>
-        <SidebarSection 
-          title="AI Settings"
-          showIncompleteIndicator={!isConfigComplete}
-        >
-          <SettingsForm />
-        </SidebarSection>
-
-        <SidebarSection title="Agents">
-          <AgentsList />
-        </SidebarSection>
+        <div className={styles.tabs}>
+          <button
+            className={`${styles.tab} ${activeTab === 'settings' ? styles.active : ''} ${!isConfigComplete ? styles.disabled : ''}`}
+            onClick={() => setActiveTab('settings')}
+            disabled={!isConfigComplete}
+          >
+            AI Settings
+            {<span className={!isConfigComplete ? styles.warningDot : styles.successDot}></span>}
+          </button>
+          <button
+            className={`${styles.tab} ${activeTab === 'agents' ? styles.active : ''} ${!isConfigComplete ? styles.disabled : ''}`}
+            onClick={() => setActiveTab('agents')}
+            disabled={!isConfigComplete}
+          >
+            Agents
+          </button>
+        </div>
+        
+        <div className={styles.tabContent}>
+          <div className={`${styles.tabPanel} ${activeTab === 'settings' ? styles.active : ''}`}>
+            <SettingsForm />
+          </div>
+          <div className={`${styles.tabPanel} ${activeTab === 'agents' ? styles.active : ''}`}>
+            <AgentsList />
+          </div>
+        </div>
       </div>
       
       <div className={styles.iconsSidebar}>

@@ -3,7 +3,7 @@
   left: 0;
   top: 0;
   height: 100vh;
-  background-color: #2c3e50;
+  background-color: var(--background-secondary);
   transition: margin-left 0.3s ease;
   z-index: 1000;
   display: flex;
@@ -21,26 +21,23 @@
 
 .content {
   flex: 1 1 auto;
-  background-color: #34495e;
+  background-color: var(--background-quaternary);
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  color: #ecf0f1;
-  overflow-y: scroll;
+  color: var(--foreground-primary);
   width: calc(100vw - 40px);
   overflow-x: hidden;
-  gap: 1rem;
 }
 
 .contentTitle {
   margin: 0 0 15px 0;
   font-size: 18px;
   font-weight: 600;
-  color: #ecf0f1;
+  color: var(--foreground-primary);
 }
 
 .incompleteIndicator {
-  color: #e74c3c;
+  color: var(--error-500);
   font-size: 14px;
   font-weight: 400;
 }
@@ -48,14 +45,14 @@
 .contentBody {
   font-size: 14px;
   line-height: 1.5;
-  color: #bdc3c7;
+  color: var(--foreground-secondary);
 }
 
 .iconsSidebar {
   flex: 0 0 40px;
-  background-color: #2c3e50;
+  background-color: var(--background-secondary);
   padding: 10px 0;
-  border-left: 1px solid #34495e;
+  border-left: 1px solid var(--background-quaternary);
 }
 
 .controls {
@@ -63,12 +60,12 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid #34495e;
+  border-bottom: 1px solid var(--background-quaternary);
 }
 
 .expandButton {
-  background-color: #3498db;
-  color: white;
+  background-color: var(--accent-primary);
+  color: var(--background-primary);
   border: none;
   border-radius: 4px;
   padding: 0;
@@ -87,12 +84,12 @@
 }
 
 .expandButton:hover:not(:disabled) {
-  background-color: #2980b9;
+  background-color: var(--accent-tertiary);
 }
 
 .expandButton.disabled,
 .expandButton:disabled {
-  background-color: #7f8c8d;
+  background-color: var(--background-quaternary);
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -108,15 +105,94 @@
 }
 
 .connected {
-  background-color: #27ae60;
-  color: white;
+  background-color: var(--success-500);
+  color: var(--background-primary);
 }
 
 .disconnected {
-  background-color: #e74c3c;
-  color: white;
+  background-color: var(--error-500);
+  color: var(--background-primary);
 }
 
 .statusButton:hover {
   transform: scale(1.1);
+}
+
+/* Tab styles */
+.tabs {
+  display: flex;
+  background-color: var(--background-secondary);
+  border-bottom: 1px solid var(--background-quaternary);
+}
+
+.tab {
+  flex: 1;
+  background-color: var(--background-secondary);
+  color: var(--foreground-secondary);
+  border: none;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tab.active {
+  background-color: var(--background-quaternary);
+  color: var(--foreground-primary);
+}
+
+.tab:hover:not(:disabled) {
+  background-color: var(--background-quaternary);
+  color: var(--foreground-primary);
+}
+
+.tab.disabled,
+.tab:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.warningDot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--error-500);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.successDot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--success-500);
+  border-radius: 50%;
+  display: inline-block;
+}
+.tabContent {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.tabPanel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  overflow-y: auto;
+}
+
+.tabPanel.active {
+  opacity: 1;
+  visibility: visible;
 }

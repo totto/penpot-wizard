@@ -14,33 +14,34 @@
 .label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--foreground-primary);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.25rem;
 }
 
 .required {
-  color: var(--color-error, #ef4444);
+  color: var(--error-500);
   font-weight: 600;
 }
 
 .input,
 .select {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border, #e5e7eb);
+  border: 1px solid var(--background-quaternary);
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  background-color: var(--color-background, #ffffff);
-  color: var(--color-text-primary);
+  background-color: var(--background-secondary);
+  color: var(--foreground-primary);
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .input:focus,
 .select:focus {
   outline: none;
-  border-color: var(--color-primary, #3b82f6);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(126, 255, 245, 0.1);
 }
 
 .input {
@@ -49,7 +50,7 @@
 }
 
 .input::placeholder {
-  color: var(--color-text-secondary, #6b7280);
+  color: var(--foreground-secondary);
 }
 
 .select {
@@ -59,13 +60,13 @@
 .select:disabled {
   cursor: not-allowed;
   opacity: 0.6;
-  background-color: var(--color-background-disabled, #f3f4f6);
-  color: var(--color-text-disabled, #9ca3af);
+  background-color: var(--background-primary);
+  color: var(--foreground-secondary);
 }
 
 .helpText {
   font-size: 0.75rem;
-  color: var(--color-text-secondary, #6b7280);
+  color: var(--foreground-secondary);
   margin-top: 0.25rem;
 }
 
@@ -84,8 +85,8 @@
 
 .checkButton {
   padding: 0.5rem 1rem;
-  background-color: var(--color-primary, #3b82f6);
-  color: white;
+  background-color: var(--accent-primary);
+  color: var(--background-primary);
   border: none;
   border-radius: 0.375rem;
   font-size: 0.875rem;
@@ -95,19 +96,19 @@
 }
 
 .checkButton:hover:not(:disabled) {
-  background-color: var(--color-primary-dark, #2563eb);
+  background-color: var(--accent-tertiary);
 }
 
 .checkButton:disabled {
-  background-color: var(--color-background-disabled, #9ca3af);
+  background-color: var(--background-quaternary);
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 .clearButton {
   padding: 0.5rem 1rem;
-  background-color: var(--color-error, #ef4444);
-  color: white;
+  background-color: var(--error-500);
+  color: var(--background-primary);
   border: none;
   border-radius: 0.375rem;
   font-size: 0.875rem;
@@ -117,16 +118,16 @@
 }
 
 .clearButton:hover {
-  background-color: var(--color-error-dark, #dc2626);
+  background-color: var(--error-700);
 }
 
 .errorMessage {
   margin-top: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background-color: var(--color-error-bg, #fef2f2);
-  border: 1px solid var(--color-error-border, #fecaca);
+  background-color: var(--error-50);
+  border: 1px solid var(--error-200);
   border-radius: 0.375rem;
-  color: var(--color-error-text, #dc2626);
+  color: var(--error-700);
   font-size: 0.875rem;
   line-height: 1.4;
   overflow: hidden;
@@ -134,69 +135,12 @@
 
 .lastFetch {
   font-size: 0.75rem;
-  color: var(--color-text-secondary, #6b7280);
+  color: var(--foreground-secondary);
   font-style: italic;
 }
 
 .validatedIndicator {
-  color: var(--color-success, #10b981);
+  color: var(--success-500);
   font-weight: 500;
   margin-left: 0.5rem;
-}
-
-/* Dark theme support */
-@media (prefers-color-scheme: dark) {
-  .input,
-  .select {
-    background-color: var(--color-background-dark, #1f2937);
-    border-color: var(--color-border-dark, #374151);
-    color: var(--color-text-primary-dark, #f9fafb);
-  }
-  
-  .input::placeholder {
-    color: var(--color-text-secondary-dark, #9ca3af);
-  }
-  
-  .helpText {
-    color: var(--color-text-secondary-dark, #9ca3af);
-  }
-  
-  .select:disabled {
-    background-color: var(--color-background-disabled-dark, #374151);
-    color: var(--color-text-disabled-dark, #6b7280);
-  }
-  
-  .checkButton {
-    background-color: var(--color-primary-dark, #2563eb);
-  }
-  
-  .checkButton:hover:not(:disabled) {
-    background-color: var(--color-primary-darker, #1d4ed8);
-  }
-  
-  .checkButton:disabled {
-    background-color: var(--color-background-disabled-dark, #374151);
-  }
-  
-  .lastFetch {
-    color: var(--color-text-secondary-dark, #9ca3af);
-  }
-  
-  .validatedIndicator {
-    color: var(--color-success-dark, #34d399);
-  }
-  
-  .clearButton {
-    background-color: var(--color-error-dark, #dc2626);
-  }
-  
-  .clearButton:hover {
-    background-color: var(--color-error-darker, #b91c1c);
-  }
-  
-  .errorMessage {
-    background-color: var(--color-error-bg-dark, #1f2937);
-    border-color: var(--color-error-border-dark, #374151);
-    color: var(--color-error-text-dark, #fca5a5);
-  }
 }

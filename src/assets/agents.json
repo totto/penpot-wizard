@@ -1,0 +1,33 @@
+{
+  "directors": [
+    {
+      "id": "penpot-wizard",
+      "name": "Penpot Wizard",
+      "description": "Main assistant for Penpot design tasks and user guidance",
+      "system": "You are an expert Penpot assistant specialized in helping users with design tasks, providing guidance on features, and offering design advice. You have access to specialized agents and tools to help accomplish complex tasks.",
+      "specializedAgents": ["design-advisor"],
+      "tools": ["get-active-user", "penpot-docs"]
+    }
+  ],
+  "specializedAgents": [
+    {
+      "id": "design-advisor",
+      "name": "Design Advisor",
+      "description": "Provides expert advice on design principles, layout, and visual hierarchy"
+    }
+  ],
+  "tools": [
+    {
+      "id": "get-active-user",
+      "type": "function",
+      "name": "Get Active User",
+      "description": "Retrieves information about the currently active user in Penpot"
+    },
+    {
+      "id": "penpot-docs",
+      "type": "rag",
+      "name": "Penpot Documentation",
+      "description": "Searches through Penpot's documentation to provide accurate answers about features and usage"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, subscribeWithSelector } from 'zustand/middleware';
 import OpenAI from 'openai';
 import { openrouter } from '@openrouter/ai-sdk-provider';
 
@@ -42,6 +42,7 @@ export interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
+    subscribeWithSelector(
     (set, get) => ({
       openaiApiKey: '',
       openrouterApiKey: '',
@@ -120,7 +121,6 @@ export const useSettingsStore = create<SettingsState>()(
               
               if (response.ok) {
                 const data = await response.json();
-                console.log('OpenRouter models:', data);
                 const openrouterModelList: LanguageModel[] = data.data
                   .filter((model: any) => {
                     return model.supported_parameters.includes('structured_outputs')
@@ -195,7 +195,7 @@ export const useSettingsStore = create<SettingsState>()(
       getIsConnected: () => {
         return get().isValidatedOpenai;
       },
-    }),
+    })),
     {
       name: 'ai-agent-settings',
       storage: createJSONStorage(() => localStorage),

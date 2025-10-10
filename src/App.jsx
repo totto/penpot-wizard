@@ -7,7 +7,7 @@ function App() {
   const { penpotTheme } = usePenpotStore();
 
   return (
-    <div className={`app ${penpotTheme}`}>
+    <div className="app" data-theme={penpotTheme}>
       <LeftSidebar />
       <Chat />
     </div>

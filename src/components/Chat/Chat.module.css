@@ -3,5 +3,5 @@
   flex-direction: column;
   height: 100vh;
   margin-left: 40px; /* Always account for icons sidebar */
-  background-color: #ffffff;
+  background-color: var(--background-primary);
 }
