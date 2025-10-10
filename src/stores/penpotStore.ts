@@ -1,10 +1,5 @@
-import { create } from 'zustand';
+import { atom, getDefaultStore } from 'jotai';
 import { Theme, PluginToAppMessage } from '../types';
-
-interface PenpotStore {
-  penpotTheme: Theme;
-  setPenpotTheme: (theme: Theme) => void;
-}
 
 // Initialize theme from URL parameters
 const getInitialTheme = (): Theme => {
@@ -13,15 +8,14 @@ const getInitialTheme = (): Theme => {
   return (themeParam === 'dark' || themeParam === 'light') ? themeParam : 'light';
 };
 
-export const usePenpotStore = create<PenpotStore>((set) => ({
-  penpotTheme: getInitialTheme(),
-  setPenpotTheme: (theme) => set({ penpotTheme: theme }),
-}));
+// Create the penpot theme atom
+export const penpotThemeAtom = atom<Theme>(getInitialTheme());
 
 // Listen for theme change messages from Penpot app
 window.addEventListener('message', (event) => {
   const { type, payload } = event.data;
   if (type === PluginToAppMessage.THEME_CHANGE && payload?.theme) {
-    usePenpotStore.getState().setPenpotTheme(payload.theme);
+    const store = getDefaultStore();
+    store.set(penpotThemeAtom, payload.theme);
   }
 });

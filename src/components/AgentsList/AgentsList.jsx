@@ -1,10 +1,14 @@
 import { useEffect } from 'react';
+import { useAtomValue, useSetAtom } from 'jotai';
 import AgentCard from './AgentCard/AgentCard';
-import { useAgentsStore } from '../../stores/agentsStore';
+import { agentsDataAtom, activeDirectorAgentAtom, setActiveDirectorAgentAtom, getDirectorWithDetailsAtom } from '../../stores/agentsStore';
 import styles from './AgentsList.module.css';
 
 function AgentsList() {
-  const { agentsData, activeDirectorAgent, setActiveDirectorAgent, getDirectorWithDetails } = useAgentsStore();
+  const agentsData = useAtomValue(agentsDataAtom);
+  const activeDirectorAgent = useAtomValue(activeDirectorAgentAtom);
+  const setActiveDirectorAgent = useSetAtom(setActiveDirectorAgentAtom);
+  const getDirectorWithDetails = useAtomValue(getDirectorWithDetailsAtom);
 
   const handleAgentSelect = (agentId) => {
     setActiveDirectorAgent(agentId);

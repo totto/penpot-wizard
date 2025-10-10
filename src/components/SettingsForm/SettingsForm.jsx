@@ -1,24 +1,40 @@
-import { useSettingsStore } from '../../stores/settingsStore';
+import { useAtomValue, useSetAtom } from 'jotai';
+import {
+  openaiApiKeyAtom,
+  openrouterApiKeyAtom,
+  selectedLanguageModelAtom,
+  availableModelsAtom,
+  isLoadingModelsAtom,
+  lastFetchTimeAtom,
+  isValidatedOpenaiAtom,
+  isValidatedOpenrouterAtom,
+  openaiErrorAtom,
+  openrouterErrorAtom,
+  setOpenaiApiKeyAtom,
+  setOpenrouterApiKeyAtom,
+  setSelectedLanguageModelAtom,
+  checkApiKeysAtom,
+  clearErrorsAtom,
+} from '../../stores/settingsStore';
 import styles from './SettingsForm.module.css';
 
 function SettingsForm() {
-  const {
-    openaiApiKey,
-    openrouterApiKey,
-    selectedLanguageModel,
-    availableModels,
-    isLoadingModels,
-    lastFetchTime,
-    isValidatedOpenai,
-    isValidatedOpenrouter,
-    openaiError,
-    openrouterError,
-    setOpenaiApiKey,
-    setOpenrouterApiKey,
-    setSelectedLanguageModel,
-    checkApiKeys,
-    clearErrors,
-  } = useSettingsStore();
+  const openaiApiKey = useAtomValue(openaiApiKeyAtom);
+  const openrouterApiKey = useAtomValue(openrouterApiKeyAtom);
+  const selectedLanguageModel = useAtomValue(selectedLanguageModelAtom);
+  const availableModels = useAtomValue(availableModelsAtom);
+  const isLoadingModels = useAtomValue(isLoadingModelsAtom);
+  const lastFetchTime = useAtomValue(lastFetchTimeAtom);
+  const isValidatedOpenai = useAtomValue(isValidatedOpenaiAtom);
+  const isValidatedOpenrouter = useAtomValue(isValidatedOpenrouterAtom);
+  const openaiError = useAtomValue(openaiErrorAtom);
+  const openrouterError = useAtomValue(openrouterErrorAtom);
+  
+  const setOpenaiApiKey = useSetAtom(setOpenaiApiKeyAtom);
+  const setOpenrouterApiKey = useSetAtom(setOpenrouterApiKeyAtom);
+  const setSelectedLanguageModel = useSetAtom(setSelectedLanguageModelAtom);
+  const checkApiKeys = useSetAtom(checkApiKeysAtom);
+  const clearErrors = useSetAtom(clearErrorsAtom);
 
   // Remove automatic fetching on mount
   // useEffect(() => {

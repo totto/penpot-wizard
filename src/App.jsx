@@ -1,10 +1,11 @@
 import './App.css'
 import LeftSidebar from './components/LeftSidebar/LeftSidebar'
 import Chat from './components/Chat/Chat'
-import { usePenpotStore } from './stores/penpotStore'
+import { useAtomValue } from 'jotai'
+import { penpotThemeAtom } from './stores/penpotStore'
 
 function App() {
-  const { penpotTheme } = usePenpotStore();
+  const penpotTheme = useAtomValue(penpotThemeAtom);
 
   return (
     <div className="app" data-theme={penpotTheme}>
