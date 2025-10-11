@@ -1,4 +1,4 @@
-import styles from './Header.module.css'
+import styles from '@/components/Chat/Header/Header.module.css'
 
 function Header() {
   return (

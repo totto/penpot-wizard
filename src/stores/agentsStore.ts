@@ -1,8 +1,8 @@
 import { atom, computed } from 'nanostores';
 import { Experimental_Agent as Agent } from 'ai';
-import agentsConfig from '../assets/agents.json';
-import { $selectedLanguageModel, $isValidatedOpenai, $isConnected } from './settingsStore';
-import { createModelInstance } from '../utils/modelUtils';
+import agentsConfig from '@/assets/agents.json';
+import { $selectedLanguageModel, $isValidatedOpenai, $isConnected } from '@/stores/settingsStore';
+import { createModelInstance } from '@/utils/modelUtils';
 
 let modelIdInitialized = '';
 export interface Tool {

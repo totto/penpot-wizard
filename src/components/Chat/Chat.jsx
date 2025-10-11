@@ -1,7 +1,7 @@
-import styles from './Chat.module.css'
-import Header from './Header/Header'
-import ChatMessages from './ChatMessages/ChatMessages'
-import Footer from './Footer/Footer'
+import styles from '@/components/Chat/Chat.module.css'
+import Header from '@/components/Chat/Header/Header'
+import ChatMessages from '@/components/Chat/ChatMessages/ChatMessages'
+import Footer from '@/components/Chat/Footer/Footer'
 
 function Chat() {
   return (

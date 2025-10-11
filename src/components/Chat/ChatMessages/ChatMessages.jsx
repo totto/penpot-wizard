@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import styles from './ChatMessages.module.css'
+import styles from '@/components/Chat/ChatMessages/ChatMessages.module.css'
 
 function ChatMessages() {
   const [messages] = useState([

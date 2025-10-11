@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline'
-import styles from './Footer.module.css'
+import styles from '@/components/Chat/Footer/Footer.module.css'
 
 function Footer() {
   const [message, setMessage] = useState('')

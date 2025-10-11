@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
-import SettingsForm from '../SettingsForm/SettingsForm'
-import AgentsList from '../AgentsList/AgentsList'
+import SettingsForm from '@/components/SettingsForm/SettingsForm'
+import AgentsList from '@/components/AgentsList/AgentsList'
 import { useStore } from '@nanostores/react'
-import { $openaiApiKey, $isConnected } from '../../stores/settingsStore'
-import styles from './LeftSidebar.module.css'
+import { $openaiApiKey, $isConnected } from '@/stores/settingsStore'
+import styles from '@/components/LeftSidebar/LeftSidebar.module.css'
 
 function LeftSidebar() {
   const [isExpanded, setIsExpanded] = useState(false)

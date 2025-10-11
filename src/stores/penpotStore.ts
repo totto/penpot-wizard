@@ -1,5 +1,5 @@
 import { atom } from 'nanostores';
-import { Theme, PluginToAppMessage } from '../types';
+import { Theme, PluginToAppMessage } from '@/types';
 
 // Initialize theme from URL parameters
 const getInitialTheme = (): Theme => {

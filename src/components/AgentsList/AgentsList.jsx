@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useStore } from '@nanostores/react';
-import AgentCard from './AgentCard/AgentCard';
-import { $agentsData, $activeDirectorAgent, setActiveDirectorAgent, getDirectorWithDetails } from '../../stores/agentsStore';
-import styles from './AgentsList.module.css';
+import AgentCard from '@/components/AgentsList/AgentCard/AgentCard';
+import { $agentsData, $activeDirectorAgent, setActiveDirectorAgent, getDirectorWithDetails } from '@/stores/agentsStore';
+import styles from '@/components/AgentsList/AgentsList.module.css';
 
 function AgentsList() {
   const agentsData = useStore($agentsData);

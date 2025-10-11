@@ -1,4 +1,4 @@
-import { PluginToAppMessage } from './types';
+import { PluginToAppMessage } from '@/types';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 

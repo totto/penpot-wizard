@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import SpecializedAgentItem from '../SpecializedAgentItem/SpecializedAgentItem';
-import ToolItem from '../ToolItem/ToolItem';
-import styles from './AgentCard.module.css';
+import SpecializedAgentItem from '@/components/AgentsList/SpecializedAgentItem/SpecializedAgentItem';
+import ToolItem from '@/components/AgentsList/ToolItem/ToolItem';
+import styles from '@/components/AgentsList/AgentCard/AgentCard.module.css';
 
 function AgentCard({ agent, isSelected, onSelect }) {
   const [isExpanded, setIsExpanded] = useState(isSelected);
