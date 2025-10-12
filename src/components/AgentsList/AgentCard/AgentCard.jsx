@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import SpecializedAgentItem from '@/components/AgentsList/SpecializedAgentItem/SpecializedAgentItem';
-import ToolItem from '@/components/AgentsList/ToolItem/ToolItem';
 import styles from '@/components/AgentsList/AgentCard/AgentCard.module.css';
 
 function AgentCard({ agent, isSelected, onSelect }) {
@@ -35,35 +33,6 @@ function AgentCard({ agent, isSelected, onSelect }) {
           )}
         </div>
       </div>
-
-      {isExpanded && (
-        <div className={styles.cardContent}>
-          {agent.specializedAgents && agent.specializedAgents.length > 0 && (
-            <div className={styles.section}>
-              <h4 className={styles.sectionTitle}>Specialized Agents</h4>
-              <div className={styles.itemsList}>
-                {agent.specializedAgents.map((specializedAgent) => (
-                  <SpecializedAgentItem 
-                    key={specializedAgent.id} 
-                    agent={specializedAgent} 
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {agent.tools && agent.tools.length > 0 && (
-            <div className={styles.section}>
-              <h4 className={styles.sectionTitle}>Tools</h4>
-              <div className={styles.itemsList}>
-                {agent.tools.map((tool) => (
-                  <ToolItem key={tool.id} tool={tool} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { PluginToAppMessage } from '@/types';
+import { PluginToAppMessage } from '@/types/types';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
@@ -9,7 +9,7 @@ penpot.ui.open("AI Penpot Wizard", `?theme=${penpot.theme}`, {
 });
 
 // Listen for theme change events from Penpot
-penpot.on('themechange', (newTheme) => {
+penpot.on('themechange', (newTheme: string) => {
   console.log('Theme changed to:', newTheme);
   
   // Send message to the app about theme change

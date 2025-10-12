@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import AgentCard from '@/components/AgentsList/AgentCard/AgentCard';
-import { $agentsData, $activeDirectorAgent, setActiveDirectorAgent, getDirectorWithDetails } from '@/stores/agentsStore';
+import { $directorAgentsData, $activeDirectorAgent, setActiveDirectorAgent } from '@/stores/directorAgentsStore';
 import styles from '@/components/AgentsList/AgentsList.module.css';
 
 function AgentsList() {
-  const agentsData = useStore($agentsData);
+  const agentsData = useStore($directorAgentsData);
   const activeDirectorAgent = useStore($activeDirectorAgent);
 
   const handleAgentSelect = (agentId) => {
@@ -20,22 +20,16 @@ function AgentsList() {
       <div className={styles.agentsHeader}>
         <h2 className={styles.title}>Available Agents</h2>
         <p className={styles.subtitle}>
-          Select a director agent to start a conversation. Each director can delegate tasks to specialized agents and tools.
+          Select a director agent to start a conversation.
         </p>
       </div>
       
       <div className={styles.agentsList}>
-        {agentsData.directors.map((director) => {
-          const directorDetails = getDirectorWithDetails(director.id);
-          
+        {agentsData.map((director) => {
           return (
             <AgentCard
               key={director.id}
-              agent={{
-                ...director,
-                specializedAgents: directorDetails?.specializedAgents || [],
-                tools: directorDetails?.tools || []
-              }}
+              agent={director}
               isSelected={activeDirectorAgent === director.id}
               onSelect={handleAgentSelect}
             />

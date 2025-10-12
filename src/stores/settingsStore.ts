@@ -2,6 +2,7 @@ import { atom, computed } from 'nanostores';
 import { persistentAtom } from '@nanostores/persistent';
 import OpenAI from 'openai';
 import { openrouter } from '@openrouter/ai-sdk-provider';
+import { EmbeddingModel } from 'ai';
 
 export interface LanguageModel {
   id: string;
@@ -34,6 +35,8 @@ interface SettingsStorage {
 export const $openaiApiKey = persistentAtom('openaiApiKey', '');
 export const $openrouterApiKey = persistentAtom('openrouterApiKey', '');
 export const $selectedLanguageModel = persistentAtom('selectedLanguageModel', '');
+export const $selectedEmbeddingModel = atom<string>('text-embedding-ada-002');
+
 export const $availableModels = persistentAtom<LanguageModel[]>('availableModels', [], {
   encode: JSON.stringify,
   decode: JSON.parse,
