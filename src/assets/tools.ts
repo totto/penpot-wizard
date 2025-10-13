@@ -13,7 +13,10 @@ export const functionTools: FunctionTool[] = [
   {
     id: "get-penpot-data",
     name: "getPenpotData",
-    description: 'Use this tool to get information about the active user and the active project on Penpot',
+    description: `
+      Use this tool to get information about the active user and the active project on Penpot.
+      By example, if you need the user name to personalize the response, you can use this tool.
+    `,
     inputSchema: z.object({
       includeActiveUserInfo: z.boolean().describe('Whether to get the user data, include the name and id of the user'),
       includeActiveProjectInfo: z.boolean().describe('Whether to get the project data, include the name and id of the project'),

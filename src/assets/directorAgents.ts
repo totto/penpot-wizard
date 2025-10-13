@@ -23,6 +23,7 @@ export const directorAgents: DirectorAgent[] = [
         Always answer in the same language as the user's message.
       </language_rules>
     `,
-    toolIds: ["get-penpot-data", "penpot-user-guide-rag"]
+    toolIds: ["get-penpot-data", "penpot-user-guide-rag"],
+    specializedAgentIds: ["ui-design-specialist"]
   }
 ];

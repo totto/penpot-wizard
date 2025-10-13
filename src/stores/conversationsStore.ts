@@ -131,24 +131,21 @@ const generateGreetingMessage = async (conversationId: string): Promise<void> =>
     });
 
     let fullResponse = '';
-    let toolCalls = []
-      
+    let toolCalls = [];
+    
     // Handle both text stream and tool calls
     for await (const chunk of stream.fullStream) {
-        console.log('Chunk:', chunk)
       if (chunk.type === 'text-delta') {
         fullResponse += chunk.text
         updateMessage(assistantMessageId, fullResponse, true)
       } else if (chunk.type === 'tool-call') {
         toolCalls.push(chunk)
         // You can add UI feedback for tool calls here if needed
-        console.log('Tool call:', chunk)
       } else if (chunk.type === 'tool-result') {
         // Handle tool results if needed
-        console.log('Tool result:', chunk)
       }
     }
-    console.log('Full response:', await stream.consumeStream());
+
     // Mark streaming as complete
     updateMessage(assistantMessageId, fullResponse, false);    
   } catch (error) {
@@ -337,9 +334,11 @@ export const sendUserMessage = async (text: string): Promise<void> => {
         fullResponse += chunk.text;
         updateMessage(assistantMessageId, fullResponse, true);
       } else if (chunk.type === 'tool-call') {
+        console.log('Tool call:', chunk);
         toolCalls.push(chunk);
         // You can add UI feedback for tool calls here if needed
       } else if (chunk.type === 'tool-result') {
+        console.log('Tool result:', chunk);
         // Handle tool results if needed
       }
     }
@@ -357,10 +356,19 @@ export const sendUserMessage = async (text: string): Promise<void> => {
     
   } catch (error) {
     console.error('Error sending message:', error);
-    // Update assistant message with error
-    addMessage({
-      role: 'assistant',
-      content: 'Sorry, I encountered an error. Please try again.'
-    });
+    const activeConversation = $activeConversation.get();
+    const content = JSON.stringify({'text': 'Sorry, I encountered an error. Please try again.'});
+    const streamingMessageId = activeConversation ? activeConversation.messages.find(msg => msg.role === 'assistant' && msg.isStreaming)?.id : null;
+    console.log('streamingMessageId', streamingMessageId)
+    if (streamingMessageId) {
+      updateMessage(streamingMessageId, content, false);
+    } else {
+      addMessage({
+        role: 'assistant',
+        content
+      });
+    }
+
+
   }
 };

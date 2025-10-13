@@ -48,12 +48,24 @@ export interface RagTool {
   instance?: any; // AI SDK tool instance
 }
 
+export interface SpecializedAgent {
+  id: string;
+  name: string;
+  description: string;
+  system: string; // System prompt for the agent
+  outputSchema?: z.ZodObject<any>; // Zod schema for output validation
+  toolIds?: string[]; // IDs of tools this agent can use
+  specializedAgentIds?: string[]; // IDs of other specialized agents this agent can use
+  instance?: any; // AI SDK tool instance
+}
+
 export interface DirectorAgent {
   id: string;
   name: string;
   description: string;
   system: string;
   toolIds?: string[]; // IDs de las tools que puede usar
+  specializedAgentIds?: string[]; // IDs of specialized agents this agent can use
   instance?: Agent<any, any, any>;
 }
 

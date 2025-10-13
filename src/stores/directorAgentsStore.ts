@@ -5,6 +5,7 @@ import { $selectedLanguageModel, $isConnected } from '@/stores/settingsStore';
 import { createModelInstance } from '@/utils/modelUtils';
 import { DirectorAgent } from '@/types/types';
 import { getToolsByIds } from '@/stores/toolsStore';
+import { getSpecializedAgentsByIds } from '@/stores/specializedAgentsStore';
 import { z } from 'zod';
 
 let modelIdInitialized = '';
@@ -28,7 +29,6 @@ export const getDirectorById = (agentId: string) => {
 
 // Action functions
 export const setActiveDirectorAgent = (agentId: string) => {
-  console.log('setActiveDirectorAgent', agentId);
   $activeDirectorAgent.set(agentId);
 };
 
@@ -52,10 +52,16 @@ export const initializeDirectorAgents = async () => {
         // Get tools for this director
         const agentTools = getToolsByIds(director.toolIds || []);
         
+        // Get specialized agents for this director
+        const specializedAgentTools = getSpecializedAgentsByIds(director.specializedAgentIds || []);
+        
+        // Combine all tools
+        const allTools = [...agentTools, ...specializedAgentTools];
+        
         const agentInstance = new Agent({
           model: modelInstance,
           system: director.system,
-          tools: agentTools.reduce((acc, tool) => {
+          tools: allTools.reduce((acc, tool) => {
             acc[tool.id] = tool;
             return acc;
           }, {}) as any,
@@ -66,7 +72,7 @@ export const initializeDirectorAgents = async () => {
           }),
           stopWhen: stepCountIs(20)
         });
-        console.log('Agent instance:', agentInstance);
+        
         return {
           ...director,
           instance: agentInstance
@@ -82,7 +88,6 @@ export const initializeDirectorAgents = async () => {
     $directorAgentsData.set(updatedDirectors);
 
     modelIdInitialized = $selectedLanguageModel.get();
-    console.log('Director agents initialized', updatedDirectors);
   } catch (error) {
     console.error('Failed to initialize director agents:', error);
   }

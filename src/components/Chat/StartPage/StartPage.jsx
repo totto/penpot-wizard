@@ -5,7 +5,7 @@ import {
   setActiveConversation,
 } from '@/stores/conversationsStore'
 import { $activeDirectorAgent } from '@/stores/directorAgentsStore'
-import styles from './ChatMessages.module.css'
+import styles from './StartPage.module.css'
 
 function StartPage() {
   const activeDirectorAgent = useStore($activeDirectorAgent)
@@ -25,7 +25,7 @@ function StartPage() {
   }
 
   return (
-    <div className={styles.chatMessages}>
+    <div className={styles.startPageContainer}>
       <div className={styles.emptyState}>
         <div className={styles.emptyContent}>
           <h2 className={styles.emptyTitle}>Start a Conversation</h2>
@@ -72,3 +72,4 @@ function StartPage() {
 }
 
 export default StartPage
+

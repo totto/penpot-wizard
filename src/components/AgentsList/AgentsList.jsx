@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import AgentCard from '@/components/AgentsList/AgentCard/AgentCard';
 import { $directorAgentsData, $activeDirectorAgent, setActiveDirectorAgent } from '@/stores/directorAgentsStore';
@@ -11,10 +10,6 @@ function AgentsList() {
   const handleAgentSelect = (agentId) => {
     setActiveDirectorAgent(agentId);
   };
-
-  useEffect(() => {
-    console.log("component rerendered");
-  });
   return (
     <div className={styles.agentsContent}>
       <div className={styles.agentsHeader}>

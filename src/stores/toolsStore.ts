@@ -30,6 +30,7 @@ export const getToolsByIds = (toolIds: string[]) => {
 // Initialize tools based on their type
 const initializeFunctionTool = async (toolDef: FunctionTool): Promise<FunctionTool> => {
   const toolInstance = tool({
+    id: toolDef.id as `${string}.${string}`,
     name: toolDef.name,
     description: toolDef.description,
     inputSchema: toolDef.inputSchema,
@@ -47,6 +48,7 @@ const initializeRagTool = async (toolDef: RagTool): Promise<RagTool> => {
   const dbInstance = await initializeDataBase(toolDef.ragContentFile);
 
   const toolInstance = tool({
+    id: toolDef.id as `${string}.${string}`,
     name: toolDef.name,
     description: toolDef.description,
     inputSchema: z.object({
@@ -144,7 +146,6 @@ export const initializeTools = async () => {
     
     $toolsData.set(allTools);
     toolsInitialized = true;
-    console.log('Tools initialized', allTools);
   } catch (error) {
     console.error('Failed to initialize tools:', error);
   }
