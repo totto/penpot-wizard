@@ -1,0 +1,178 @@
+.switcher {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  background: var(--color-background-tertiary, #f8f9fa);
+  border: 1px solid var(--color-border, #dee2e6);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 320px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.header {
+  margin-bottom: 12px;
+}
+
+.label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary, #212529);
+  margin-bottom: 8px;
+}
+
+.toggleGroup {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.toggleButton {
+  flex: 1;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border, #dee2e6);
+  background: var(--color-background-primary, #ffffff);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary, #6c757d);
+  transition: all 0.2s ease;
+}
+
+.toggleButton:hover {
+  border-color: var(--color-primary, #007bff);
+  color: var(--color-primary, #007bff);
+}
+
+.toggleButton.active {
+  background: var(--color-primary, #007bff);
+  border-color: var(--color-primary, #007bff);
+  color: white;
+  font-weight: 600;
+}
+
+.toggleButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.info {
+  padding: 8px 12px;
+  background: var(--color-background-secondary, #e9ecef);
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.info span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metrics {
+  border-top: 1px solid var(--color-border, #dee2e6);
+  padding-top: 12px;
+}
+
+.metricsTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary, #212529);
+  margin-bottom: 8px;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.metricItem {
+  background: var(--color-background-secondary, #e9ecef);
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.metricLabel {
+  color: var(--color-text-secondary, #6c757d);
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+
+.metricValue {
+  color: var(--color-text-primary, #212529);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.metricValue.highlight {
+  color: var(--color-success, #28a745);
+}
+
+.separator {
+  height: 1px;
+  background: var(--color-border, #dee2e6);
+  margin: 12px 0;
+}
+
+.stats {
+  font-size: 11px;
+  color: var(--color-text-secondary, #6c757d);
+}
+
+.stats strong {
+  color: var(--color-text-primary, #212529);
+  font-weight: 600;
+}
+
+.closeButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary, #6c757d);
+  font-size: 20px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: var(--color-background-secondary, #e9ecef);
+  color: var(--color-text-primary, #212529);
+}
+
+.collapsed {
+  min-width: auto;
+  padding: 8px;
+}
+
+.expandButton {
+  background: var(--color-primary, #007bff);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.expandButton:hover {
+  background: var(--color-primary-dark, #0056b3);
+}
+

@@ -69,3 +69,44 @@ export interface DirectorAgent {
   instance?: Agent<any, any, any>;
 }
 
+/**
+ * Message and Conversation types
+ */
+
+// Message interface (used in both V1 and V2)
+export interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  isStreaming?: boolean;
+}
+
+// Full conversation with messages (used in V1)
+export interface Conversation {
+  id: string;
+  directorAgentId: string;
+  messages: Message[];
+  summary: string | null;
+  createdAt: Date;
+}
+
+// Conversation metadata without messages (used in V2)
+// This allows loading conversation list without loading all messages
+export interface ConversationMetadata {
+  id: string;
+  directorAgentId: string;
+  summary: string | null;
+  createdAt: Date;
+  messageCount: number; // Useful to know if conversation has messages
+}
+
+// Streaming message (used in V2)
+// Represents a message currently being streamed from the AI
+export interface StreamingMessage {
+  id: string;
+  role: 'assistant';
+  content: string;
+  isStreaming: boolean;
+}
+
