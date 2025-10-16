@@ -66,24 +66,24 @@ npm run preview
 This project demonstrates Zustand usage with a simple counter store:
 
 ```javascript
-import { create } from 'zustand'
+import { create } from "zustand";
 
 const useCounterStore = create((set) => ({
   count: 0,
   increment: () => set((state) => ({ count: state.count + 1 })),
   decrement: () => set((state) => ({ count: state.count - 1 })),
   reset: () => set({ count: 0 }),
-}))
+}));
 ```
 
 ### Using the Store in Components
 
 ```javascript
-import useCounterStore from './stores/useCounterStore'
+import useCounterStore from "./stores/useCounterStore";
 
 function MyComponent() {
-  const { count, increment, decrement, reset } = useCounterStore()
-  
+  const { count, increment, decrement, reset } = useCounterStore();
+
   return (
     <div>
       <p>Count: {count}</p>
@@ -91,7 +91,7 @@ function MyComponent() {
       <button onClick={decrement}>-</button>
       <button onClick={reset}>Reset</button>
     </div>
-  )
+  );
 }
 ```
 

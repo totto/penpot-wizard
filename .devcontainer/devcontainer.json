@@ -1,0 +1,50 @@
+{
+  "name": "React Zustand Vite Development",
+  // Use a Debian-based Node.js image as the base instead of Alpine
+  // Updated to Node.js 22.20.0 to meet Vite's requirements (20.19+ or 22.12+)
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22.20.0-bullseye",
+
+  // Run npm install after creating the container
+  "postCreateCommand": "npm install",
+
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.aws,target=/home/node/.aws,type=bind,consistency=cached",
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/node/.ssh,type=bind,consistency=cached"
+  ],
+
+  // VS Code-specific customizations: React, TypeScript, ESLint, Prettier, and testing support
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bradlc.vscode-tailwindcss", // Tailwind CSS IntelliSense
+        "ms-vscode.vscode-typescript-next", // TypeScript support
+        "dbaeumer.vscode-eslint", // ESLint for code linting
+        "esbenp.prettier-vscode", // Prettier for code formatting
+        "ms-vscode.vscode-json", // JSON language support
+        "vitest.explorer", // Vitest test explorer
+        "ms-vscode.test-adapter-converter", // Test adapter
+        "amazonwebservices.aws-toolkit-vscode", // AWS Toolkit for VS Code
+        "ms-vscode.vscode-js-debug" // JavaScript debugger
+      ],
+      "settings": {
+        "typescript.preferences.importModuleSpecifier": "relative",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "emmet.includeLanguages": {
+          "javascript": "javascriptreact",
+          "typescript": "typescriptreact"
+        },
+        "files.associations": {
+          "*.jsx": "javascriptreact",
+          "*.tsx": "typescriptreact"
+        }
+      }
+    }
+  }
+
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root"
+}
