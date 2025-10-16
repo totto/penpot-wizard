@@ -35,6 +35,61 @@
   height: 1rem;
 }
 
+.jsonAgentsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.jsonButtonsContainer {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.jsonButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--background-tertiary);
+  color: var(--foreground-primary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.jsonButton:hover {
+  background-color: var(--background-quaternary);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.jsonButton:active {
+  transform: translateY(1px);
+}
+
+.jsonButtonIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.jsonAgentsDescription {
+  font-size: 0.75rem;
+  color: var(--foreground-secondary);
+  margin: 0;
+  font-style: italic;
+}
+
 .section {
   display: flex;
   flex-direction: column;

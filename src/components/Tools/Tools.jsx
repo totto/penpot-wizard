@@ -89,6 +89,13 @@ function Tools() {
       javascript_code: tool.javascript_code,
     });
     setShowCreateForm(true);
+    // Scroll to the form
+    setTimeout(() => {
+      const formElement = document.querySelector(`.${styles.section}`);
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
   };
 
   const handleUpdateTool = () => {
@@ -144,7 +151,16 @@ function Tools() {
       <div className={styles.createToolSection}>
         <button
           className={styles.createToolButton}
-          onClick={() => setShowCreateForm(!showCreateForm)}
+          onClick={() => {
+            setEditingTool(null);
+            setNewTool({
+              name: "",
+              technical_name: "",
+              description: "",
+              javascript_code: "",
+            });
+            setShowCreateForm(!showCreateForm);
+          }}
         >
           <PlusIcon className={styles.plusIcon} />
           Create New Tool
@@ -156,6 +172,11 @@ function Tools() {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>
             {editingTool ? "Edit Tool" : "Create New Tool"}
+            {editingTool && (
+              <span className={styles.editingIndicator}>
+                Editing: {editingTool.name}
+              </span>
+            )}
           </h3>
           <p className={styles.sectionDescription}>
             {editingTool
@@ -163,70 +184,74 @@ function Tools() {
               : "Define a new tool with its properties and JavaScript implementation."}
           </p>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="tool-name" className={styles.label}>
-              Tool Name <span className={styles.required}>*</span>
-            </label>
-            <input
-              id="tool-name"
-              type="text"
-              value={newTool.name}
-              onChange={(e) => handleInputChange("name", e.target.value)}
-              className={styles.input}
-              placeholder="e.g., Draw Circle"
-            />
-          </div>
+          <div className={styles.formFieldsContainer}>
+            <div className={styles.formGroup}>
+              <label htmlFor="tool-name" className={styles.label}>
+                Tool Name <span className={styles.required}>*</span>
+              </label>
+              <input
+                id="tool-name"
+                type="text"
+                value={newTool.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                className={styles.input}
+                placeholder="e.g., Draw Circle"
+              />
+            </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="tool-technical-name" className={styles.label}>
-              Technical Name <span className={styles.required}>*</span>
-            </label>
-            <input
-              id="tool-technical-name"
-              type="text"
-              value={newTool.technical_name}
-              onChange={(e) =>
-                handleInputChange("technical_name", e.target.value)
-              }
-              className={styles.input}
-              placeholder="e.g., draw_circle"
-            />
-            <small className={styles.helpText}>
-              Used internally by the system (lowercase, underscores)
-            </small>
-          </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="tool-technical-name" className={styles.label}>
+                Technical Name <span className={styles.required}>*</span>
+              </label>
+              <input
+                id="tool-technical-name"
+                type="text"
+                value={newTool.technical_name}
+                onChange={(e) =>
+                  handleInputChange("technical_name", e.target.value)
+                }
+                className={styles.input}
+                placeholder="e.g., draw_circle"
+              />
+              <small className={styles.helpText}>
+                Used internally by the system (lowercase, underscores)
+              </small>
+            </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="tool-description" className={styles.label}>
-              Description <span className={styles.required}>*</span>
-            </label>
-            <textarea
-              id="tool-description"
-              value={newTool.description}
-              onChange={(e) => handleInputChange("description", e.target.value)}
-              className={styles.textarea}
-              placeholder="Describe what this tool does..."
-              rows={3}
-            />
-          </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="tool-description" className={styles.label}>
+                Description <span className={styles.required}>*</span>
+              </label>
+              <textarea
+                id="tool-description"
+                value={newTool.description}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
+                className={styles.textarea}
+                placeholder="Describe what this tool does..."
+                rows={3}
+              />
+            </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="tool-javascript" className={styles.label}>
-              JavaScript Code <span className={styles.required}>*</span>
-            </label>
-            <textarea
-              id="tool-javascript"
-              value={newTool.javascript_code}
-              onChange={(e) =>
-                handleInputChange("javascript_code", e.target.value)
-              }
-              className={styles.codeTextarea}
-              placeholder="// Enter your JavaScript code here..."
-              rows={8}
-            />
-            <small className={styles.helpText}>
-              JavaScript code that implements the tool functionality
-            </small>
+            <div className={styles.formGroup}>
+              <label htmlFor="tool-javascript" className={styles.label}>
+                JavaScript Code <span className={styles.required}>*</span>
+              </label>
+              <textarea
+                id="tool-javascript"
+                value={newTool.javascript_code}
+                onChange={(e) =>
+                  handleInputChange("javascript_code", e.target.value)
+                }
+                className={styles.codeTextarea}
+                placeholder="// Enter your JavaScript code here..."
+                rows={8}
+              />
+              <small className={styles.helpText}>
+                JavaScript code that implements the tool functionality
+              </small>
+            </div>
           </div>
 
           <div className={styles.formGroup}>
@@ -270,7 +295,12 @@ function Tools() {
         ) : (
           <div className={styles.toolsList}>
             {tools.map((tool) => (
-              <div key={tool.id} className={styles.toolItem}>
+              <div
+                key={tool.id}
+                className={`${styles.toolItem} ${
+                  editingTool?.id === tool.id ? styles.editing : ""
+                }`}
+              >
                 <div className={styles.toolHeader}>
                   <button
                     className={styles.toolHeaderButton}

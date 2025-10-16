@@ -35,6 +35,61 @@
   height: 1rem;
 }
 
+.jsonToolsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.jsonButtonsContainer {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.jsonButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--background-tertiary);
+  color: var(--foreground-primary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.jsonButton:hover {
+  background-color: var(--background-quaternary);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.jsonButton:active {
+  transform: translateY(1px);
+}
+
+.jsonButtonIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.jsonToolsDescription {
+  font-size: 0.75rem;
+  color: var(--foreground-secondary);
+  margin: 0;
+  font-style: italic;
+}
+
 .section {
   display: flex;
   flex-direction: column;
@@ -62,6 +117,17 @@
   align-items: center;
   gap: 0.5rem;
   flex: 1;
+}
+
+.editingIndicator {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent-primary);
+  background-color: rgba(126, 255, 245, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--accent-primary);
+  margin-left: auto;
 }
 
 .sectionTitle::before {
@@ -101,6 +167,39 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  padding: 1rem;
+  background-color: var(--background-tertiary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.formGroup:last-of-type {
+  margin-bottom: 0;
+}
+
+.formFieldsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background-color: var(--background-tertiary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.formFieldsContainer .formGroup {
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  margin-bottom: 0;
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--background-quaternary);
+}
+
+.formFieldsContainer .formGroup:last-child {
+  border-bottom: none;
 }
 
 .label {
@@ -120,14 +219,15 @@
 .input,
 .textarea,
 .codeTextarea {
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem;
   border: 1px solid var(--background-quaternary);
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  background-color: var(--background-secondary);
+  background-color: var(--background-primary);
   color: var(--foreground-primary);
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   font-family: inherit;
+  width: 100%;
 }
 
 .input:focus,
@@ -223,6 +323,12 @@
 
 .toolItem:hover {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toolItem.editing {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(126, 255, 245, 0.2);
+  background-color: rgba(126, 255, 245, 0.05);
 }
 
 .toolHeader {
