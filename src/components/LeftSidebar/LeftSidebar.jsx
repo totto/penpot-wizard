@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
-import SettingsForm from '../SettingsForm/SettingsForm'
-import AgentsList from '../AgentsList/AgentsList'
-import { useSettingsStore } from '../../stores/settingsStore'
-import styles from './LeftSidebar.module.css'
+import SettingsForm from '@/components/SettingsForm/SettingsForm'
+import AgentsList from '@/components/AgentsList/AgentsList'
+import { useStore } from '@nanostores/react'
+import { $openaiApiKey, $isConnected } from '@/stores/settingsStore'
+import styles from '@/components/LeftSidebar/LeftSidebar.module.css'
 
 function LeftSidebar() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState('agents')
-  const { openaiApiKey, getIsConnected } = useSettingsStore()
-  
-  // Get computed connection status from settings store
-  const isConnected = getIsConnected()
+  const openaiApiKey = useStore($openaiApiKey)
+  const isConnected = useStore($isConnected)
 
   // Check if configuration is complete
   const isConfigComplete = Boolean(openaiApiKey?.trim())

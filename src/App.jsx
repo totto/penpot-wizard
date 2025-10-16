@@ -1,10 +1,11 @@
 import './App.css'
-import LeftSidebar from './components/LeftSidebar/LeftSidebar'
-import Chat from './components/Chat/Chat'
-import { usePenpotStore } from './stores/penpotStore'
+import LeftSidebar from '@/components/LeftSidebar/LeftSidebar'
+import Chat from '@/components/Chat/Chat'
+import { useStore } from '@nanostores/react'
+import { $penpotTheme } from '@/stores/penpotStore'
 
 function App() {
-  const { penpotTheme } = usePenpotStore();
+  const penpotTheme = useStore($penpotTheme);
 
   return (
     <div className="app" data-theme={penpotTheme}>

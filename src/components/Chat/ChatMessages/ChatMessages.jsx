@@ -1,41 +1,41 @@
-import { useState } from 'react'
+import { useRef, useEffect } from 'react'
+import { useStore } from '@nanostores/react'
+import { $activeConversationMessages } from '@/stores/activeConversationStore'
+import { $streamingMessage } from '@/stores/streamingMessageStore'
+import MessageHistory from './MessageHistory'
+import StreamingMessageView from './StreamingMessageView'
 import styles from './ChatMessages.module.css'
 
+/**
+ * ChatMessages Component
+ * Optimized version that separates static history from streaming message
+ * 
+ * Performance benefits:
+ * - MessageHistory is memoized and doesn't re-render during streaming
+ * - Only StreamingMessageView re-renders with each chunk
+ */
 function ChatMessages() {
-  const [messages] = useState([
-    {
-      id: 1,
-      type: 'assistant',
-      content: 'Hello! I\'m your AI assistant. How can I help you today?',
-      timestamp: new Date().toLocaleTimeString()
-    },
-    {
-      id: 2,
-      type: 'user',
-      content: 'This is a sample user message to demonstrate the chat interface.',
-      timestamp: new Date().toLocaleTimeString()
+  const messages = useStore($activeConversationMessages)
+  const streamingMessage = useStore($streamingMessage)
+  const messagesContainerRef = useRef(null)
+
+  // Auto-scroll to bottom when messages change or streaming updates
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
     }
-  ])
+  }, [messages, streamingMessage])
 
   return (
-    <div className={styles.chatMessages}>
-      <div className={styles.messagesContainer}>
-        {messages.map((message) => (
-          <div 
-            key={message.id} 
-            className={`${styles.message} ${styles[message.type]}`}
-          >
-            <div className={styles.messageContent}>
-              {message.content}
-            </div>
-            <div className={styles.timestamp}>
-              {message.timestamp}
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className={styles.chatMessages} ref={messagesContainerRef}>
+      {/* Static message history - doesn't re-render during streaming */}
+      <MessageHistory messages={messages} />
+      
+      {/* Streaming message - only this re-renders during streaming */}
+      <StreamingMessageView message={streamingMessage} />
     </div>
   )
 }
 
 export default ChatMessages
+

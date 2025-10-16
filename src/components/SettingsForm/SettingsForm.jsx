@@ -1,24 +1,34 @@
-import { useSettingsStore } from '../../stores/settingsStore';
-import styles from './SettingsForm.module.css';
+import { useStore } from '@nanostores/react';
+import {
+  $openaiApiKey,
+  $openrouterApiKey,
+  $selectedLanguageModel,
+  $availableModels,
+  $isLoadingModels,
+  $lastFetchTime,
+  $isValidatedOpenai,
+  $isValidatedOpenrouter,
+  $openaiError,
+  $openrouterError,
+  setOpenaiApiKey,
+  setOpenrouterApiKey,
+  setSelectedLanguageModel,
+  checkApiKeys,
+  clearErrors,
+} from '../../stores/settingsStore';
+import styles from '@/components/SettingsForm/SettingsForm.module.css';
 
 function SettingsForm() {
-  const {
-    openaiApiKey,
-    openrouterApiKey,
-    selectedLanguageModel,
-    availableModels,
-    isLoadingModels,
-    lastFetchTime,
-    isValidatedOpenai,
-    isValidatedOpenrouter,
-    openaiError,
-    openrouterError,
-    setOpenaiApiKey,
-    setOpenrouterApiKey,
-    setSelectedLanguageModel,
-    checkApiKeys,
-    clearErrors,
-  } = useSettingsStore();
+  const openaiApiKey = useStore($openaiApiKey);
+  const openrouterApiKey = useStore($openrouterApiKey);
+  const selectedLanguageModel = useStore($selectedLanguageModel);
+  const availableModels = useStore($availableModels);
+  const isLoadingModels = useStore($isLoadingModels);
+  const lastFetchTime = useStore($lastFetchTime);
+  const isValidatedOpenai = useStore($isValidatedOpenai);
+  const isValidatedOpenrouter = useStore($isValidatedOpenrouter);
+  const openaiError = useStore($openaiError);
+  const openrouterError = useStore($openrouterError);
 
   // Remove automatic fetching on mount
   // useEffect(() => {
@@ -35,6 +45,14 @@ function SettingsForm() {
 
   const handleModelChange = (e) => {
     setSelectedLanguageModel(e.target.value);
+  };
+
+  const handleCheckApiKeys = () => {
+    checkApiKeys();
+  };
+
+  const handleClearErrors = () => {
+    clearErrors();
   };
 
   return (
@@ -93,7 +111,7 @@ function SettingsForm() {
           <div className={styles.buttonRow}>
             <button
               type="button"
-              onClick={checkApiKeys}
+              onClick={handleCheckApiKeys}
               disabled={isLoadingModels || (!openaiApiKey?.trim() && !openrouterApiKey?.trim())}
               className={styles.checkButton}
             >
@@ -102,7 +120,7 @@ function SettingsForm() {
             {(openaiError || openrouterError) && (
               <button
                 type="button"
-                onClick={clearErrors}
+                onClick={handleClearErrors}
                 className={styles.clearButton}
               >
                 Clear Errors

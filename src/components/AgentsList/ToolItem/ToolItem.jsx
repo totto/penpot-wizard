@@ -1,4 +1,4 @@
-import styles from './ToolItem.module.css';
+import styles from '@/components/AgentsList/ToolItem/ToolItem.module.css';
 
 function ToolItem({ tool }) {
   const getTypeIcon = (type) => {

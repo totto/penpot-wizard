@@ -62,8 +62,8 @@ export interface FunctionTool {
   id: string;
   name: string;
   description: string;
-  inputSchema: z.ZodObject<any>; // Zod schema for input validation
-  function: (input: any) => any | Promise<any>; // Function for FUNCTION type tools
+  inputSchema: z.ZodObject<any>; // Zod schema para validar inputs
+  function: (input: any) => any | Promise<any>; // Función para tools tipo FUNCTION
   instance?: any; // AI SDK tool instance
 }
 
@@ -92,7 +92,7 @@ export interface DirectorAgent {
   name: string;
   description: string;
   system: string;
-  toolIds?: string[]; // IDs of tools this agent can use
+  toolIds?: string[]; // IDs de las tools que puede usar
   specializedAgentIds?: string[]; // IDs of specialized agents this agent can use
   instance?: Agent<any, any, any>;
 }

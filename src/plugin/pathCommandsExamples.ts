@@ -2,22 +2,22 @@ import type { PathCommand } from '@penpot/plugin-types';
 import { pathCommandsToSvgString } from './utils';
 
 /**
- * Examples of using PathCommand[] -> SVG string parser
+ * Ejemplos de uso del parser PathCommand[] -> SVG string
  * 
- * These examples show how to create different shapes using PathCommand[]
- * and convert them to SVG strings that Penpot can use.
+ * Estos ejemplos muestran cómo crear diferentes formas usando PathCommand[]
+ * y convertirlas a strings SVG que Penpot puede usar.
  */
 
-// Example 1: Triangle
+// Ejemplo 1: Triángulo
 export const triangleExample: PathCommand[] = [
   { command: 'move-to', params: { x: 50, y: 50 } },
   { command: 'line-to', params: { x: 150, y: 50 } },
   { command: 'line-to', params: { x: 100, y: 150 } },
   { command: 'close-path' },
 ];
-// Result: "M50,50 L150,50 L100,150 Z"
+// Resultado: "M50,50 L150,50 L100,150 Z"
 
-// Example 2: Rectangle
+// Ejemplo 2: Rectángulo
 export const rectangleExample: PathCommand[] = [
   { command: 'move-to', params: { x: 0, y: 0 } },
   { command: 'line-to', params: { x: 100, y: 0 } },
@@ -25,9 +25,9 @@ export const rectangleExample: PathCommand[] = [
   { command: 'line-to', params: { x: 0, y: 50 } },
   { command: 'close-path' },
 ];
-// Result: "M0,0 L100,0 L100,50 L0,50 Z"
+// Resultado: "M0,0 L100,0 L100,50 L0,50 Z"
 
-// Example 3: Bezier Curve (simplified heart)
+// Ejemplo 3: Curva Bezier (corazón simplificado)
 export const heartExample: PathCommand[] = [
   { command: 'move-to', params: { x: 50, y: 30 } },
   { command: 'curve-to', params: { 
@@ -53,7 +53,7 @@ export const heartExample: PathCommand[] = [
   { command: 'close-path' },
 ];
 
-// Example 4: 5-pointed star
+// Ejemplo 4: Estrella de 5 puntas
 export const starExample: PathCommand[] = [
   { command: 'move-to', params: { x: 50, y: 0 } },
   { command: 'line-to', params: { x: 61, y: 35 } },
@@ -68,7 +68,7 @@ export const starExample: PathCommand[] = [
   { command: 'close-path' },
 ];
 
-// Example 5: Zigzag line (without closing)
+// Ejemplo 5: Línea en zigzag (sin cerrar)
 export const zigzagExample: PathCommand[] = [
   { command: 'move-to', params: { x: 0, y: 50 } },
   { command: 'line-to', params: { x: 25, y: 25 } },
@@ -76,9 +76,9 @@ export const zigzagExample: PathCommand[] = [
   { command: 'line-to', params: { x: 75, y: 25 } },
   { command: 'line-to', params: { x: 100, y: 50 } },
 ];
-// No close-path, remains open
+// No tiene close-path, queda abierto
 
-// Example 6: Elliptical arc
+// Ejemplo 6: Arco elíptico
 export const arcExample: PathCommand[] = [
   { command: 'move-to', params: { x: 10, y: 50 } },
   { command: 'elliptical-arc', params: {
@@ -92,15 +92,15 @@ export const arcExample: PathCommand[] = [
   }},
 ];
 
-// Helper function to test the examples
+// Función helper para probar los ejemplos
 export function testPathExamples() {
   console.log('=== PATH COMMAND EXAMPLES ===\n');
   
-  console.log('Triangle:', pathCommandsToSvgString(triangleExample));
-  console.log('Rectangle:', pathCommandsToSvgString(rectangleExample));
-  console.log('Heart:', pathCommandsToSvgString(heartExample));
-  console.log('Star:', pathCommandsToSvgString(starExample));
+  console.log('Triángulo:', pathCommandsToSvgString(triangleExample));
+  console.log('Rectángulo:', pathCommandsToSvgString(rectangleExample));
+  console.log('Corazón:', pathCommandsToSvgString(heartExample));
+  console.log('Estrella:', pathCommandsToSvgString(starExample));
   console.log('Zigzag:', pathCommandsToSvgString(zigzagExample));
-  console.log('Arc:', pathCommandsToSvgString(arcExample));
+  console.log('Arco:', pathCommandsToSvgString(arcExample));
 }
 

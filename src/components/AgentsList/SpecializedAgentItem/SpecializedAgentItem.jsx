@@ -1,4 +1,4 @@
-import styles from './SpecializedAgentItem.module.css';
+import styles from '@/components/AgentsList/SpecializedAgentItem/SpecializedAgentItem.module.css';
 
 function SpecializedAgentItem({ agent }) {
   return (

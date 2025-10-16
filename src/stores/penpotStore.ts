@@ -1,10 +1,5 @@
-import { create } from 'zustand';
-import { Theme, PluginToAppMessage } from '../types';
-
-interface PenpotStore {
-  penpotTheme: Theme;
-  setPenpotTheme: (theme: Theme) => void;
-}
+import { atom } from 'nanostores';
+import { Theme, PluginMessageType } from '@/types/types';
 
 // Initialize theme from URL parameters
 const getInitialTheme = (): Theme => {
@@ -13,15 +8,13 @@ const getInitialTheme = (): Theme => {
   return (themeParam === 'dark' || themeParam === 'light') ? themeParam : 'light';
 };
 
-export const usePenpotStore = create<PenpotStore>((set) => ({
-  penpotTheme: getInitialTheme(),
-  setPenpotTheme: (theme) => set({ penpotTheme: theme }),
-}));
+// Create the penpot theme atom
+export const $penpotTheme = atom<Theme>(getInitialTheme());
 
 // Listen for theme change messages from Penpot app
 window.addEventListener('message', (event) => {
   const { type, payload } = event.data;
-  if (type === PluginToAppMessage.THEME_CHANGE && payload?.theme) {
-    usePenpotStore.getState().setPenpotTheme(payload.theme);
+  if (type === PluginMessageType.THEME_CHANGE && payload?.theme) {
+    $penpotTheme.set(payload.theme);
   }
 });

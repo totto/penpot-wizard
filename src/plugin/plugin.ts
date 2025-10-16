@@ -81,7 +81,7 @@ penpot.ui.onMessage((message: any) => {
             break;
           case PenpotShapeType.PATH:
             newShape = penpot.createPath();
-            // params.content must be an SVG string
+            // params.content debe ser un string SVG
             newShape.content = pathCommandsToSvgString(params.content) as any;
             break;
           case PenpotShapeType.TEXT:
