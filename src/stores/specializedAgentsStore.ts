@@ -36,7 +36,7 @@ const initializeSpecializedAgent = async (agentDef: SpecializedAgent): Promise<S
   
   // Get tools for this specialized agent
   const agentTools = getToolsByIds(agentDef.toolIds || []);
-  
+
   // Get other specialized agents this agent can use
   // Note: This creates a potential for circular dependencies, which should be avoided
   const specializedAgentTools = getSpecializedAgentsByIds(agentDef.specializedAgentIds || []);
@@ -69,7 +69,6 @@ const initializeSpecializedAgent = async (agentDef: SpecializedAgent): Promise<S
     execute: async ({ query }) => {
       try {
         const result = await agentInstance.generate({ messages: [{ role: 'user', content: query }] });
-        console.log('specialized agent result: ', result)
         return result.text;
       } catch (error) {
         console.error(`Error executing specialized agent ${agentDef.id}:`, error);
@@ -111,7 +110,7 @@ export const initializeSpecializedAgents = async () => {
         }
       })
     );
-    
+    console.log('Initialized specialized agents: ', initializedAgents);
     $specializedAgentsData.set(initializedAgents);
     specializedAgentsInitialized = true;
   } catch (error) {

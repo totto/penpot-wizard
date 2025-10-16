@@ -53,7 +53,7 @@ import {
  * @param directorAgentId - The director agent ID
  * @returns The new conversation ID
  */
-export const createNewConversationV2 = async (directorAgentId: string): Promise<string> => {
+export const createNewConversation = async (directorAgentId: string): Promise<string> => {
   // 1. Create metadata
   const conversationId = createConversationMetadata(directorAgentId);
 
@@ -64,7 +64,7 @@ export const createNewConversationV2 = async (directorAgentId: string): Promise<
   loadActiveConversation(conversationId);
 
   // 4. Generate greeting message
-  await generateGreetingMessageV2(conversationId);
+  await generateGreetingMessage(conversationId);
 
   return conversationId;
 };
@@ -73,7 +73,7 @@ export const createNewConversationV2 = async (directorAgentId: string): Promise<
  * Generates a greeting message for a new conversation
  * @param conversationId - The conversation ID
  */
-const generateGreetingMessageV2 = async (conversationId: string): Promise<void> => {
+const generateGreetingMessage = async (conversationId: string): Promise<void> => {
   const metadata = getMetadataById(conversationId);
 
   if (!metadata) {
@@ -118,9 +118,9 @@ const generateGreetingMessageV2 = async (conversationId: string): Promise<void> 
         fullResponse += chunk.text;
         updateStreamingContent(fullResponse);
       } else if (chunk.type === 'tool-call') {
-        console.log('Tool call during greeting:', chunk);
+        //console.log('Tool call during greeting:', chunk);
       } else if (chunk.type === 'tool-result') {
-        console.log('Tool result during greeting:', chunk);
+        //console.log('Tool result during greeting:', chunk);
       }
     }
 
@@ -147,7 +147,7 @@ const generateGreetingMessageV2 = async (conversationId: string): Promise<void> 
  * Sets a conversation as active and loads its messages
  * @param conversationId - The conversation ID
  */
-export const setActiveConversationV2 = (conversationId: string): void => {
+export const setActiveConversation = (conversationId: string): void => {
   const metadata = getMetadataById(conversationId);
 
   if (!metadata) {
@@ -163,7 +163,7 @@ export const setActiveConversationV2 = (conversationId: string): void => {
  * Sends a user message and streams the assistant's response
  * @param text - The user's message text
  */
-export const sendUserMessageV2 = async (text: string): Promise<void> => {
+export const sendUserMessage = async (text: string): Promise<void> => {
   const activeConversation = $activeConversationFull.get();
   const activeDirectorAgent = $activeDirectorAgent.get();
 
@@ -226,9 +226,9 @@ export const sendUserMessageV2 = async (text: string): Promise<void> => {
         fullResponse += chunk.text;
         updateStreamingContent(fullResponse);
       } else if (chunk.type === 'tool-call') {
-        console.log('Tool call:', chunk);
+        //console.log('Tool call:', chunk);
       } else if (chunk.type === 'tool-result') {
-        console.log('Tool result:', chunk);
+        //console.log('Tool result:', chunk);
       }
     }
 
@@ -250,7 +250,7 @@ export const sendUserMessageV2 = async (text: string): Promise<void> => {
     if (!activeConversation.summary && currentMessages.length <= 2) {
       // Wait a bit for the message to be fully added
       setTimeout(() => {
-        generateConversationSummaryV2(activeConversation.id);
+        generateConversationSummary(activeConversation.id);
       }, 1000);
     }
   } catch (error) {
@@ -280,7 +280,7 @@ export const sendUserMessageV2 = async (text: string): Promise<void> => {
  * Generates a summary for a conversation
  * @param conversationId - The conversation ID
  */
-export const generateConversationSummaryV2 = async (conversationId: string): Promise<void> => {
+export const generateConversationSummary = async (conversationId: string): Promise<void> => {
   const metadata = getMetadataById(conversationId);
 
   if (!metadata || metadata.summary || metadata.messageCount < 2) {
@@ -329,7 +329,7 @@ export const generateConversationSummaryV2 = async (conversationId: string): Pro
  * Deletes a conversation (metadata and messages)
  * @param conversationId - The conversation ID
  */
-export const deleteConversationV2 = (conversationId: string): void => {
+export const deleteConversation = (conversationId: string): void => {
   // 1. Delete messages from storage
   deleteMessagesFromStorage(conversationId);
 
@@ -349,7 +349,7 @@ export const deleteConversationV2 = (conversationId: string): void => {
  * @param directorAgentId - The director agent ID
  * @returns Array of conversation metadata
  */
-export const getConversationsForDirectorV2 = (directorAgentId: string) => {
+export const getConversationsForDirector = (directorAgentId: string) => {
   return getMetadataByDirector(directorAgentId);
 };
 
@@ -357,7 +357,7 @@ export const getConversationsForDirectorV2 = (directorAgentId: string) => {
  * Attempts to switch conversation, checking for active streaming first
  * Returns true if switched immediately, false if pending user confirmation
  */
-export const trySetActiveConversationV2 = (conversationId: string): boolean => {
+export const trySetActiveConversation = (conversationId: string): boolean => {
   if (isStreaming()) {
     // Set pending action and show dialog
     setPendingAction({
@@ -368,7 +368,7 @@ export const trySetActiveConversationV2 = (conversationId: string): boolean => {
   }
   
   // No streaming, switch immediately
-  setActiveConversationV2(conversationId);
+  setActiveConversation(conversationId);
   return true;
 };
 
@@ -376,7 +376,7 @@ export const trySetActiveConversationV2 = (conversationId: string): boolean => {
  * Attempts to create new conversation, checking for active streaming first
  * Returns true if created immediately, false if pending user confirmation
  */
-export const tryCreateNewConversationV2 = async (directorAgentId: string): Promise<boolean> => {
+export const tryCreateNewConversation = async (directorAgentId: string): Promise<boolean> => {
   if (isStreaming()) {
     // Set pending action and show dialog
     setPendingAction({
@@ -387,7 +387,7 @@ export const tryCreateNewConversationV2 = async (directorAgentId: string): Promi
   }
   
   // No streaming, create immediately
-  await createNewConversationV2(directorAgentId);
+  await createNewConversation(directorAgentId);
   return true;
 };
 
@@ -438,13 +438,13 @@ export const handleCancelStreaming = (): void => {
     switch (action.type) {
       case 'switch_conversation':
         if (action.data?.conversationId) {
-          setActiveConversationV2(action.data.conversationId);
+          setActiveConversation(action.data.conversationId);
         }
         break;
       
       case 'new_conversation':
         if (action.data?.directorAgentId) {
-          createNewConversationV2(action.data.directorAgentId);
+          createNewConversation(action.data.directorAgentId);
         }
         break;
       

@@ -7,21 +7,27 @@ import {
   setActiveDirectorAgent,
   getDirectorById 
 } from '@/stores/directorAgentsStore'
+import { $conversationsMetadata } from '@/stores/conversationsMetadataStore'
+import { $activeConversationId } from '@/stores/activeConversationStore'
 import { 
-  $activeConversation,
-  createNewConversation,
-  setActiveConversation,
-  getConversationsForDirector 
-} from '@/stores/conversationsStore'
+  tryCreateNewConversation,
+  trySetActiveConversation,
+  getConversationsForDirector
+} from '@/stores/conversationActionsStore'
 import styles from './Header.module.css'
 
+/**
+ * Header Component
+ * Optimized version that uses only metadata for conversation list
+ */
 function Header() {
   const [showAgentDropdown, setShowAgentDropdown] = useState(false)
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false)
   
   const activeDirectorAgent = useStore($activeDirectorAgent)
   const agentsData = useStore($directorAgentsData)
-  const activeConversation = useStore($activeConversation)
+  const conversationsMetadata = useStore($conversationsMetadata)
+  const activeConversationId = useStore($activeConversationId)
   
   const activeDirector = activeDirectorAgent ? getDirectorById(activeDirectorAgent) : null
   const directorConversations = activeDirectorAgent ? getConversationsForDirector(activeDirectorAgent) : []
@@ -31,16 +37,24 @@ function Header() {
     setShowAgentDropdown(false)
   }
   
-  const handleNewConversation = () => {
+  const handleNewConversation = async () => {
     if (activeDirectorAgent) {
-      createNewConversation(activeDirectorAgent)
+      await tryCreateNewConversation(activeDirectorAgent)
     }
   }
   
   const handleConversationSelect = (conversationId) => {
-    setActiveConversation(conversationId)
-    setShowHistoryDropdown(false)
+    const switched = trySetActiveConversation(conversationId)
+    if (switched) {
+      setShowHistoryDropdown(false)
+    }
+    // If not switched, dialog will show and dropdown stays open until user decides
   }
+  
+  // Get current conversation metadata for display
+  const activeConversationMetadata = activeConversationId 
+    ? conversationsMetadata.find(m => m.id === activeConversationId)
+    : null
   
   return (
     <header className={styles.header}>
@@ -98,7 +112,7 @@ function Header() {
               onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
             >
               <span className={styles.historyText}>
-                {activeConversation ? 'Switch Conversation' : 'Conversations'}
+                {activeConversationMetadata ? 'Switch Conversation' : 'Conversations'}
               </span>
               <ChevronDownIcon className={styles.dropdownIcon} />
             </button>
@@ -108,7 +122,7 @@ function Header() {
                 {directorConversations.map(conversation => (
                   <button
                     key={conversation.id}
-                    className={`${styles.historyItem} ${conversation.id === activeConversation?.id ? styles.active : ''}`}
+                    className={`${styles.historyItem} ${conversation.id === activeConversationId ? styles.active : ''}`}
                     onClick={() => handleConversationSelect(conversation.id)}
                   >
                     <div className={styles.historyItemSummary}>
@@ -140,3 +154,4 @@ function Header() {
 }
 
 export default Header
+

@@ -6,30 +6,58 @@ import { z } from 'zod';
  * Message types for communication between Penpot plugin and app
  */
 
-// Enum for messages sent from the plugin to the Penpot app
-export enum PluginToAppMessage {
+export enum MessageSourceName {
+  Plugin = 'penpotWizardPlugin',
+  Client = 'penpotWizardClient',
+}
+
+export enum PluginMessageType {
   THEME_CHANGE = 'THEME_CHANGE',
-  // Add other message types as needed
+}
+// Enum for messages sent from the plugin to the Penpot app
+export enum PluginResponseType {
+  DRAW_SHAPE_RESPONSE = 'DRAW_SHAPE_RESPONSE',
+  GET_USER_DATA_RESPONSE = 'GET_USER_DATA_RESPONSE',
+  GET_PROJECT_DATA_RESPONSE = 'GET_PROJECT_DATA_RESPONSE',
+  GET_AVAILABLE_FONTS_RESPONSE = 'GET_AVAILABLE_FONTS_RESPONSE',
 }
 
 // Enum for messages sent from the Penpot app to the plugin
-export enum AppToPluginMessage {
-  // Add other message types as needed
+export enum ClientQueryType {
+  GET_USER_DATA = 'GET_USER_DATA',
+  GET_PROJECT_DATA = 'GET_PROJECT_DATA',
+  DRAW_SHAPE = 'DRAW_SHAPE',
+}
+
+export enum PenpotShapeType {
+  RECTANGLE = 'rectangle',
+  ELLIPSE = 'ellipse',
+  PATH = 'path',
+  TEXT = 'text',
+  BOARD = 'board',
+}
+
+export interface ClientQueryMessage {
+  source: MessageSourceName.Client;
+  type: ClientQueryType;
+  callId: string;
+  payload?: any;
+}
+
+export interface PluginResponsePayload {
+  success: boolean;
+  description: string;
+  data?: any;
+}
+export interface PluginResponseMessage {
+  source: MessageSourceName.Plugin;
+  queryType: ClientQueryType;
+  callId: string;
+  payload: PluginResponsePayload;
 }
 
 // Theme type definition
 export type Theme = 'light' | 'dark';
-
-export interface UserData {
-  id: string;
-  name: string;
-}
-
-export interface ProjectData {
-  id: string;
-  name: string;
-}
-
 export interface FunctionTool {
   id: string;
   name: string;

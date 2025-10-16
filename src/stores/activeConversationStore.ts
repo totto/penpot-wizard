@@ -17,10 +17,9 @@ import {
 /**
  * Active conversation ID (persisted)
  * This determines which conversation is currently being viewed
- * Uses separate key from V1 to avoid conflicts
  */
 export const $activeConversationId = persistentAtom<string | undefined>(
-  'activeConversationId_v2',
+  'activeConversationId',
   undefined
 );
 

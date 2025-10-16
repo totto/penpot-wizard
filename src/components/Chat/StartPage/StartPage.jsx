@@ -1,27 +1,28 @@
 import { useStore } from '@nanostores/react'
 import { 
-  getConversationsForDirector,
-  createNewConversation,
-  setActiveConversation,
-} from '@/stores/conversationsStore'
+  tryCreateNewConversation,
+  trySetActiveConversation,
+  getConversationsForDirector
+} from '@/stores/conversationActionsStore'
 import { $activeDirectorAgent } from '@/stores/directorAgentsStore'
 import styles from './StartPage.module.css'
 
+/**
+ * StartPage Component
+ * Uses metadata-only approach for efficient conversation listing
+ */
 function StartPage() {
   const activeDirectorAgent = useStore($activeDirectorAgent)
   const directorConversations = activeDirectorAgent ? getConversationsForDirector(activeDirectorAgent) : []
   
   const handleStartConversation = async () => {
     if (activeDirectorAgent) {
-      createNewConversation(activeDirectorAgent)
+      await tryCreateNewConversation(activeDirectorAgent)
     }
   }
   
   const handleLoadConversation = (conversationId) => {
-    // This will be handled by the header dropdown, but we can add it here too
-    // for direct access from the conversation cards
-    setActiveConversation(conversationId)
-    console.log('Load conversation:', conversationId)
+    trySetActiveConversation(conversationId)
   }
 
   return (
@@ -41,7 +42,7 @@ function StartPage() {
           </button>
         </div>
         
-        {/* Conversation History */}
+        {/* Conversation History - using metadata only */}
         {directorConversations.length > 0 && (
           <div className={styles.historySection}>
             <h3 className={styles.historyTitle}>Recent Conversations</h3>
@@ -59,7 +60,7 @@ function StartPage() {
                     {conversation.createdAt.toLocaleDateString()}
                   </div>
                   <div className={styles.conversationMessages}>
-                    {conversation.messages.length} messages
+                    {conversation.messageCount} messages
                   </div>
                 </div>
               ))}

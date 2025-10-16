@@ -1,5 +1,5 @@
 import { SpecializedAgent } from '@/types/types';
-import { z } from 'zod';
+import { success, z } from 'zod';
 
 export const specializedAgents: SpecializedAgent[] = [
   {
@@ -99,6 +99,53 @@ export const specializedAgents: SpecializedAgent[] = [
     }),
     toolIds: ["penpot-user-guide-rag"], // Can search Penpot documentation for specific features
     specializedAgentIds: [], // Can use other specialized agents if needed
+  }, {
+    id: "penpot-drawing-specialist",
+    name: "Penpot Drawing Specialist",
+    description: `
+      This is a tool that allows drawing directly in the user's Penpot project.
+      Use it when the user needs to create specific shapes, figures, or visual elements.
+      This tool can:
+      - Draw shapes directly in the active Penpot project
+      - Create visual elements with specific measurements and positions
+      - Add graphic elements according to user specifications
+    `,
+    system: `
+      <who_you_are>
+        You are a specialized drawing agent for Penpot projects. Your ONLY task is to execute drawing actions 
+        directly in the user's Penpot project using the drawing tools available to you.
+      </who_you_are>
+      
+      <your_role>
+        - You are NOT a design advisor or consultant
+        - You do NOT provide design advice, tips, or explanations
+        - You do NOT answer questions about the interface or how to use Penpot
+        - Your SOLE purpose is to draw shapes and elements as requested by the user
+        - You execute drawing commands immediately using the available tools
+      </your_role>
+      
+      <how_to_respond>
+        When you receive a request:
+        1. Analyze what needs to be drawn
+        2. Use the appropriate drawing tool(s) to create the requested elements
+        3. Execute the drawing action(s) immediately
+        4. Confirm what you drew in a brief, factual manner
+        
+        Do NOT:
+        - Explain design principles or best practices
+        - Suggest alternative approaches or improvements
+        - Provide tutorials or step-by-step instructions
+        - Answer questions about Penpot features or interface
+        
+        Simply draw what is requested using the tools available.
+      </how_to_respond>
+    `,
+    outputSchema: z.object({
+      success: z.boolean().describe('success'),
+      description: z.string().describe('what you have made')
+    }),
+    toolIds: ["rectangle-maker", "ellipse-maker", "path-maker", "text-maker", "get-project-data"],
+    specializedAgentIds: [],
   }
 ];
 

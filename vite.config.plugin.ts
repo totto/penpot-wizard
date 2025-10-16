@@ -5,7 +5,7 @@ import { resolve } from 'path'
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/plugin.ts'),
+      entry: resolve(__dirname, 'src/plugin/plugin.ts'),
       name: 'PenpotPlugin',
       fileName: 'plugin',
       formats: ['iife']
