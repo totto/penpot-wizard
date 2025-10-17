@@ -29,9 +29,7 @@ export const functionTools: FunctionTool[] = [
     `,
     inputSchema: z.object({}),
     function: async () => {
-      console.log('getProjectData tool called');
       const response = await sendMessageToPlugin(ClientQueryType.GET_PROJECT_DATA, {});
-      console.log('getProjectData tool received response: ', response);
       return response;
     },
   }

@@ -1,11 +1,30 @@
+import { $generatedImages } from "@/stores/imageGenerationAgentsStore";
+
 import {
   ClientQueryType,
   MessageSourceName,
   ClientQueryMessage,
   PluginResponsePayload,
+  PenpotShapeType,
 } from "@/types/types";
 
-export const sendMessageToPlugin = async (type: ClientQueryType, payload?: any) => {
+export const drawShape = async (shapeType: PenpotShapeType, params: any) => {
+  if (params.backgroundImage) {
+    const backgroundImage = $generatedImages.get().find(image => image.id === params.backgroundImageId);
+    if (backgroundImage) {
+      params.backgroundImage = backgroundImage;
+    }
+  }
+
+  const response = await sendMessageToPlugin(ClientQueryType.DRAW_SHAPE, {
+    shapeType,
+    params,
+  });
+  
+  return response;
+}
+
+export const sendMessageToPlugin = async (type: ClientQueryType, payload?: any): Promise<PluginResponsePayload> => {
   if (!window.parent || window.parent === window) {
     return localResponse(type);
   }
@@ -45,7 +64,7 @@ export const sendMessageToPlugin = async (type: ClientQueryType, payload?: any) 
   return responseMessagePromise;
 }
 
-function localResponse(type: ClientQueryType) {
+function localResponse(type: ClientQueryType): PluginResponsePayload {
   const responsePayload: PluginResponsePayload = {
     success: true,
     description: 'Successfully resolved',

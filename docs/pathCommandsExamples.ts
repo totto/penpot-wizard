@@ -1,5 +1,5 @@
 import type { PathCommand } from '@penpot/plugin-types';
-import { pathCommandsToSvgString } from './utils';
+import { pathCommandsToSvgString } from '../src/plugin/utils';
 
 /**
  * Ejemplos de uso del parser PathCommand[] -> SVG string

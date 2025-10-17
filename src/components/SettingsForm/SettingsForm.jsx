@@ -3,7 +3,9 @@ import {
   $openaiApiKey,
   $openrouterApiKey,
   $selectedLanguageModel,
+  $selectedImageModel,
   $availableModels,
+  $availableImageModels,
   $isLoadingModels,
   $lastFetchTime,
   $isValidatedOpenai,
@@ -13,6 +15,7 @@ import {
   setOpenaiApiKey,
   setOpenrouterApiKey,
   setSelectedLanguageModel,
+  setSelectedImageModel,
   checkApiKeys,
   clearErrors,
 } from '../../stores/settingsStore';
@@ -22,7 +25,9 @@ function SettingsForm() {
   const openaiApiKey = useStore($openaiApiKey);
   const openrouterApiKey = useStore($openrouterApiKey);
   const selectedLanguageModel = useStore($selectedLanguageModel);
+  const selectedImageModel = useStore($selectedImageModel);
   const availableModels = useStore($availableModels);
+  const availableImageModels = useStore($availableImageModels);
   const isLoadingModels = useStore($isLoadingModels);
   const lastFetchTime = useStore($lastFetchTime);
   const isValidatedOpenai = useStore($isValidatedOpenai);
@@ -45,6 +50,10 @@ function SettingsForm() {
 
   const handleModelChange = (e) => {
     setSelectedLanguageModel(e.target.value);
+  };
+
+  const handleImageModelChange = (e) => {
+    setSelectedImageModel(e.target.value);
   };
 
   const handleCheckApiKeys = () => {
@@ -164,6 +173,39 @@ function SettingsForm() {
             : availableModels.length === 0 
             ? 'Click "Check API Keys" to fetch available models'
             : `${availableModels.length} model${availableModels.length !== 1 ? 's' : ''} available`
+          }
+        </small>
+      </div>
+
+      <div className={styles.formGroup}>
+        <label htmlFor="image-model" className={styles.label}>
+          Image Generation Model
+        </label>
+        <select
+          id="image-model"
+          value={selectedImageModel}
+          onChange={handleImageModelChange}
+          className={styles.select}
+          disabled={!isValidatedOpenai || isLoadingModels}
+        >
+          {isLoadingModels ? (
+            <option value="">Loading models...</option>
+          ) : (
+            availableImageModels.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.provider}: {model.name}
+              </option>
+            ))
+          )}
+        </select>
+        <small className={styles.helpText}>
+          {isLoadingModels
+            ? 'Fetching available image models...'
+            : !isValidatedOpenai && !isValidatedOpenrouter
+            ? 'Add API keys and click "Check API Keys" to validate and see available models'
+            : availableImageModels.length === 0 
+            ? 'Click "Check API Keys" to fetch available image models'
+            : `${availableImageModels.length} image model${availableImageModels.length !== 1 ? 's' : ''} available`
           }
         </small>
       </div>

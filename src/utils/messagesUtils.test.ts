@@ -48,4 +48,10 @@ describe('parseJsonMarkdown - Real cases', () => {
     const result = parseJsonMarkdown(input)
     expect(result).toBeNull()
   })
+
+  it('empty object input returns empty object', () => {
+    const input = '{}'
+    const result = parseJsonMarkdown(input)
+    expect(result).toEqual({})
+  })
 })

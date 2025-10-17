@@ -28,5 +28,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "src/**/*.d.ts", "src/types.ts"]
+  "include": ["src", "src/**/*.d.ts", "src/types.ts", "docs/pathCommandsExamples.ts"]
 }

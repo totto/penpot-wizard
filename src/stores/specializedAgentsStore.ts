@@ -3,6 +3,7 @@ import { tool, Experimental_Agent as Agent, Output, stepCountIs } from 'ai';
 import { specializedAgents } from '@/assets/specializedAgents';
 import { SpecializedAgent } from '@/types/types';
 import { getToolsByIds } from '@/stores/toolsStore';
+import { getImageGenerationAgentsByIds } from '@/stores/imageGenerationAgentsStore';
 import { createModelInstance } from '@/utils/modelUtils';
 import { $isConnected } from '@/stores/settingsStore';
 import { z } from 'zod';
@@ -41,8 +42,11 @@ const initializeSpecializedAgent = async (agentDef: SpecializedAgent): Promise<S
   // Note: This creates a potential for circular dependencies, which should be avoided
   const specializedAgentTools = getSpecializedAgentsByIds(agentDef.specializedAgentIds || []);
   
+  // Get image generation agents this agent can use
+  const imageGenerationAgentTools = getImageGenerationAgentsByIds(agentDef.imageGenerationAgentIds || []);
+  
   // Combine all tools
-  const allTools = [...agentTools, ...specializedAgentTools];
+  const allTools = [...agentTools, ...specializedAgentTools, ...imageGenerationAgentTools];
   
   // Create the Agent instance
   const agentInstance = new Agent({

@@ -26,14 +26,14 @@ import {
 // Streaming store
 import {
   startStreaming,
-  updateStreamingContent,
   finalizeStreaming,
   cancelStreaming,
   isStreaming,
   setPendingAction,
   clearPendingAction,
   getPendingAction,
-  cancelStreamingWithMessage
+  cancelStreamingWithMessage,
+  setStreamingError
 } from './streamingMessageStore';
 
 // Messages storage utilities
@@ -41,6 +41,9 @@ import {
   deleteMessagesFromStorage,
   saveMessagesToStorage
 } from '@/utils/messagesStorageUtils';
+
+// Streaming utilities
+import { handleStreamProcessing } from '@/utils/streamingMessageUtils';
 
 /**
  * Conversation Actions Store (V2)
@@ -110,19 +113,8 @@ const generateGreetingMessage = async (conversationId: string): Promise<void> =>
       messages: agentMessages
     });
 
-    let fullResponse = '';
-
-    // Handle both text stream and tool calls
-    for await (const chunk of stream.fullStream) {
-      if (chunk.type === 'text-delta') {
-        fullResponse += chunk.text;
-        updateStreamingContent(fullResponse);
-      } else if (chunk.type === 'tool-call') {
-        //console.log('Tool call during greeting:', chunk);
-      } else if (chunk.type === 'tool-result') {
-        //console.log('Tool result during greeting:', chunk);
-      }
-    }
+    // Handle stream processing
+    await handleStreamProcessing(stream.fullStream);
 
     // Finalize streaming
     const finalMessage = finalizeStreaming();
@@ -131,7 +123,8 @@ const generateGreetingMessage = async (conversationId: string): Promise<void> =>
       // Add to active conversation
       addMessageToActive({
         role: 'assistant',
-        content: finalMessage.content
+        content: finalMessage.content,
+        toolCalls: finalMessage.toolCalls
       });
 
       // Increment message count in metadata
@@ -139,7 +132,11 @@ const generateGreetingMessage = async (conversationId: string): Promise<void> =>
     }
   } catch (error) {
     console.error('Error generating greeting message:', error);
-    cancelStreaming();
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    setStreamingError(`Error generating greeting: ${errorMessage}`);
+    setTimeout(() => {
+      cancelStreaming();
+    }, 3000); // Show error for 3 seconds before clearing
   }
 };
 
@@ -218,19 +215,8 @@ export const sendUserMessage = async (text: string): Promise<void> => {
       messages: agentMessages
     });
 
-    let fullResponse = '';
-
-    // 7. Handle stream chunks
-    for await (const chunk of stream.fullStream) {
-      if (chunk.type === 'text-delta') {
-        fullResponse += chunk.text;
-        updateStreamingContent(fullResponse);
-      } else if (chunk.type === 'tool-call') {
-        //console.log('Tool call:', chunk);
-      } else if (chunk.type === 'tool-result') {
-        //console.log('Tool result:', chunk);
-      }
-    }
+    // 7. Handle stream processing
+    await handleStreamProcessing(stream.fullStream);
 
     // 8. Finalize streaming
     const finalMessage = finalizeStreaming();
@@ -239,7 +225,8 @@ export const sendUserMessage = async (text: string): Promise<void> => {
       // Add to active conversation
       addMessageToActive({
         role: 'assistant',
-        content: finalMessage.content
+        content: finalMessage.content,
+        toolCalls: finalMessage.toolCalls
       });
 
       // Increment message count
@@ -256,23 +243,14 @@ export const sendUserMessage = async (text: string): Promise<void> => {
   } catch (error) {
     console.error('Error sending message:', error);
 
-    // Handle error - cancel streaming and show error message
-    cancelStreaming();
-
-    const errorContent = JSON.stringify({
-      text: 'Sorry, I encountered an error. Please try again.'
-    });
-
-    // Add error message
-    addMessageToActive({
-      role: 'assistant',
-      content: errorContent
-    });
-
-    // Increment message count
-    if (activeConversation) {
-      incrementMessageCount(activeConversation.id);
-    }
+    // Handle error - show error in streaming message
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    setStreamingError(`Error: ${errorMessage}`);
+    
+    // Clear error and cancel streaming after 3 seconds
+    setTimeout(() => {
+      cancelStreaming();
+    }, 3000);
   }
 };
 

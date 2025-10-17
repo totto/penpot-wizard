@@ -6,6 +6,7 @@ import { createModelInstance } from '@/utils/modelUtils';
 import { DirectorAgent } from '@/types/types';
 import { getToolsByIds } from '@/stores/toolsStore';
 import { getSpecializedAgentsByIds } from '@/stores/specializedAgentsStore';
+import { getImageGenerationAgentsByIds } from '@/stores/imageGenerationAgentsStore';
 import { z } from 'zod';
 
 let modelIdInitialized = '';
@@ -55,8 +56,11 @@ export const initializeDirectorAgents = async () => {
         // Get specialized agents for this director
         const specializedAgentTools = getSpecializedAgentsByIds(director.specializedAgentIds || []);
         
+        // Get image generation agents for this director
+        const imageGenerationAgentTools = getImageGenerationAgentsByIds(director.imageGenerationAgentIds || []);
+        
         // Combine all tools
-        const allTools = [...agentTools, ...specializedAgentTools];
+        const allTools = [...agentTools, ...specializedAgentTools, ...imageGenerationAgentTools];
         
         const agentInstance = new Agent({
           model: modelInstance,

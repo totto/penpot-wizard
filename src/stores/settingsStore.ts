@@ -10,6 +10,12 @@ export interface LanguageModel {
   provider: 'openai' | 'openrouter';
 }
 
+export interface ImageModel {
+  id: string;
+  name: string;
+  provider: 'openai' | 'openrouter';
+}
+
 // Curated list of OpenAI models we actually want to support
 const OPENAI_SUPPORTED_MODELS: LanguageModel[] = [
   { id: 'gpt-5', name: 'GPT-5', provider: 'openai' },
@@ -18,6 +24,13 @@ const OPENAI_SUPPORTED_MODELS: LanguageModel[] = [
   { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'openai' },
   { id: 'gpt-4', name: 'GPT-4', provider: 'openai' },
   { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'openai' },
+];
+
+// Curated list of OpenAI image generation models
+const OPENAI_IMAGE_MODELS: ImageModel[] = [
+  { id: 'gpt-5', name: 'GPT-5', provider: 'openai' },
+  { id: 'dall-e-3', name: 'DALL-E 3', provider: 'openai' },
+  { id: 'dall-e-2', name: 'DALL-E 2', provider: 'openai' },
 ];
 
 // Storage interface for persistence
@@ -36,8 +49,13 @@ export const $openaiApiKey = persistentAtom('openaiApiKey', '');
 export const $openrouterApiKey = persistentAtom('openrouterApiKey', '');
 export const $selectedLanguageModel = persistentAtom('selectedLanguageModel', '');
 export const $selectedEmbeddingModel = atom<string>('text-embedding-ada-002');
+export const $selectedImageModel = persistentAtom('selectedImageModel', '');
 
 export const $availableModels = persistentAtom<LanguageModel[]>('availableModels', [], {
+  encode: JSON.stringify,
+  decode: JSON.parse,
+});
+export const $availableImageModels = persistentAtom<ImageModel[]>('availableImageModels', [], {
   encode: JSON.stringify,
   decode: JSON.parse,
 });
@@ -86,6 +104,10 @@ export const setSelectedLanguageModel = (model: string) => {
   $selectedLanguageModel.set(model as any);
 };
 
+export const setSelectedImageModel = (model: string) => {
+  $selectedImageModel.set(model as any);
+};
+
 export const clearErrors = () => {
   $openaiError.set(null);
   $openrouterError.set(null);
@@ -97,6 +119,7 @@ export const fetchModels = async () => {
   const openrouterApiKey = $openrouterApiKey.get();
   
   let models: LanguageModel[] = [];
+  let imageModels: ImageModel[] = [];
   let openaiValidated = false;
   let openrouterValidated = false;
   let openaiError: string | null = null;
@@ -117,6 +140,7 @@ export const fetchModels = async () => {
         
         // If successful, add our curated list of supported models
         models = [...models, ...OPENAI_SUPPORTED_MODELS];
+        imageModels = [...imageModels, ...OPENAI_IMAGE_MODELS];
         openaiValidated = true;
       } catch (error: any) {
         console.warn('Failed to validate OpenAI API key:', error);
@@ -136,6 +160,8 @@ export const fetchModels = async () => {
         
         if (response.ok) {
           const data = await response.json();
+          
+          // Filter language models (text input/output with structured outputs)
           const openrouterModelList: LanguageModel[] = data.data
             .filter((model: any) => {
               return model.supported_parameters.includes('structured_outputs')
@@ -148,7 +174,20 @@ export const fetchModels = async () => {
             }))
             .sort((a, b) => a.name.localeCompare(b.name));
           
+          // Filter image generation models (output modality: image)
+          const openrouterImageModelList: ImageModel[] = data.data
+            .filter((model: any) => {
+              return model.architecture.output_modalities?.includes('image')
+            })
+            .map((model: any) => ({
+              id: model.id,
+              name: model.name || model.id,
+              provider: 'openrouter' as const
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+          
           models = [...models, ...openrouterModelList];
+          imageModels = [...imageModels, ...openrouterImageModelList];
           openrouterValidated = true;
         } else {
           const errorData = await response.json().catch(() => ({}));
@@ -170,6 +209,18 @@ export const fetchModels = async () => {
       const isCurrentModelAvailable = models.some(model => model.id === currentModel);
       if (!isCurrentModelAvailable) {
         $selectedLanguageModel.set(models[0].id as any);
+      }
+    }
+    
+    // Update image models if we have any
+    if (imageModels.length > 0) {
+      $availableImageModels.set(imageModels);
+      
+      // If current selected image model is not available, select the first one
+      const currentImageModel = $selectedImageModel.get();
+      const isCurrentImageModelAvailable = imageModels.some(model => model.id === currentImageModel);
+      if (!isCurrentImageModelAvailable) {
+        $selectedImageModel.set(imageModels[0].id as any);
       }
     }
     

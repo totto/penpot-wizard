@@ -1,5 +1,5 @@
 import { atom } from 'nanostores';
-import type { StreamingMessage } from '@/types/types';
+import type { StreamingMessage, AgentToolCall } from '@/types/types';
 
 /**
  * Store for the streaming message (V2)
@@ -62,6 +62,106 @@ export const updateStreamingContent = (content: string): void => {
   $streamingMessage.set({
     ...current,
     content
+  });
+};
+
+/**
+ * Starts a tool call in the streaming message
+ * @param toolCallId - The unique ID of the tool call
+ * @param toolName - The name of the tool
+ * @param input - The input parameters for the tool
+ */
+export const startToolCall = (toolCallId: string, toolName: string, input: unknown): void => {
+  const current = $streamingMessage.get();
+  
+  if (!current) {
+    console.warn('Attempted to start tool call when no message is streaming');
+    return;
+  }
+  
+  const currentToolCalls = current.toolCalls || [];
+  
+  const newToolCall: AgentToolCall = {
+    toolCallId,
+    toolName,
+    state: 'started',
+    input
+  };
+  
+  $streamingMessage.set({
+    ...current,
+    toolCalls: [...currentToolCalls, newToolCall]
+  });
+};
+
+/**
+ * Completes a tool call in the streaming message with success
+ * @param toolCallId - The unique ID of the tool call
+ * @param output - The output from the tool
+ */
+export const completeToolCall = (toolCallId: string, output: unknown): void => {
+  const current = $streamingMessage.get();
+  
+  if (!current) {
+    console.warn('Attempted to complete tool call when no message is streaming');
+    return;
+  }
+  
+  const currentToolCalls = current.toolCalls || [];
+  const updatedToolCalls = currentToolCalls.map(tc => 
+    tc.toolCallId === toolCallId 
+      ? { ...tc, state: 'success' as const, output }
+      : tc
+  );
+  
+  $streamingMessage.set({
+    ...current,
+    toolCalls: updatedToolCalls
+  });
+};
+
+/**
+ * Marks a tool call as failed in the streaming message
+ * @param toolCallId - The unique ID of the tool call
+ * @param error - The error message
+ */
+export const failToolCall = (toolCallId: string, error: string): void => {
+  const current = $streamingMessage.get();
+  
+  if (!current) {
+    console.warn('Attempted to fail tool call when no message is streaming');
+    return;
+  }
+  
+  const currentToolCalls = current.toolCalls || [];
+  const updatedToolCalls = currentToolCalls.map(tc => 
+    tc.toolCallId === toolCallId 
+      ? { ...tc, state: 'error' as const, error }
+      : tc
+  );
+  
+  $streamingMessage.set({
+    ...current,
+    toolCalls: updatedToolCalls
+  });
+};
+
+/**
+ * Sets an error on the streaming message
+ * @param error - The error message
+ */
+export const setStreamingError = (error: string): void => {
+  const current = $streamingMessage.get();
+  
+  if (!current) {
+    console.warn('Attempted to set error when no message is streaming');
+    return;
+  }
+  
+  $streamingMessage.set({
+    ...current,
+    error,
+    isStreaming: false
   });
 };
 

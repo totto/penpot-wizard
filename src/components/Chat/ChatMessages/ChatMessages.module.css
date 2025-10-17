@@ -147,3 +147,60 @@
 .messagesContainer::-webkit-scrollbar-thumb:hover {
   background: var(--foreground-secondary);
 }
+
+/* Tool calls container */
+.toolCallsContainer {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toolCallItem {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background-color: var(--background-quaternary);
+}
+
+.toolCallStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolCallStatus.started {
+  color: var(--foreground-secondary);
+  opacity: 0.8;
+}
+
+.toolCallStatus.success {
+  color: #51cf66;
+}
+
+.toolCallStatus.error {
+  color: #ff6b6b;
+}
+
+.toolCallError {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background-color: rgba(255, 107, 107, 0.1);
+  border-left: 3px solid #ff6b6b;
+  color: #ff6b6b;
+}
+
+.generatedImage {
+  margin-bottom: 8px;
+}
+
+/* Error message styling */
+.errorMessage {
+  color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 3px solid #ff6b6b;
+  font-size: 13px;
+}

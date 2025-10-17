@@ -27,6 +27,7 @@ export enum ClientQueryType {
   GET_USER_DATA = 'GET_USER_DATA',
   GET_PROJECT_DATA = 'GET_PROJECT_DATA',
   DRAW_SHAPE = 'DRAW_SHAPE',
+  ADD_IMAGE = 'ADD_IMAGE',
 }
 
 export enum PenpotShapeType {
@@ -84,6 +85,15 @@ export interface SpecializedAgent {
   outputSchema?: z.ZodObject<any>; // Zod schema for output validation
   toolIds?: string[]; // IDs of tools this agent can use
   specializedAgentIds?: string[]; // IDs of other specialized agents this agent can use
+  imageGenerationAgentIds?: string[]; // IDs of image generation agents this agent can use
+  instance?: any; // AI SDK tool instance
+}
+
+export interface ImageGenerationAgent {
+  id: string;
+  name: string;
+  description: string;
+  system: string; // System prompt for the agent
   instance?: any; // AI SDK tool instance
 }
 
@@ -94,12 +104,23 @@ export interface DirectorAgent {
   system: string;
   toolIds?: string[]; // IDs de las tools que puede usar
   specializedAgentIds?: string[]; // IDs of specialized agents this agent can use
+  imageGenerationAgentIds?: string[]; // IDs of image generation agents this agent can use
   instance?: Agent<any, any, any>;
 }
 
 /**
  * Message and Conversation types
  */
+
+// Tool call tracking in messages
+export interface AgentToolCall {
+  toolCallId: string;
+  toolName: string;
+  state: 'started' | 'success' | 'error';
+  input?: unknown;
+  output?: unknown;
+  error?: string;
+}
 
 // Message interface (used in both V1 and V2)
 export interface Message {
@@ -108,6 +129,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
+  toolCalls?: AgentToolCall[];
 }
 
 // Full conversation with messages (used in V1)
@@ -136,5 +158,7 @@ export interface StreamingMessage {
   role: 'assistant';
   content: string;
   isStreaming: boolean;
+  toolCalls?: AgentToolCall[];
+  error?: string;
 }
 
