@@ -22,7 +22,7 @@ export const $streamingMessage = atom<StreamingMessage | null>(null);
  */
 type PendingAction = {
   type: 'switch_conversation' | 'new_conversation' | 'reload';
-  data?: any;
+  data?: Record<string, unknown>;
 } | null;
 
 export const $pendingAction = atom<PendingAction>(null);
@@ -113,6 +113,77 @@ export const completeToolCall = (toolCallId: string, output: unknown): void => {
       ? { ...tc, state: 'success' as const, output }
       : tc
   );
+  
+  $streamingMessage.set({
+    ...current,
+    toolCalls: updatedToolCalls
+  });
+};
+
+/**
+ * Adds a nested tool call to a parent tool call
+ * @param parentToolCallId - The ID of the parent tool call
+ * @param nestedToolCall - The nested tool call to add
+ */
+export const addNestedToolCall = (parentToolCallId: string, nestedToolCall: AgentToolCall): void => {
+  const current = $streamingMessage.get();
+  
+  if (!current) {
+    console.warn('Attempted to add nested tool call when no message is streaming');
+    return;
+  }
+  
+  const currentToolCalls = current.toolCalls || [];
+  const updatedToolCalls = currentToolCalls.map(tc => {
+    if (tc.toolCallId === parentToolCallId) {
+      const existingNested = tc.nestedToolCalls || [];
+      return {
+        ...tc,
+        nestedToolCalls: [...existingNested, nestedToolCall]
+      };
+    }
+    return tc;
+  });
+  
+  $streamingMessage.set({
+    ...current,
+    toolCalls: updatedToolCalls
+  });
+};
+
+/**
+ * Updates a nested tool call state within a parent tool call
+ * @param parentToolCallId - The ID of the parent tool call
+ * @param nestedToolCallId - The ID of the nested tool call to update
+ * @param updates - Partial updates to apply to the nested tool call
+ */
+export const updateNestedToolCall = (
+  parentToolCallId: string, 
+  nestedToolCallId: string, 
+  updates: Partial<AgentToolCall>
+): void => {
+  const current = $streamingMessage.get();
+  
+  if (!current) {
+    console.warn('Attempted to update nested tool call when no message is streaming');
+    return;
+  }
+  
+  const currentToolCalls = current.toolCalls || [];
+  const updatedToolCalls = currentToolCalls.map(tc => {
+    if (tc.toolCallId === parentToolCallId && tc.nestedToolCalls) {
+      const updatedNested = tc.nestedToolCalls.map(ntc =>
+        ntc.toolCallId === nestedToolCallId
+          ? { ...ntc, ...updates }
+          : ntc
+      );
+      return {
+        ...tc,
+        nestedToolCalls: updatedNested
+      };
+    }
+    return tc;
+  });
   
   $streamingMessage.set({
     ...current,

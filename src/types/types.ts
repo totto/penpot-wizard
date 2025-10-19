@@ -1,11 +1,12 @@
 import { AnyOrama } from '@orama/orama';
-import { Experimental_Agent as Agent } from 'ai';
-import { z } from 'zod';
+import { Experimental_Agent as Agent, Tool, ToolSet } from 'ai';
+import { ZodType } from 'zod';
+import type { Shape, ImageData as PenpotImageData } from '@penpot/plugin-types';
+import { PenpotShapeProperties } from './shapeTypes';
 
 /**
  * Message types for communication between Penpot plugin and app
  */
-
 export enum MessageSourceName {
   Plugin = 'penpotWizardPlugin',
   Client = 'penpotWizardClient',
@@ -13,13 +14,6 @@ export enum MessageSourceName {
 
 export enum PluginMessageType {
   THEME_CHANGE = 'THEME_CHANGE',
-}
-// Enum for messages sent from the plugin to the Penpot app
-export enum PluginResponseType {
-  DRAW_SHAPE_RESPONSE = 'DRAW_SHAPE_RESPONSE',
-  GET_USER_DATA_RESPONSE = 'GET_USER_DATA_RESPONSE',
-  GET_PROJECT_DATA_RESPONSE = 'GET_PROJECT_DATA_RESPONSE',
-  GET_AVAILABLE_FONTS_RESPONSE = 'GET_AVAILABLE_FONTS_RESPONSE',
 }
 
 // Enum for messages sent from the Penpot app to the plugin
@@ -38,24 +32,68 @@ export enum PenpotShapeType {
   BOARD = 'board',
 }
 
-export interface ClientQueryMessage {
+export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
-  callId: string;
-  payload?: any;
+  messageId: string;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload;
 }
 
-export interface PluginResponsePayload {
-  success: boolean;
-  description: string;
-  data?: any;
+export interface DrawShapeQueryPayload {
+  shapeType: PenpotShapeType;
+  params: PenpotShapeProperties;
+};
+
+export interface AddImageQueryPayload {
+  name: string;
+  data: Uint8Array;
+  mimeType: string;
 }
-export interface PluginResponseMessage {
+
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload;
+export interface PluginMessage {
   source: MessageSourceName.Plugin;
-  queryType: ClientQueryType;
-  callId: string;
-  payload: PluginResponsePayload;
+  type: PluginMessageType | ClientQueryType;
+  messageId: string;
+  message: string;
 }
+export interface PluginResponseMessage extends PluginMessage {
+  success: boolean;
+  payload?: PluginResponsePayload;
+}
+
+export interface DrawShapeResponsePayload {
+  shape: Shape;
+}
+export interface AddImagePayload {
+  newImageData: PenpotImageData;
+}
+export interface GetUserDataPayload {
+  name: string;
+  id: string;
+}
+export interface GetProjectDataPayload {
+  project: {
+    name: string;
+    id: string;
+    pages: {
+      name: string;
+      id: string;
+    }[];
+  };
+  availableFonts: {
+    name: string;
+    fontId: string;
+    fontFamily: string;
+  }[];
+  currentPage: {
+    name: string;
+    id: string;
+    shapes: Shape[];
+  };
+}
+
+export type PluginResponsePayload = GetUserDataPayload | GetProjectDataPayload | DrawShapeResponsePayload | AddImagePayload;
 
 // Theme type definition
 export type Theme = 'light' | 'dark';
@@ -63,9 +101,9 @@ export interface FunctionTool {
   id: string;
   name: string;
   description: string;
-  inputSchema: z.ZodObject<any>; // Zod schema para validar inputs
-  function: (input: any) => any | Promise<any>; // Función para tools tipo FUNCTION
-  instance?: any; // AI SDK tool instance
+  inputSchema: ZodType; // Zod schema para validar inputs
+  function: Tool['execute']; // Función para tools tipo FUNCTION
+  instance?: Tool; // AI SDK tool instance
 }
 
 export interface RagTool {
@@ -74,7 +112,7 @@ export interface RagTool {
   description: string;
   ragContentFile: string;
   dbInstance?: AnyOrama; // Database instance for RAG operations
-  instance?: any; // AI SDK tool instance
+  instance?: Tool; // AI SDK tool instance
 }
 
 export interface SpecializedAgent {
@@ -82,11 +120,11 @@ export interface SpecializedAgent {
   name: string;
   description: string;
   system: string; // System prompt for the agent
-  outputSchema?: z.ZodObject<any>; // Zod schema for output validation
+  outputSchema?: ZodType; // Zod schema for output validation
   toolIds?: string[]; // IDs of tools this agent can use
   specializedAgentIds?: string[]; // IDs of other specialized agents this agent can use
   imageGenerationAgentIds?: string[]; // IDs of image generation agents this agent can use
-  instance?: any; // AI SDK tool instance
+  instance?: Tool; // AI SDK tool instance
 }
 
 export interface ImageGenerationAgent {
@@ -94,7 +132,7 @@ export interface ImageGenerationAgent {
   name: string;
   description: string;
   system: string; // System prompt for the agent
-  instance?: any; // AI SDK tool instance
+  instance?: Tool; // AI SDK tool instance
 }
 
 export interface DirectorAgent {
@@ -105,7 +143,7 @@ export interface DirectorAgent {
   toolIds?: string[]; // IDs de las tools que puede usar
   specializedAgentIds?: string[]; // IDs of specialized agents this agent can use
   imageGenerationAgentIds?: string[]; // IDs of image generation agents this agent can use
-  instance?: Agent<any, any, any>;
+  instance?: Agent<ToolSet>;
 }
 
 /**
@@ -120,6 +158,7 @@ export interface AgentToolCall {
   input?: unknown;
   output?: unknown;
   error?: string;
+  nestedToolCalls?: AgentToolCall[]; // For specialized agents that use other tools
 }
 
 // Message interface (used in both V1 and V2)

@@ -39,7 +39,7 @@ describe('parseJsonMarkdown - Real cases', () => {
     expect(result).not.toBeNull()
     expect(typeof result).toBe('object')
     // Ensure string property exists
-    // @ts-ignore - runtime check
+    // @ts-expect-error - runtime check
     expect(result.text).toBeTypeOf('string')
   })
 

@@ -39,7 +39,8 @@ import {
 // Messages storage utilities
 import {
   deleteMessagesFromStorage,
-  saveMessagesToStorage
+  saveMessagesToStorage,
+  loadMessagesFromStorage
 } from '@/utils/messagesStorageUtils';
 
 // Streaming utilities
@@ -275,7 +276,6 @@ export const generateConversationSummary = async (conversationId: string): Promi
       messages = getActiveMessages();
     } else {
       // Need to load from storage
-      const { loadMessagesFromStorage } = await import('@/utils/messagesStorageUtils');
       messages = loadMessagesFromStorage(conversationId);
     }
 

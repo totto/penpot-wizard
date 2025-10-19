@@ -1,5 +1,5 @@
 import { atom } from 'nanostores';
-import { tool } from 'ai';
+import { Tool, tool } from 'ai';
 import { functionTools, ragTools, drawingTools } from '@/assets/tools';
 import { FunctionTool, RagTool } from '@/types/types';
 import { initializeDataBase, searchDataBase } from '@/utils/ragUtils';
@@ -23,9 +23,8 @@ export const getToolById = (toolId: string) => {
 export const getToolsByIds = (toolIds: string[]) => {
   const toolsData = $toolsData.get();
   return toolsData
-    .filter(tool => toolIds.includes(tool.id))
-    .map(tool => tool.instance)
-    .filter(Boolean); // Remove undefined instances
+    .filter(tool => toolIds.includes(tool.id) && tool.instance)
+    .map(tool => tool.instance) as Tool[];
 };
 
 // Initialize tools based on their type
@@ -35,7 +34,7 @@ const initializeFunctionTool = async (toolDef: FunctionTool): Promise<FunctionTo
     name: toolDef.name,
     description: toolDef.description,
     inputSchema: toolDef.inputSchema,
-    execute: toolDef.function as any,
+    execute: toolDef.function,
   });
 
   return {
@@ -68,31 +67,15 @@ const initializeRagTool = async (toolDef: RagTool): Promise<RagTool> => {
           };
         }
         
-        // Format results for the agent
-        const formattedResults = results.map((result, index) => ({
-          rank: index + 1,
-          title: result.heading,
-          summary: result.summary,
-          content: result.text,
-          url: result.url,
-          source: result.sourcePath,
-          breadcrumbs: result.breadcrumbs,
-          relevanceScore: result.score,
-          hasCode: result.hasCode,
-          codeLanguages: result.codeLangs
-        }));
-        
         return {
           success: true,
           message: `Found ${results.length} relevant sections in the database.`,
-          results: formattedResults,
+          results,
           query,
           totalResults: results.length
         };
         
       } catch (error) {
-        console.error('Error in RAG tool:', error);
-        
         return {
           success: false,
           message: 'Sorry, I encountered an error while searching the database. Please try again.',

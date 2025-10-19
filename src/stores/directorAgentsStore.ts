@@ -37,14 +37,11 @@ export const setActiveDirectorAgent = (agentId: string) => {
 export const initializeDirectorAgents = async () => {
   const agentsData = $directorAgentsData.get();
   const isConnected = $isConnected.get();
-  if (!isConnected) {
-    console.log('Not connected, skipping initialization');
+
+  if (!isConnected || modelIdInitialized === $selectedLanguageModel.get()) {
     return;
   }
-  if (modelIdInitialized === $selectedLanguageModel.get()) {
-    console.log('Model ID already initialized, skipping initialization');
-    return;
-  }
+  
   try {
     const modelInstance = createModelInstance();
     
@@ -68,7 +65,7 @@ export const initializeDirectorAgents = async () => {
           tools: allTools.reduce((acc, tool) => {
             acc[tool.id] = tool;
             return acc;
-          }, {}) as any,
+          }, {}),
           experimental_output: Output.object({
             schema: z.object({
               text: z.string(),

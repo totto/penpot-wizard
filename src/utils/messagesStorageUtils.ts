@@ -1,4 +1,4 @@
-import type { Message } from '@/types/types';
+import { Message } from '@/types/types';
 
 /**
  * Utilities for managing messages in localStorage
@@ -49,7 +49,7 @@ export const loadMessagesFromStorage = (conversationId: string): Message[] => {
     const parsed = JSON.parse(serialized);
     
     // Deserialize and reconstruct Date objects
-    return parsed.map((msg: any) => ({
+    return parsed.map((msg: Message) => ({
       ...msg,
       timestamp: new Date(msg.timestamp)
     }));

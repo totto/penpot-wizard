@@ -2,6 +2,7 @@ import { restore } from '@orama/plugin-data-persistence';
 import { AnyOrama, search } from '@orama/orama';
 import { $openaiApiKey, $selectedEmbeddingModel } from '@/stores/settingsStore';
 import OpenAI from 'openai';
+import { RagSearchResult } from '@/types/ragToolTypes';
 
 // Configuración de embeddings
 const VEC_DIM = 1536;
@@ -89,7 +90,6 @@ export async function initializeDataBase(dbFile: string): Promise<AnyOrama> {
     // Restaurar la base de datos Orama
     const dbInstance = await restore('binary', persistData);
     
-    console.log(`✅ RAG database initialized successfully from ${dbFile}`);
     return dbInstance;
     
   } catch (error) {
@@ -101,7 +101,7 @@ export async function initializeDataBase(dbFile: string): Promise<AnyOrama> {
 /**
  * Realiza una búsqueda vectorial en la base de datos
  */
-export async function searchDataBase(query: string, limit: number = 10, dbInstance: any): Promise<any[]> {
+export async function searchDataBase(query: string, limit: number = 10, dbInstance: AnyOrama): Promise<RagSearchResult[]> {
   try {
     if (!dbInstance) {
       throw new Error('Database instance not initialized');
@@ -121,7 +121,6 @@ export async function searchDataBase(query: string, limit: number = 10, dbInstan
       limit
     });
 
-    console.log('Results:', results);
     return results.hits.map(hit => ({
       id: hit.document.id,
       heading: hit.document.heading,

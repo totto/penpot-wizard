@@ -14,7 +14,7 @@ export const $conversationsMetadata = persistentAtom<ConversationMetadata[]>(
   {
     encode: (metadata: ConversationMetadata[]) =>
       JSON.stringify(
-        metadata.map(conv => ({
+        metadata.map((conv: ConversationMetadata) => ({
           ...conv,
           createdAt: conv.createdAt.toISOString()
         }))
@@ -22,7 +22,7 @@ export const $conversationsMetadata = persistentAtom<ConversationMetadata[]>(
     decode: (value: string) => {
       try {
         const parsed = JSON.parse(value);
-        return parsed.map((conv: any) => ({
+        return parsed.map((conv: ConversationMetadata) => ({
           ...conv,
           createdAt: new Date(conv.createdAt)
         }));

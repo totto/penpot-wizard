@@ -33,7 +33,7 @@ export function createModelInstance() {
   
   // Determine provider and create model instance
   switch (selectedModel.provider) {
-    case 'openai':
+    case 'openai': {
       if (!openaiApiKey || !isValidatedOpenai) {
         throw new Error('OpenAI API key not available or not validated');
       }
@@ -42,8 +42,9 @@ export function createModelInstance() {
       });
 
       return openai(selectedLanguageModel);
+    }
       
-    case 'openrouter':
+    case 'openrouter': {
       if (!openrouterApiKey || !isValidatedOpenrouter) {
         throw new Error('OpenRouter API key not available or not validated');
       }
@@ -52,6 +53,7 @@ export function createModelInstance() {
       });
 
       return openrouter(selectedLanguageModel);
+    }
       
     default:
       throw new Error(`Unsupported provider: ${selectedModel.provider}`);
@@ -80,7 +82,7 @@ export function createImageModelInstance() {
   
   // Determine provider and create model instance
   switch (selectedModel.provider) {
-    case 'openai':
+    case 'openai': {
       if (!openaiApiKey || !isValidatedOpenai) {
         throw new Error('OpenAI API key not available or not validated');
       }
@@ -89,8 +91,9 @@ export function createImageModelInstance() {
       });
 
       return openai.image(selectedImageModel);
+    }
       
-    case 'openrouter':
+    case 'openrouter': {
       if (!openrouterApiKey || !isValidatedOpenrouter) {
         throw new Error('OpenRouter API key not available or not validated');
       }
@@ -99,6 +102,7 @@ export function createImageModelInstance() {
       });
 
       return openrouter.image(selectedImageModel);
+    }
       
     default:
       throw new Error(`Unsupported provider: ${selectedModel.provider}`);

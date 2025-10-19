@@ -204,3 +204,136 @@
   border-left: 3px solid #ff6b6b;
   font-size: 13px;
 }
+
+/* Tool Call Details Component */
+.toolCallDetailsContainer {
+  font-size: 12px;
+  border-radius: 8px;
+  background-color: var(--background-quaternary);
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.toolCallHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.toolCallHeader:hover {
+  background-color: var(--background-tertiary);
+}
+
+.toolCallHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.toolCallExpandIcon {
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  transition: transform 0.2s;
+  color: var(--foreground-secondary);
+}
+
+.toolCallExpandIcon.expanded {
+  transform: rotate(90deg);
+}
+
+.toolCallName {
+  font-weight: 500;
+  color: var(--foreground-primary);
+}
+
+.toolCallStateIcon {
+  font-size: 14px;
+}
+
+.toolCallBody {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.toolCallBody.expanded {
+  max-height: 2000px;
+  transition: max-height 0.5s ease-in;
+}
+
+.toolCallBodyContent {
+  padding: 0 12px 12px 12px;
+  border-top: 1px solid var(--background-tertiary);
+}
+
+.toolCallSection {
+  margin-top: 8px;
+}
+
+.toolCallSectionTitle {
+  font-weight: 600;
+  color: var(--foreground-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+.toolCallData {
+  background-color: var(--background-tertiary);
+  padding: 8px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 11px;
+  color: var(--foreground-primary);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.toolCallData::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.toolCallData::-webkit-scrollbar-track {
+  background: var(--background-quaternary);
+}
+
+.toolCallData::-webkit-scrollbar-thumb {
+  background: var(--foreground-secondary);
+  border-radius: 2px;
+}
+
+.nestedToolCallsContainer {
+  margin-top: 8px;
+}
+
+.nestedToolCallLabel {
+  font-weight: 600;
+  color: var(--foreground-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+.nestedToolCall {
+  margin-bottom: 6px;
+  padding-left: 12px;
+  border-left: 2px solid var(--background-tertiary);
+}
+
+.toolCallEmpty {
+  color: var(--foreground-secondary);
+  font-style: italic;
+  font-size: 11px;
+}

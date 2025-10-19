@@ -1,21 +1,17 @@
-import { $generatedImages } from "@/stores/imageGenerationAgentsStore";
+import { Rectangle } from "@penpot/plugin-types";
 
 import {
   ClientQueryType,
   MessageSourceName,
-  ClientQueryMessage,
-  PluginResponsePayload,
+  ClientMessage,
   PenpotShapeType,
+  PluginMessage,
+  PluginResponseMessage,
+  ClientQueryPayload,
 } from "@/types/types";
+import { PenpotShapeProperties } from "@/types/shapeTypes";
 
-export const drawShape = async (shapeType: PenpotShapeType, params: any) => {
-  if (params.backgroundImage) {
-    const backgroundImage = $generatedImages.get().find(image => image.id === params.backgroundImageId);
-    if (backgroundImage) {
-      params.backgroundImage = backgroundImage;
-    }
-  }
-
+export const drawShape = async (shapeType: PenpotShapeType, params: PenpotShapeProperties) => {
   const response = await sendMessageToPlugin(ClientQueryType.DRAW_SHAPE, {
     shapeType,
     params,
@@ -24,36 +20,35 @@ export const drawShape = async (shapeType: PenpotShapeType, params: any) => {
   return response;
 }
 
-export const sendMessageToPlugin = async (type: ClientQueryType, payload?: any): Promise<PluginResponsePayload> => {
+export const sendMessageToPlugin = async (type: ClientQueryType, payload?: ClientQueryPayload): Promise<PluginResponseMessage> => {
   if (!window.parent || window.parent === window) {
     return localResponse(type);
   }
   
-  const callId = crypto.randomUUID();
+  const messageId = crypto.randomUUID();
 
-  const queryMessage: ClientQueryMessage = {
+  const queryMessage: ClientMessage = {
     source: MessageSourceName.Client,
-    callId,
+    messageId,
     type,
     payload,
   };
 
-  const responseMessagePromise = new Promise<PluginResponsePayload>((resolve, reject) => {
+  const responseMessagePromise = new Promise<PluginResponseMessage>((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error('Failed to send message to plugin'));
-    }, 10000);
+    }, 30000);
 
     const handleMessage = (event: MessageEvent) => {
-      const { source, callId: responseCallId, queryType, payload } = event.data;
+      const { source, messageId: responseMessageId } = event.data;
 
       if (
         source === MessageSourceName.Plugin
-        && callId === responseCallId
-        && queryType === type
+        && messageId === responseMessageId
       ) {
         clearTimeout(timeout);
         window.removeEventListener('message', handleMessage);
-        resolve(payload as PluginResponsePayload);
+        resolve(event.data as PluginResponseMessage);
       }
     }
     window.addEventListener('message', handleMessage);
@@ -64,32 +59,72 @@ export const sendMessageToPlugin = async (type: ClientQueryType, payload?: any):
   return responseMessagePromise;
 }
 
-function localResponse(type: ClientQueryType): PluginResponsePayload {
-  const responsePayload: PluginResponsePayload = {
-    success: true,
-    description: 'Successfully resolved',
+function localResponse(type: ClientQueryType): PluginResponseMessage {
+  
+  const pluginMessage: PluginMessage = {
+    source: MessageSourceName.Plugin,
+    type: type,
+    messageId: '',
+    message: 'Successfully resolved in local',
   };
 
   switch (type) {
     case ClientQueryType.GET_USER_DATA:
-      responsePayload.data = {
-        name: 'Axel',
-        id: '123',
+      return {
+        ...pluginMessage,
+        success: true,
+        payload: {
+          name: 'Axel',
+          id: '123',
+        },
       };
-      break;
 
     case ClientQueryType.GET_PROJECT_DATA:
-      responsePayload.data = {
-        name: 'Project 1',
-        id: '456',
+      return {
+        ...pluginMessage,
+        success: true,
+        payload: {
+          project: {
+            name: 'Project 1',
+            id: '123',
+            pages: [
+              {
+                name: 'Page 1',
+                id: '456',
+              },
+            ],
+          },
+          availableFonts: [
+            {
+              name: 'Font 1',
+              fontId: '123',
+              fontFamily: 'Font Family 1',
+            },
+          ],
+          currentPage: {
+            name: 'Page 1',
+            id: '456',
+            shapes: [
+              {
+                type: PenpotShapeType.RECTANGLE,
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                fills: [{ fillColor: 'red' }],
+                id: '123',
+                name: 'Rectangle 1',
+              } as Rectangle,
+            ],
+          },
+        },
       };
-      break;
-  
-    default:
-      break;
-  }
 
-  return new Promise((resolve) => {
-    resolve(responsePayload);
-  });
+    default:
+      return {
+        ...pluginMessage,
+        success: false,
+        message: 'Unknown query type',
+      };
+  }
 }

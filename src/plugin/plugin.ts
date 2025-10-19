@@ -1,4 +1,13 @@
-import { PluginMessageType, ClientQueryType, MessageSourceName, PluginResponsePayload } from '../types/types';
+import {
+  PluginMessageType,
+  ClientQueryType,
+  MessageSourceName,
+  ClientMessage,
+  AddImageQueryPayload,
+  DrawShapeQueryPayload,
+  PluginResponseMessage,
+} from '../types/types';
+
 import { handleDrawShape } from './drawHandlers';
 import { handleGetProjectData, handleGetUserData, handleAddImage } from './mainHandlers';
 
@@ -12,57 +21,48 @@ penpot.ui.open("AI Penpot Wizard", `?theme=${penpot.theme}`, {
 
 // Listen for theme change events from Penpot
 penpot.on('themechange', (newTheme: string) => {
-  console.log('Theme changed to:', newTheme);
-  
-  // Send message to the app about theme change
   penpot.ui.sendMessage({
     type: PluginMessageType.THEME_CHANGE,
     payload: { theme: newTheme },
   });
 });
 
-function sendResponseToClient(callId: string, queryType: ClientQueryType, payload: any) {
-  penpot.ui.sendMessage({
-    source: MessageSourceName.Plugin,
-    callId,
-    queryType,
-    payload,
-  });
-}
-
-penpot.ui.onMessage(async (message: any) => {
-  const { type, callId, payload, source } = message;
+penpot.ui.onMessage(async (message: ClientMessage) => {
+  const { type, messageId, payload, source } = message;
 
   if (source !== MessageSourceName.Client) {
     return ;
   }
-  
-  let responsePayload: PluginResponsePayload;
+
+  let responseMessage: PluginResponseMessage;
 
   switch (type) {
     case ClientQueryType.DRAW_SHAPE:
-      responsePayload = handleDrawShape(payload);
+      responseMessage = handleDrawShape(payload as DrawShapeQueryPayload);
       break;
 
     case ClientQueryType.ADD_IMAGE:
-      responsePayload = await handleAddImage(payload);
+      responseMessage = await handleAddImage(payload as AddImageQueryPayload);
       break;
 
     case ClientQueryType.GET_USER_DATA:
-      responsePayload = handleGetUserData();
+      responseMessage = handleGetUserData();
       break;
 
     case ClientQueryType.GET_PROJECT_DATA:
-      responsePayload = handleGetProjectData();
+      responseMessage = handleGetProjectData();
       break;
 
     default:
-      responsePayload = {
+      responseMessage = {
+        source: MessageSourceName.Plugin,
+        type: type,
+        messageId: messageId,
+        message: `unknown command: ${type}`,
         success: false,
-        description: `unknown command: ${type}`,
-        data: null,
       };
+      break;
   }
-
-  sendResponseToClient(callId, type, responsePayload);
+  responseMessage.messageId = messageId;
+  penpot.ui.sendMessage(responseMessage);
 });

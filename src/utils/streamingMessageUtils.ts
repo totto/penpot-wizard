@@ -4,6 +4,7 @@ import {
   completeToolCall,
   setStreamingError
 } from '@/stores/streamingMessageStore';
+import { TextStreamPart, ToolSet } from 'ai';
 
 /**
  * Handles the processing of a stream from the AI model
@@ -13,7 +14,7 @@ import {
  * @returns The complete response text accumulated from all text deltas
  */
 export async function handleStreamProcessing(
-  stream: AsyncIterable<any>
+  stream: AsyncIterable<TextStreamPart<ToolSet>>
 ): Promise<string> {
   let fullResponse = '';
 

@@ -1,7 +1,5 @@
 import { atom } from 'nanostores';
-import { persistentAtom } from '@nanostores/persistent';
-import { ImageData } from '@penpot/plugin-types';
-import { tool, experimental_generateImage as generateImage } from 'ai';
+import { tool, experimental_generateImage as generateImage, Tool } from 'ai';
 import { imageGenerationAgents } from '@/assets/imageGenerationAgents';
 import { ClientQueryType, ImageGenerationAgent } from '@/types/types';
 import { createImageModelInstance } from '@/utils/modelUtils';
@@ -10,15 +8,6 @@ import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 
 let imageGenerationAgentsInitialized = false;
-
-export const $generatedImages = persistentAtom<ImageData[]>('generatedImages', [], {
-  encode: (images: ImageData[]) => JSON.stringify(images),
-  decode: (value: string) => JSON.parse(value),
-});
-
-export const addGeneratedImage = (image: ImageData) => {
-  $generatedImages.set([...$generatedImages.get(), image]);
-};
 
 // Base atom for image generation agents data
 export const $imageGenerationAgentsData = atom<ImageGenerationAgent[]>(
@@ -38,7 +27,7 @@ export const getImageGenerationAgentsByIds = (agentIds: string[]) => {
   return agentsData
     .filter(agent => agentIds.includes(agent.id))
     .map(agent => agent.instance)
-    .filter(Boolean); // Remove undefined instances
+    .filter(Boolean) as Tool[]; // Remove undefined instances
 };
 
 // Initialize a single image generation agent
@@ -58,6 +47,7 @@ const initializeImageGenerationAgent = async (agentDef: ImageGenerationAgent): P
         const result = await generateImage({
           model: imageModelInstance,
           prompt: prompt,
+          size: '1024x1024',
         });
 
         const { image: { uint8Array, mediaType } } = result;
@@ -65,22 +55,11 @@ const initializeImageGenerationAgent = async (agentDef: ImageGenerationAgent): P
         
         const addImageResponse = await sendMessageToPlugin(ClientQueryType.ADD_IMAGE, {
           name: imageId,
-          imageData: uint8Array,
+          data: uint8Array,
           mimeType: mediaType,
         });
-
-        const imageData = (addImageResponse as any)?.data?.imageData as ImageData;
-        
-        if (imageData) {
-          addGeneratedImage(imageData);
-        }
-
-        return {
-          ...addImageResponse,
-          data: {
-            imageId,
-          }
-        };
+        console.log('addImageResponse: ', addImageResponse);
+        return addImageResponse;
       } catch (error) {
         console.error(`Error executing image generation agent ${agentDef.id}:`, error);
         return {
@@ -99,17 +78,11 @@ const initializeImageGenerationAgent = async (agentDef: ImageGenerationAgent): P
 
 // Action function for initializing image generation agents
 export const initializeImageGenerationAgents = async () => {
-  if (imageGenerationAgentsInitialized) {
-    console.log('Image generation agents already initialized, skipping initialization');
+  
+  if (imageGenerationAgentsInitialized || !$isConnected.get()) {
     return;
   }
-  
-  const isConnected = $isConnected.get();
-  if (!isConnected) {
-    console.log('Not connected, skipping image generation agents initialization');
-    return;
-  }
-  
+    
   try {
     const agentsData = $imageGenerationAgentsData.get();
     
@@ -124,9 +97,10 @@ export const initializeImageGenerationAgents = async () => {
         }
       })
     );
-    console.log('Initialized image generation agents: ', initializedAgents);
+
     $imageGenerationAgentsData.set(initializedAgents);
     imageGenerationAgentsInitialized = true;
+
   } catch (error) {
     console.error('Failed to initialize image generation agents:', error);
   }

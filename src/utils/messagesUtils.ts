@@ -3,7 +3,6 @@
   @see https://github.com/langchain-ai/langchainjs/blob/main/langchain-core/src/utils/json.ts#L1
 */
 export function parseJsonMarkdown(s: string, parser = parsePartialJson) {
-  // eslint-disable-next-line no-param-reassign
   s = s.trim();
 
   const firstFenceIndex = s.indexOf("```");
@@ -41,7 +40,7 @@ export function parsePartialJson(s: string) {
   // Attempt to parse the string as-is.
   try {
     return JSON.parse(s);
-  } catch (error) {
+  } catch {
     // Pass
   }
 
@@ -111,7 +110,7 @@ export function parsePartialJson(s: string) {
   // Attempt to parse the modified string as JSON.
   try {
     return JSON.parse(new_s);
-  } catch (error) {
+  } catch {
     // As a final fallback, if the content clearly starts an object/array,
     // return an empty structure instead of null to keep downstream logic robust.
     const trimmed = typeof s === "string" ? s.trim() : "";

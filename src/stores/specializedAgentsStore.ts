@@ -1,11 +1,12 @@
 import { atom } from 'nanostores';
-import { tool, Experimental_Agent as Agent, Output, stepCountIs } from 'ai';
+import { tool, Experimental_Agent as Agent, Output, stepCountIs, Tool, ToolSet } from 'ai';
 import { specializedAgents } from '@/assets/specializedAgents';
 import { SpecializedAgent } from '@/types/types';
 import { getToolsByIds } from '@/stores/toolsStore';
 import { getImageGenerationAgentsByIds } from '@/stores/imageGenerationAgentsStore';
 import { createModelInstance } from '@/utils/modelUtils';
 import { $isConnected } from '@/stores/settingsStore';
+import { handleNestedStreamProcessing } from '@/utils/nestedStreamingUtils';
 import { z } from 'zod';
 
 let specializedAgentsInitialized = false;
@@ -28,7 +29,7 @@ export const getSpecializedAgentsByIds = (agentIds: string[]) => {
   return agentsData
     .filter(agent => agentIds.includes(agent.id))
     .map(agent => agent.instance)
-    .filter(Boolean); // Remove undefined instances
+    .filter(Boolean) as Tool[]; // Remove undefined instances
 };
 
 // Initialize a single specialized agent
@@ -46,16 +47,16 @@ const initializeSpecializedAgent = async (agentDef: SpecializedAgent): Promise<S
   const imageGenerationAgentTools = getImageGenerationAgentsByIds(agentDef.imageGenerationAgentIds || []);
   
   // Combine all tools
-  const allTools = [...agentTools, ...specializedAgentTools, ...imageGenerationAgentTools];
+  const allTools: Tool[] = [...agentTools, ...specializedAgentTools, ...imageGenerationAgentTools];
   
   // Create the Agent instance
   const agentInstance = new Agent({
     model: modelInstance,
     system: agentDef.system,
-    tools: allTools.reduce((acc, tool) => {
+    tools: allTools.reduce((acc: ToolSet, tool: Tool) => {
       acc[tool.id] = tool;
       return acc;
-    }, {}) as any,
+    }, {}),
     experimental_output: agentDef.outputSchema ? Output.object({
       schema: agentDef.outputSchema,
     }) : undefined,
@@ -70,10 +71,21 @@ const initializeSpecializedAgent = async (agentDef: SpecializedAgent): Promise<S
     inputSchema: z.object({
       query: z.string().describe('The query or task for the specialized agent to process')
     }),
-    execute: async ({ query }) => {
+    execute: async ({ query }, { toolCallId }) => {
       try {
-        const result = await agentInstance.generate({ messages: [{ role: 'user', content: query }] });
-        return result.text;
+        // Use streaming to capture nested tool calls
+        const stream = await agentInstance.stream({ 
+          messages: [{ role: 'user', content: query }] 
+        });
+        
+        // Process the stream and capture nested tool calls
+        const fullResponse = await handleNestedStreamProcessing(
+          stream.fullStream, 
+          toolCallId
+        );
+        
+        // Return the complete response
+        return fullResponse;
       } catch (error) {
         console.error(`Error executing specialized agent ${agentDef.id}:`, error);
         throw error;
@@ -89,17 +101,10 @@ const initializeSpecializedAgent = async (agentDef: SpecializedAgent): Promise<S
 
 // Action function for initializing specialized agents
 export const initializeSpecializedAgents = async () => {
-  if (specializedAgentsInitialized) {
-    console.log('Specialized agents already initialized, skipping initialization');
+  if (specializedAgentsInitialized || !$isConnected.get()) {
     return;
   }
-  
-  const isConnected = $isConnected.get();
-  if (!isConnected) {
-    console.log('Not connected, skipping specialized agents initialization');
-    return;
-  }
-  
+    
   try {
     const agentsData = $specializedAgentsData.get();
     
@@ -114,9 +119,10 @@ export const initializeSpecializedAgents = async () => {
         }
       })
     );
-    console.log('Initialized specialized agents: ', initializedAgents);
+
     $specializedAgentsData.set(initializedAgents);
     specializedAgentsInitialized = true;
+
   } catch (error) {
     console.error('Failed to initialize specialized agents:', error);
   }

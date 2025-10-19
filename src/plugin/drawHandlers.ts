@@ -1,21 +1,45 @@
 import { pathCommandsToSvgString } from './utils';
-import { Board, Shape, Text } from '@penpot/plugin-types';
-import { PenpotShapeType } from '../types/types';
+import { Board, Fill, Shape, Text } from '@penpot/plugin-types';
+import { ClientQueryType, DrawShapeQueryPayload, MessageSourceName, PenpotShapeType, PluginResponseMessage } from '../types/types';
+import { PathShapeProperties, PenpotShapeProperties, TextShapeProperties } from '@/types/shapeTypes';
 
-function setParamsToShape(shape: Shape, params: any) {
+function setParamsToShape(shape: Shape, params: PenpotShapeProperties) {
   const { backgroundImage, parentId, color, width, height, ...rest } = params;
   
   if (color || backgroundImage) {
-    shape.fills = [{fillColor: color || 'transparent', fillImage: backgroundImage || undefined  }] 
+    const fills: Fill[] = [];
+
+    if (backgroundImage) {
+      const backgroundImageFill: Fill = {
+        fillImage: {
+          id: backgroundImage,
+          width: Math.round(width),
+          height: Math.round(height),
+          mtype: "image/png",
+          keepAspectRatio: true,
+        }
+      }
+      fills.push(backgroundImageFill);
+    }
+    if (color) {
+      const colorFill: Fill = {
+        fillColor: color,
+      }
+      fills.push(colorFill);
+    }
+
+    shape.fills = fills;
+    console.log('setParamsToShape -> shape.fills: ', shape.fills);
   }
 
   if (width && height) {
     shape.resize(width, height);
   }
 
-  Object.keys(rest).forEach((key) => {
-    if (rest[key] !== undefined) {
-      (shape as any)[key] = rest[key];
+  (Object.keys(rest) as Array<keyof typeof rest>).forEach((key) => {
+    const value = rest[key];
+    if (value !== undefined) {
+      (shape as unknown as Record<string, unknown>)[key as string] = value as unknown;
     }
   });
 
@@ -27,11 +51,19 @@ function setParamsToShape(shape: Shape, params: any) {
   }
 }
 
-export function handleDrawShape(payload: any) {
+export function handleDrawShape( payload: DrawShapeQueryPayload): PluginResponseMessage {
   const { shapeType, params } = payload;
 
+  const pluginResponse: PluginResponseMessage = {
+    source: MessageSourceName.Plugin,
+    type: ClientQueryType.DRAW_SHAPE,
+    messageId: '',
+    message: '',
+    success: true,
+  };
+
+  let newShape: Shape | Text | null;
   try {
-    let newShape: Shape | Text | null;
     switch (shapeType) {
       case PenpotShapeType.RECTANGLE:
         newShape = penpot.createRectangle();
@@ -40,38 +72,39 @@ export function handleDrawShape(payload: any) {
         newShape = penpot.createEllipse();
         break;
       case PenpotShapeType.PATH:
-        params.content = pathCommandsToSvgString(params.content) as any;
+        // @ts-expect-error Penpot path content only accepts SVG string; type def is narrower
+        (params as PathShapeProperties).content = pathCommandsToSvgString((params as PathShapeProperties).content);
         newShape = penpot.createPath();
         break;
       case PenpotShapeType.TEXT:
-        newShape = penpot.createText(params.characters);
-        delete params.characters;
+        newShape = penpot.createText((params as TextShapeProperties).characters);
+        delete (params as Partial<TextShapeProperties>).characters;
         break;
       case PenpotShapeType.BOARD:
         newShape = penpot.createBoard();
         break;
       default:
-        throw new Error(`Invalid shape type: ${shapeType}`);
+        throw new Error('Invalid shape type');
     }
 
     if (!newShape) {
-      throw new Error(`Failed to create ${shapeType} shape`);
+      throw new Error('Failed to create shape');
     }
 
     setParamsToShape(newShape, params);
 
     return {
-      success: true,
-      description: `${shapeType} successfully drawn`,
-      data: {
-        shapeCreated: newShape,
+      ...pluginResponse,
+      message: 'Shape drawn successfully',
+      payload: {
+        shape: newShape,
       },
     };
   } catch (error) {
     return {
+      ...pluginResponse,
       success: false,
-      description: `${shapeType} unsuccessfully drawn, error: ${error}`,
-      data: null,
+      message: `error drawing shape ${shapeType}: ${error}`,
     };
   }
 }
