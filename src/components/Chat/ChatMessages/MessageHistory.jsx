@@ -19,7 +19,7 @@ const MessageHistory = memo(({ messages }) => {
         // Parse assistant messages (JSON format)
         if (message.role === 'assistant') {
           const parsed = parseJsonMarkdown(content || '{"text": "no content"}')
-          content = parsed || { text: content }
+          content = parsed?.properties?.text || parsed?.text || { text: content }
         }
 
         return (
