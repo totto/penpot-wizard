@@ -6,8 +6,8 @@ import { getToolsByIds } from '@/stores/toolsStore';
 import { getImageGenerationAgentsByIds } from '@/stores/imageGenerationAgentsStore';
 import { createModelInstance } from '@/utils/modelUtils';
 import { $isConnected } from '@/stores/settingsStore';
-import { handleNestedStreamProcessing } from '@/utils/nestedStreamingUtils';
 import { z } from 'zod';
+import { StreamHandler } from '@/utils/streamingMessageUtils';
 
 let specializedAgentsInitialized = false;
 
@@ -28,46 +28,72 @@ export const getSpecializedAgentsByIds = (agentIds: string[]) => {
   const agentsData = $specializedAgentsData.get();
   return agentsData
     .filter(agent => agentIds.includes(agent.id))
-    .map(agent => agent.instance)
-    .filter(Boolean) as Tool[]; // Remove undefined instances
+};
+
+export const updateSpecializedAgent = (agentDef: SpecializedAgent) => {
+  const agentsData = $specializedAgentsData.get();
+  const updatedAgents = agentsData.map(agent => {
+    if (agent.id === agentDef.id) {
+      return agentDef;
+    }
+    return agent;
+  });
+  $specializedAgentsData.set(updatedAgents);
 };
 
 // Initialize a single specialized agent
-const initializeSpecializedAgent = async (agentDef: SpecializedAgent): Promise<SpecializedAgent> => {
+const initializeSpecializedAgent = async (specializedAgentId: string): Promise<boolean> => {
+  const specializedAgentDef = getSpecializedAgentById(specializedAgentId);
+  
+  if (!specializedAgentDef) {
+    console.error(`Specialized agent ${specializedAgentId} not found`);
+    return false;
+  }
+
+  if (specializedAgentDef.instance) {
+    return true;
+  }
+
   const modelInstance = createModelInstance();
   
   // Get tools for this specialized agent
-  const agentTools = getToolsByIds(agentDef.toolIds || []);
+  const mainTools = getToolsByIds(specializedAgentDef.toolIds || []);
 
   // Get other specialized agents this agent can use
   // Note: This creates a potential for circular dependencies, which should be avoided
-  const specializedAgentTools = getSpecializedAgentsByIds(agentDef.specializedAgentIds || []);
-  
+  const specializedAgentTools = await Promise.all(getSpecializedAgentsByIds(specializedAgentDef.specializedAgentIds || []).map(async (tempAgentDef) => {
+    if (!tempAgentDef.instance) {
+      await initializeSpecializedAgent(tempAgentDef.id);
+      return getSpecializedAgentById(tempAgentDef.id) as SpecializedAgent;
+    } 
+    return tempAgentDef;
+  }));
+
   // Get image generation agents this agent can use
-  const imageGenerationAgentTools = getImageGenerationAgentsByIds(agentDef.imageGenerationAgentIds || []);
+  const imageGenerationAgentTools = getImageGenerationAgentsByIds(specializedAgentDef.imageGenerationAgentIds || []);
   
   // Combine all tools
-  const allTools: Tool[] = [...agentTools, ...specializedAgentTools, ...imageGenerationAgentTools];
-  
+  const allTools = [...mainTools, ...specializedAgentTools, ...imageGenerationAgentTools];
+
   // Create the Agent instance
   const agentInstance = new Agent({
     model: modelInstance,
-    system: agentDef.system,
-    tools: allTools.reduce((acc: ToolSet, tool: Tool) => {
-      acc[tool.id] = tool;
+    system: specializedAgentDef.system,
+    tools: allTools.reduce((acc: ToolSet, tool) => {
+      acc[tool.id] = tool.instance as Tool;
       return acc;
     }, {}),
-    experimental_output: agentDef.outputSchema ? Output.object({
-      schema: agentDef.outputSchema,
+    experimental_output: specializedAgentDef.outputSchema ? Output.object({
+      schema: specializedAgentDef.outputSchema,
     }) : undefined,
     stopWhen: stepCountIs(20)
   });
   
   // Wrap the agent in a tool
   const toolInstance = tool({
-    id: agentDef.id as `${string}.${string}`,
-    name: agentDef.name,
-    description: agentDef.description,
+    id: specializedAgentDef.id as `${string}.${string}`,
+    name: specializedAgentDef.name,
+    description: specializedAgentDef.description,
     inputSchema: z.object({
       query: z.string().describe('The query or task for the specialized agent to process')
     }),
@@ -79,24 +105,25 @@ const initializeSpecializedAgent = async (agentDef: SpecializedAgent): Promise<S
         });
         
         // Process the stream and capture nested tool calls
-        const fullResponse = await handleNestedStreamProcessing(
-          stream.fullStream, 
-          toolCallId
-        );
-        
-        // Return the complete response
+        const streamHandler = new StreamHandler(stream.fullStream, toolCallId);
+        const fullResponse = await streamHandler.handleStream();
+
         return fullResponse;
       } catch (error) {
-        console.error(`Error executing specialized agent ${agentDef.id}:`, error);
+        console.error(`Error executing specialized agent ${specializedAgentDef.id}:`, error);
         throw error;
       }
     },
   });
   
-  return {
-    ...agentDef,
-    instance: toolInstance
+  const updatedAgentDef = {
+    ...specializedAgentDef,
+    instance: toolInstance,
+    agentInstance: agentInstance
   };
+
+  updateSpecializedAgent(updatedAgentDef);
+  return true;
 };
 
 // Action function for initializing specialized agents
@@ -108,21 +135,11 @@ export const initializeSpecializedAgents = async () => {
   try {
     const agentsData = $specializedAgentsData.get();
     
-    // Initialize all specialized agents
-    const initializedAgents = await Promise.all(
-      agentsData.map(async (agentDef) => {
-        try {
-          return await initializeSpecializedAgent(agentDef);
-        } catch (error) {
-          console.error(`Failed to initialize specialized agent ${agentDef.id}:`, error);
-          return agentDef;
-        }
-      })
-    );
+    for (const agentDef of agentsData) {
+      await initializeSpecializedAgent(agentDef.id);
+    }
 
-    $specializedAgentsData.set(initializedAgents);
     specializedAgentsInitialized = true;
-
   } catch (error) {
     console.error('Failed to initialize specialized agents:', error);
   }

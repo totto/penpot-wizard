@@ -22,9 +22,7 @@ export const getToolById = (toolId: string) => {
 
 export const getToolsByIds = (toolIds: string[]) => {
   const toolsData = $toolsData.get();
-  return toolsData
-    .filter(tool => toolIds.includes(tool.id) && tool.instance)
-    .map(tool => tool.instance) as Tool[];
+  return toolsData.filter(tool => toolIds.includes(tool.id))
 };
 
 // Initialize tools based on their type

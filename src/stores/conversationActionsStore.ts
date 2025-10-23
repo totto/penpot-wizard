@@ -44,7 +44,7 @@ import {
 } from '@/utils/messagesStorageUtils';
 
 // Streaming utilities
-import { handleStreamProcessing } from '@/utils/streamingMessageUtils';
+import { StreamHandler } from '@/utils/streamingMessageUtils';
 
 /**
  * Conversation Actions Store (V2)
@@ -92,45 +92,10 @@ const generateGreetingMessage = async (conversationId: string): Promise<void> =>
   }
 
   try {
-    // Prepare messages for the agent (just the hello message)
-    const agentMessages = [
-      {
-        role: 'user' as const,
-        content: `
-        Your first task is present yourself to the user in a friendly way, and then ask the user to tell you what they want to do.
-        Always call the user by his name.
-      `
-      }
-    ];
-
-    // Generate message ID
-    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    // Start streaming
-    startStreaming(messageId);
-
-    // Stream response from agent
-    const stream = await director.instance.stream({
-      messages: agentMessages
-    });
-
-    // Handle stream processing
-    await handleStreamProcessing(stream.fullStream);
-
-    // Finalize streaming
-    const finalMessage = finalizeStreaming();
-
-    if (finalMessage) {
-      // Add to active conversation
-      addMessageToActive({
-        role: 'assistant',
-        content: finalMessage.content,
-        toolCalls: finalMessage.toolCalls
-      });
-
-      // Increment message count in metadata
-      incrementMessageCount(conversationId);
-    }
+    await sendUserMessage(`
+      Your first task is present yourself to the user in a friendly way, and then ask the user to tell you what they want to do.
+      Always call the user by his name.
+    `, true);
   } catch (error) {
     console.error('Error generating greeting message:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -161,7 +126,7 @@ export const setActiveConversation = (conversationId: string): void => {
  * Sends a user message and streams the assistant's response
  * @param text - The user's message text
  */
-export const sendUserMessage = async (text: string): Promise<void> => {
+export const sendUserMessage = async (text: string, hidden: boolean = false): Promise<void> => {
   const activeConversation = $activeConversationFull.get();
   const activeDirectorAgent = $activeDirectorAgent.get();
 
@@ -174,7 +139,8 @@ export const sendUserMessage = async (text: string): Promise<void> => {
     // 1. Add user message to active conversation
     const userMessageId = addMessageToActive({
       role: 'user',
-      content: text
+      content: text,
+      hidden: hidden
     });
 
     if (!userMessageId) {
@@ -217,7 +183,8 @@ export const sendUserMessage = async (text: string): Promise<void> => {
     });
 
     // 7. Handle stream processing
-    await handleStreamProcessing(stream.fullStream);
+    const streamHandler = new StreamHandler(stream.fullStream);
+    await streamHandler.handleStream();
 
     // 8. Finalize streaming
     const finalMessage = finalizeStreaming();

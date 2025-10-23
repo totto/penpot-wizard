@@ -1,6 +1,5 @@
 import { memo } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { parseJsonMarkdown } from '@/utils/messagesUtils'
 import ToolCallDetails from './ToolCallDetails/ToolCallDetails'
 import styles from './ChatMessages.module.css'
 
@@ -14,14 +13,6 @@ const MessageHistory = memo(({ messages }) => {
   return (
     <>
       {messages.map((message) => {
-        let content = message.content
-
-        // Parse assistant messages (JSON format)
-        if (message.role === 'assistant') {
-          const parsed = parseJsonMarkdown(content || '{"text": "no content"}')
-          content = parsed?.properties?.text || parsed?.text || { text: content }
-        }
-
         return (
           <div
             key={message.id}
@@ -41,9 +32,9 @@ const MessageHistory = memo(({ messages }) => {
             
             <div className={styles.messageContent}>
               {message.role === 'assistant' ? (
-                <ReactMarkdown>{content.text || content}</ReactMarkdown>
+                <ReactMarkdown>{message.content}</ReactMarkdown>
               ) : (
-                content
+                message.content
               )}
             </div>
             <div className={styles.timestamp}>

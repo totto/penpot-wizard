@@ -24,10 +24,7 @@ export const getImageGenerationAgentById = (agentId: string) => {
 
 export const getImageGenerationAgentsByIds = (agentIds: string[]) => {
   const agentsData = $imageGenerationAgentsData.get();
-  return agentsData
-    .filter(agent => agentIds.includes(agent.id))
-    .map(agent => agent.instance)
-    .filter(Boolean) as Tool[]; // Remove undefined instances
+  return agentsData.filter(agent => agentIds.includes(agent.id))
 };
 
 // Initialize a single image generation agent

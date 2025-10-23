@@ -60,7 +60,7 @@ function ToolCallDetails({ toolCall, isNested = false }) {
   const stateDisplay = getStateDisplay(toolCall.state)
   const formattedInput = formatData(toolCall.input)
   const formattedOutput = formatData(toolCall.output)
-  const hasNestedToolCalls = toolCall.nestedToolCalls && toolCall.nestedToolCalls.length > 0
+  const hasNestedToolCalls = toolCall.toolCalls && toolCall.toolCalls.length > 0
   
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded)
@@ -112,9 +112,9 @@ function ToolCallDetails({ toolCall, isNested = false }) {
           {hasNestedToolCalls && (
             <div className={styles.nestedToolCallsContainer}>
               <div className={styles.nestedToolCallLabel}>
-                Nested Tool Calls ({toolCall.nestedToolCalls.length})
+                Nested Tool Calls ({toolCall.toolCalls.length})
               </div>
-              {toolCall.nestedToolCalls.map((nestedCall, index) => (
+              {toolCall.toolCalls.map((nestedCall, index) => (
                 <ToolCallDetails
                   key={nestedCall.toolCallId || index}
                   toolCall={nestedCall}

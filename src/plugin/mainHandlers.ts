@@ -19,6 +19,7 @@ export function handleGetUserData(): PluginResponseMessage {
   if (penpot.currentUser) {
     return {
       ...pluginResponse,
+      type: ClientQueryType.GET_USER_DATA,
       message: 'User data successfully retrieved',
       payload: {
         name: penpot.currentUser.name || '',
@@ -28,6 +29,7 @@ export function handleGetUserData(): PluginResponseMessage {
   } else {
     return {
       ...pluginResponse,
+      type: ClientQueryType.GET_USER_DATA,
       success: false,
       message: 'Error retrieving user data',
     }
@@ -38,35 +40,49 @@ export function handleGetProjectData(): PluginResponseMessage {
   if (penpot.currentFile && penpot.currentPage) {
     return {
       ...pluginResponse,
+      type: ClientQueryType.GET_PROJECT_DATA,
       message: 'Project data successfully retrieved',
       payload: {
-        project: {
-          name: penpot.currentFile?.name,
-          id: penpot.currentFile?.id,
-          pages: penpot.currentFile?.pages.map((page) => ({
-            name: page.name,
-            id: page.id,
-          })),
-        },
-        availableFonts: penpot.fonts.all.map((font) => ({
-          name: font.name,
-          fontId: font.fontId,
-          fontFamily: font.fontFamily,
+        name: penpot.currentFile?.name,
+        id: penpot.currentFile?.id,
+        pages: penpot.currentFile?.pages.map((page) => ({
+          name: page.name,
+          id: page.id,
         })),
-        currentPage: {
-          name: penpot.currentPage.name,
-          id: penpot.currentPage.id,
-          shapes: penpot.currentPage.findShapes({}),
-        },
       },
     };
   } else {
     return {
       ...pluginResponse,
+      type: ClientQueryType.GET_PROJECT_DATA,
       success: false,
       message: 'Error retrieving project data',
     }
   }
+}
+
+export function getAvailableFonts(): PluginResponseMessage {
+  return {
+    ...pluginResponse,
+    type: ClientQueryType.GET_AVAILABLE_FONTS,
+    message: 'Available fonts successfully retrieved',
+    payload: {
+      fonts: penpot.fonts.all.map((font) => font.name),
+    },
+  };
+}
+
+export function getCurrentPage(): PluginResponseMessage {
+  return {
+    ...pluginResponse,
+    type: ClientQueryType.GET_CURRENT_PAGE,
+    message: 'Current page successfully retrieved',
+    payload: {
+      name: penpot.currentPage?.name || '',
+      id: penpot.currentPage?.id || '',
+      shapes: penpot.currentPage?.findShapes({}) || [],
+    },
+  };
 }
 
 export async function handleAddImage(payload: AddImageQueryPayload) : Promise<PluginResponseMessage> {

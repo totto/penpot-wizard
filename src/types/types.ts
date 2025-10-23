@@ -20,6 +20,8 @@ export enum PluginMessageType {
 export enum ClientQueryType {
   GET_USER_DATA = 'GET_USER_DATA',
   GET_PROJECT_DATA = 'GET_PROJECT_DATA',
+  GET_AVAILABLE_FONTS = 'GET_AVAILABLE_FONTS',
+  GET_CURRENT_PAGE = 'GET_CURRENT_PAGE',
   DRAW_SHAPE = 'DRAW_SHAPE',
   ADD_IMAGE = 'ADD_IMAGE',
 }
@@ -73,77 +75,67 @@ export interface GetUserDataPayload {
   id: string;
 }
 export interface GetProjectDataPayload {
-  project: {
+  name: string;
+  id: string;
+  pages: {
     name: string;
     id: string;
-    pages: {
-      name: string;
-      id: string;
-    }[];
-  };
-  availableFonts: {
-    name: string;
-    fontId: string;
-    fontFamily: string;
   }[];
-  currentPage: {
-    name: string;
-    id: string;
-    shapes: Shape[];
-  };
 }
 
-export type PluginResponsePayload = GetUserDataPayload | GetProjectDataPayload | DrawShapeResponsePayload | AddImagePayload;
+export interface GetAvailableFontsPayload {
+  fonts: string[];
+}
+
+export interface GetCurrentPagePayload {
+  name: string;
+  id: string;
+  shapes: Shape[];
+}
+
+export type PluginResponsePayload = GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | DrawShapeResponsePayload | AddImagePayload;
 
 // Theme type definition
 export type Theme = 'light' | 'dark';
-export interface FunctionTool {
+export interface ToolBase {
   id: string;
   name: string;
   description: string;
+}
+
+export interface FunctionTool extends ToolBase {
   inputSchema: ZodType; // Zod schema para validar inputs
   function: Tool['execute']; // Función para tools tipo FUNCTION
   instance?: Tool; // AI SDK tool instance
 }
 
-export interface RagTool {
-  id: string;
-  name: string;
-  description: string;
+export interface RagTool extends ToolBase {
   ragContentFile: string;
   dbInstance?: AnyOrama; // Database instance for RAG operations
   instance?: Tool; // AI SDK tool instance
 }
 
-export interface SpecializedAgent {
-  id: string;
-  name: string;
-  description: string;
+export interface SpecializedAgent extends ToolBase {
   system: string; // System prompt for the agent
   outputSchema?: ZodType; // Zod schema for output validation
   toolIds?: string[]; // IDs of tools this agent can use
-  specializedAgentIds?: string[]; // IDs of other specialized agents this agent can use
-  imageGenerationAgentIds?: string[]; // IDs of image generation agents this agent can use
+  specializedAgentIds?: string[]; // IDs of other specialized agents it can call
+  imageGenerationAgentIds?: string[]; // IDs of image generation agents it can call
+  agentInstance?: Agent<ToolSet, unknown, unknown>;
   instance?: Tool; // AI SDK tool instance
 }
 
-export interface ImageGenerationAgent {
-  id: string;
-  name: string;
-  description: string;
+export interface ImageGenerationAgent extends ToolBase {
   system: string; // System prompt for the agent
   instance?: Tool; // AI SDK tool instance
 }
 
-export interface DirectorAgent {
-  id: string;
-  name: string;
-  description: string;
+export interface DirectorAgent extends ToolBase {
   system: string;
   toolIds?: string[]; // IDs de las tools que puede usar
   specializedAgentIds?: string[]; // IDs of specialized agents this agent can use
   imageGenerationAgentIds?: string[]; // IDs of image generation agents this agent can use
-  instance?: Agent<ToolSet>;
+  instance?: Agent<ToolSet, unknown, unknown>;
 }
 
 /**
@@ -158,7 +150,7 @@ export interface AgentToolCall {
   input?: unknown;
   output?: unknown;
   error?: string;
-  nestedToolCalls?: AgentToolCall[]; // For specialized agents that use other tools
+  toolCalls?: AgentToolCall[]; // For specialized agents that use other tools
 }
 
 // Message interface (used in both V1 and V2)
@@ -169,6 +161,7 @@ export interface Message {
   timestamp: Date;
   isStreaming?: boolean;
   toolCalls?: AgentToolCall[];
+  hidden?: boolean;
 }
 
 // Full conversation with messages (used in V1)

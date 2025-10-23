@@ -1,6 +1,4 @@
-import { useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { parseJsonMarkdown } from '@/utils/messagesUtils'
 import ToolCallDetails from './ToolCallDetails/ToolCallDetails'
 import styles from './ChatMessages.module.css'
 
@@ -11,21 +9,7 @@ import styles from './ChatMessages.module.css'
  * Much more efficient than re-rendering the entire message history
  */
 function StreamingMessageView({ message }) {
-  const lastCorrectContent = useRef({})
-
   if (!message) return null
-
-  // Parse content
-  let content = message.content
-  const parsed = parseJsonMarkdown(content || '{}')
-  
-  // If parsing fails during streaming, use last correct content
-  if (parsed) {
-    lastCorrectContent.current = parsed
-    content = parsed
-  } else {
-    content = lastCorrectContent.current
-  }
 
   // Generate a temporary timestamp for display
   const timestamp = new Date().toLocaleTimeString()
@@ -51,7 +35,7 @@ function StreamingMessageView({ message }) {
           </div>
         ) : (
           <>
-            <ReactMarkdown>{content.text || ''}</ReactMarkdown>
+            <ReactMarkdown>{message.content}</ReactMarkdown>
             {message.isStreaming && <span className={styles.cursor}>|</span>}
           </>
         )}

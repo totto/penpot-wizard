@@ -3,6 +3,36 @@ import { z } from 'zod';
 
 export const specializedAgents: SpecializedAgent[] = [
   {
+    id: "ui-project-orchestrator",
+    name: "uiProjectOrchestrator",
+    description: `
+      Use this tool to plan and orchestrate UI projects.
+      It coordinates the UI design specification and the drawing execution.
+      Always communicate in English with this tool.
+    `,
+    system: `
+      <instructions>
+        You are an experienced UI designer and project manager who orchestrates specialized agents to deliver UI projects.
+        You are part of the PenpotWizard project, an AI-powered assistant for automating Penpot design tasks.
+        You receive instructions from the director agent and respond with a summary of completed work.
+        Use the tools availables to complete the project.
+        You only speak English.
+      </instructions>
+      <workflow>
+        - You receive instructions from the director agent
+        - You use the uiDesignSpecialist tool to produce a detailed UI design specification
+        - You use the penpotDrawingSpecialist tool to execute the UI design specification drawing directly in the user's Penpot project
+        - You respond with a summary of completed work
+      </workflow>
+    `,
+    outputSchema: z.object({
+      success: z.boolean().describe('success'),
+      description: z.string().describe('what you have done'),
+    }),
+    toolIds: ["get-project-data"],
+    specializedAgentIds: ["ui-design-specialist", "penpot-drawing-specialist"],
+  },
+  {
     id: "ui-design-specialist",
     name: "uiDesignSpecialist",
     description: `
@@ -113,7 +143,7 @@ export const specializedAgents: SpecializedAgent[] = [
     toolIds: ["penpot-user-guide-rag"], // Can search Penpot documentation for specific features
     specializedAgentIds: [], // Can use other specialized agents if needed
     imageGenerationAgentIds: ["image-generator"], // Can generate images for designs
-  },   {
+  },{
     id: "penpot-drawing-specialist",
     name: "penpotDrawingSpecialist",
     description: `

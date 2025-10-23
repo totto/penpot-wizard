@@ -24,6 +24,6 @@ export const directorAgents: DirectorAgent[] = [
       </language_rules>
     `,
     toolIds: ["get-user-data"],
-    specializedAgentIds: ["ui-design-specialist", "penpot-drawing-specialist"],
+    specializedAgentIds: ["ui-project-orchestrator"],
   }
 ];

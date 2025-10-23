@@ -53,7 +53,7 @@ export const startStreaming = (messageId: string): void => {
  */
 export const updateStreamingContent = (content: string): void => {
   const current = $streamingMessage.get();
-  
+
   if (!current) {
     console.warn('Attempted to update streaming content when no message is streaming');
     return;
@@ -65,157 +65,76 @@ export const updateStreamingContent = (content: string): void => {
   });
 };
 
-/**
- * Starts a tool call in the streaming message
- * @param toolCallId - The unique ID of the tool call
- * @param toolName - The name of the tool
- * @param input - The input parameters for the tool
- */
-export const startToolCall = (toolCallId: string, toolName: string, input: unknown): void => {
-  const current = $streamingMessage.get();
-  
-  if (!current) {
-    console.warn('Attempted to start tool call when no message is streaming');
-    return;
+export const getToolCallById = (
+  toolCallId: string,
+  currentToolCalls: AgentToolCall[] = $streamingMessage.get()?.toolCalls || []
+): AgentToolCall | undefined => {
+  // 1) Buscar en el nivel actual
+  const direct = currentToolCalls.find(tc => tc.toolCallId === toolCallId);
+  if (direct) return direct;
+
+  // 2) Buscar recursivamente en los hijos
+  for (const tc of currentToolCalls) {
+    if (tc.toolCalls?.length) {
+      const found = getToolCallById(toolCallId, tc.toolCalls);
+      if (found) return found;
+    }
   }
-  
-  const currentToolCalls = current.toolCalls || [];
-  
-  const newToolCall: AgentToolCall = {
-    toolCallId,
-    toolName,
-    state: 'started',
-    input
-  };
-  
-  $streamingMessage.set({
-    ...current,
-    toolCalls: [...currentToolCalls, newToolCall]
-  });
+  return undefined;
 };
 
-/**
- * Completes a tool call in the streaming message with success
- * @param toolCallId - The unique ID of the tool call
- * @param output - The output from the tool
- */
-export const completeToolCall = (toolCallId: string, output: unknown): void => {
-  const current = $streamingMessage.get();
-  
-  if (!current) {
-    console.warn('Attempted to complete tool call when no message is streaming');
-    return;
+export const updateToolCallById = (toolCallId: string, updates: Partial<AgentToolCall>, currentToolCalls?: AgentToolCall[]) => {
+  if (!currentToolCalls) {
+    currentToolCalls = $streamingMessage.get()?.toolCalls || [];
   }
-  
-  const currentToolCalls = current.toolCalls || [];
-  const updatedToolCalls = currentToolCalls.map(tc => 
-    tc.toolCallId === toolCallId 
-      ? { ...tc, state: 'success' as const, output }
-      : tc
-  );
-  
-  $streamingMessage.set({
-    ...current,
-    toolCalls: updatedToolCalls
-  });
-};
-
-/**
- * Adds a nested tool call to a parent tool call
- * @param parentToolCallId - The ID of the parent tool call
- * @param nestedToolCall - The nested tool call to add
- */
-export const addNestedToolCall = (parentToolCallId: string, nestedToolCall: AgentToolCall): void => {
-  const current = $streamingMessage.get();
-  
-  if (!current) {
-    console.warn('Attempted to add nested tool call when no message is streaming');
-    return;
-  }
-  
-  const currentToolCalls = current.toolCalls || [];
-  const updatedToolCalls = currentToolCalls.map(tc => {
-    if (tc.toolCallId === parentToolCallId) {
-      const existingNested = tc.nestedToolCalls || [];
-      return {
-        ...tc,
-        nestedToolCalls: [...existingNested, nestedToolCall]
-      };
+  const updatedToolCalls = currentToolCalls.map((tc: AgentToolCall) => {
+    if (tc.toolCallId === toolCallId) {
+      const updatedToolCall = { ...tc, ...updates };
+      return updatedToolCall;
+    } else if (tc.toolCalls) {
+      const updatedToolCalls: AgentToolCall[] = updateToolCallById(toolCallId, updates, tc.toolCalls);
+      return { ...tc, toolCalls: updatedToolCalls };
     }
     return tc;
   });
-  
-  $streamingMessage.set({
-    ...current,
-    toolCalls: updatedToolCalls
-  });
-};
+  return updatedToolCalls;
+}
 
-/**
- * Updates a nested tool call state within a parent tool call
- * @param parentToolCallId - The ID of the parent tool call
- * @param nestedToolCallId - The ID of the nested tool call to update
- * @param updates - Partial updates to apply to the nested tool call
- */
-export const updateNestedToolCall = (
-  parentToolCallId: string, 
-  nestedToolCallId: string, 
-  updates: Partial<AgentToolCall>
-): void => {
+export const addToolCall = (toolCall: AgentToolCall, parentCallId?: string): void => {
   const current = $streamingMessage.get();
-  
+
   if (!current) {
-    console.warn('Attempted to update nested tool call when no message is streaming');
+    console.warn('Attempted to add tool call when no message is streaming');
     return;
   }
   
   const currentToolCalls = current.toolCalls || [];
-  const updatedToolCalls = currentToolCalls.map(tc => {
-    if (tc.toolCallId === parentToolCallId && tc.nestedToolCalls) {
-      const updatedNested = tc.nestedToolCalls.map(ntc =>
-        ntc.toolCallId === nestedToolCallId
-          ? { ...ntc, ...updates }
-          : ntc
-      );
-      return {
-        ...tc,
-        nestedToolCalls: updatedNested
-      };
+
+  if (parentCallId) {
+    const parentToolCall = getToolCallById(parentCallId);
+
+    if (parentToolCall) {
+      updateToolCall(parentCallId, { toolCalls: [...(parentToolCall.toolCalls || []), toolCall] });
+    } else {
+      console.warn('Attempted to add tool call to non-existent parent tool call');
+      return;
     }
-    return tc;
-  });
-  
-  $streamingMessage.set({
-    ...current,
-    toolCalls: updatedToolCalls
-  });
+  } else {
+    $streamingMessage.set({ ...current, toolCalls: [...currentToolCalls, toolCall] });
+  }
 };
 
-/**
- * Marks a tool call as failed in the streaming message
- * @param toolCallId - The unique ID of the tool call
- * @param error - The error message
- */
-export const failToolCall = (toolCallId: string, error: string): void => {
+export const updateToolCall = (toolCallId: string, updates: Partial<AgentToolCall>): void => {
   const current = $streamingMessage.get();
-  
+
   if (!current) {
-    console.warn('Attempted to fail tool call when no message is streaming');
+    console.warn('Attempted to update tool call when no message is streaming');
     return;
   }
   
-  const currentToolCalls = current.toolCalls || [];
-  const updatedToolCalls = currentToolCalls.map(tc => 
-    tc.toolCallId === toolCallId 
-      ? { ...tc, state: 'error' as const, error }
-      : tc
-  );
-  
-  $streamingMessage.set({
-    ...current,
-    toolCalls: updatedToolCalls
-  });
-};
+  const updatedToolCalls = updateToolCallById(toolCallId, updates);
+  $streamingMessage.set({ ...current, toolCalls: updatedToolCalls });
+}
 
 /**
  * Sets an error on the streaming message

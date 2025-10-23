@@ -1,41 +1,47 @@
 import {
   updateStreamingContent,
-  startToolCall,
-  completeToolCall,
-  setStreamingError
+  addToolCall,
+  setStreamingError,
+  updateToolCall,
 } from '@/stores/streamingMessageStore';
+import { AgentToolCall } from '@/types/types';
 import { TextStreamPart, ToolSet } from 'ai';
 
-/**
- * Handles the processing of a stream from the AI model
- * Processes text deltas, tool calls, tool results, and errors
- * 
- * @param stream - The full stream from the AI model
- * @returns The complete response text accumulated from all text deltas
- */
-export async function handleStreamProcessing(
-  stream: AsyncIterable<TextStreamPart<ToolSet>>
-): Promise<string> {
-  let fullResponse = '';
+export class StreamHandler {
+  private stream: AsyncIterable<TextStreamPart<ToolSet>>;
+  private parentToolCallId?: string;
+  private fullResponse: string = '';
 
-  for await (const chunk of stream) {
-    if (chunk.type === 'text-delta') {
-      fullResponse += chunk.text;
-      updateStreamingContent(fullResponse);
-    } else if (chunk.type === 'tool-call') {
-      console.log('Tool call:', chunk);
-      // Start tracking this tool call
-      startToolCall(chunk.toolCallId, chunk.toolName, chunk.input);
-    } else if (chunk.type === 'tool-result') {
-      console.log('Tool result:', chunk);
-      // Complete the tool call with its output
-      completeToolCall(chunk.toolCallId, chunk.output);
-    } else if (chunk.type === 'error') {
-      console.error('Error during stream:', chunk);
-      setStreamingError(`Error: ${chunk.error instanceof Error ? chunk.error.message : 'Unknown error'}`);
-    }
+  constructor(stream: AsyncIterable<TextStreamPart<ToolSet>>, parentToolCallId?: string) {
+    this.stream = stream;
+    this.parentToolCallId = parentToolCallId;
+    this.fullResponse = '';
   }
 
-  return fullResponse;
+  async handleStream() {
+    for await (const chunk of this.stream) {
+      if (chunk.type === 'text-delta') {
+        this.fullResponse += chunk.text;
+        if (this.parentToolCallId) {
+          updateToolCall(this.parentToolCallId, { output: this.fullResponse });
+        } else {
+          updateStreamingContent(this.fullResponse);
+        }
+      } else if (chunk.type === 'tool-call') {
+        const newToolCall: AgentToolCall = {
+          toolCallId: chunk.toolCallId,
+          toolName: chunk.toolName,
+          state: 'started',
+          input: chunk.input
+        };
+        addToolCall(newToolCall, this.parentToolCallId);
+      } else if (chunk.type === 'tool-result') {
+        updateToolCall(chunk.toolCallId, { state: 'success', output: chunk.output });
+      } else if (chunk.type === 'error') {
+        console.error('Error during stream:', chunk);
+        setStreamingError(`Error: ${chunk.error instanceof Error ? chunk.error.message : 'Unknown error'}`);
+      }
+    }
+    return this.fullResponse;
+  }
 }
-
