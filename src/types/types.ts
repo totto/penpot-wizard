@@ -118,6 +118,7 @@ export interface RagTool extends ToolBase {
 export interface SpecializedAgent extends ToolBase {
   system: string; // System prompt for the agent
   outputSchema?: ZodType; // Zod schema for output validation
+  inputSchema?: ZodType; // Zod schema for input validation
   toolIds?: string[]; // IDs of tools this agent can use
   specializedAgentIds?: string[]; // IDs of other specialized agents it can call
   imageGenerationAgentIds?: string[]; // IDs of image generation agents it can call
