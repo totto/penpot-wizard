@@ -1,17 +1,17 @@
-.agentsContainer {
+.toolsContainer {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   padding: 0;
 }
 
-.createAgentSection {
+.createToolSection {
   display: flex;
   justify-content: flex-start;
   margin-bottom: 0.5rem;
 }
 
-.createAgentButton {
+.createToolButton {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -26,7 +26,7 @@
   transition: background-color 0.2s ease-in-out;
 }
 
-.createAgentButton:hover {
+.createToolButton:hover {
   background-color: var(--accent-tertiary);
 }
 
@@ -35,7 +35,7 @@
   height: 1rem;
 }
 
-.jsonAgentsSection {
+.jsonToolsSection {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -83,7 +83,7 @@
   height: 1rem;
 }
 
-.jsonAgentsDescription {
+.jsonToolsDescription {
   font-size: 0.75rem;
   color: var(--foreground-secondary);
   margin: 0;
@@ -106,22 +106,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.compactSection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
-  background-color: var(--background-secondary);
-  border: 1px solid var(--background-quaternary);
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.2s ease-in-out;
-}
-
-.compactSection:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
 .sectionTitle {
   font-size: 1rem;
   font-weight: 600;
@@ -133,6 +117,17 @@
   align-items: center;
   gap: 0.5rem;
   flex: 1;
+}
+
+.editingIndicator {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent-primary);
+  background-color: rgba(126, 255, 245, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--accent-primary);
+  margin-left: auto;
 }
 
 .sectionTitle::before {
@@ -172,6 +167,39 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  padding: 1rem;
+  background-color: var(--background-tertiary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.formGroup:last-of-type {
+  margin-bottom: 0;
+}
+
+.formFieldsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background-color: var(--background-tertiary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.formFieldsContainer .formGroup {
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  margin-bottom: 0;
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--background-quaternary);
+}
+
+.formFieldsContainer .formGroup:last-child {
+  border-bottom: none;
 }
 
 .label {
@@ -190,22 +218,21 @@
 
 .input,
 .textarea,
-.codeTextarea,
-.select {
-  padding: 0.5rem 0.75rem;
+.codeTextarea {
+  padding: 0.75rem;
   border: 1px solid var(--background-quaternary);
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  background-color: var(--background-secondary);
+  background-color: var(--background-primary);
   color: var(--foreground-primary);
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   font-family: inherit;
+  width: 100%;
 }
 
 .input:focus,
 .textarea:focus,
-.codeTextarea:focus,
-.select:focus {
+.codeTextarea:focus {
   outline: none;
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px rgba(126, 255, 245, 0.1);
@@ -223,56 +250,10 @@
   line-height: 1.4;
 }
 
-.select {
-  cursor: pointer;
-}
-
-.select:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-  background-color: var(--background-primary);
-  color: var(--foreground-secondary);
-}
-
 .helpText {
   font-size: 0.75rem;
   color: var(--foreground-secondary);
   margin-top: 0.25rem;
-}
-
-.selectionGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background-color: var(--background-primary);
-  border: 1px solid var(--background-quaternary);
-  border-radius: 0.375rem;
-}
-
-.selectionItem {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
-}
-
-.selectionItem:hover {
-  background-color: var(--background-secondary);
-}
-
-.checkbox {
-  width: 1rem;
-  height: 1rem;
-  accent-color: var(--accent-primary);
-}
-
-.selectionLabel {
-  font-size: 0.875rem;
-  color: var(--foreground-primary);
 }
 
 .buttonGroup {
@@ -326,13 +307,13 @@
   font-style: italic;
 }
 
-.agentsList {
+.toolsList {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.agentItem {
+.toolItem {
   background-color: var(--background-primary);
   border: 1px solid var(--background-quaternary);
   border-radius: 0.5rem;
@@ -340,11 +321,17 @@
   transition: box-shadow 0.2s ease-in-out;
 }
 
-.agentItem:hover {
+.toolItem:hover {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
-.agentHeader {
+.toolItem.editing {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(126, 255, 245, 0.2);
+  background-color: rgba(126, 255, 245, 0.05);
+}
+
+.toolHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -352,7 +339,7 @@
   padding: 1rem;
 }
 
-.agentHeaderButton {
+.toolHeaderButton {
   flex: 1;
   background: none;
   border: none;
@@ -366,11 +353,11 @@
   border-radius: 0.375rem;
 }
 
-.agentHeaderButton:hover {
+.toolHeaderButton:hover {
   background-color: var(--background-secondary);
 }
 
-.agentInfo {
+.toolInfo {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -378,21 +365,21 @@
   flex: 1;
 }
 
-.agentNameRow {
+.toolNameRow {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   width: 100%;
 }
 
-.agentName {
+.toolName {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--foreground-primary);
   margin: 0;
 }
 
-.agentType {
+.toolType {
   font-size: 0.625rem;
   font-weight: 500;
   padding: 0.125rem 0.375rem;
@@ -401,27 +388,17 @@
   letter-spacing: 0.025em;
 }
 
-.agentType.system {
+.toolType.system {
   background-color: var(--accent-primary);
   color: var(--background-primary);
 }
 
-.agentType.user {
+.toolType.user {
   background-color: var(--success-500);
   color: var(--background-primary);
 }
 
-.agentType.director {
-  background-color: var(--accent-primary);
-  color: var(--background-primary);
-}
-
-.agentType.specialized {
-  background-color: var(--warning-500);
-  color: var(--background-primary);
-}
-
-.agentTechnicalName {
+.toolTechnicalName {
   font-size: 0.75rem;
   color: var(--foreground-secondary);
   font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
@@ -438,7 +415,7 @@
   flex-shrink: 0;
 }
 
-.agentActions {
+.toolActions {
   display: flex;
   gap: 0.25rem;
   align-items: center;
@@ -474,14 +451,14 @@
   height: 1rem;
 }
 
-.agentContent {
+.toolContent {
   padding: 1rem;
   border-top: 1px solid var(--background-quaternary);
   background-color: var(--background-primary);
   border-radius: 0 0 0.5rem 0.5rem;
 }
 
-.agentDescription {
+.toolDescription {
   margin-bottom: 1rem;
   padding: 0.75rem 1rem;
   background-color: var(--background-secondary);
@@ -492,14 +469,13 @@
   line-height: 1.5;
 }
 
-.agentPrompt {
-  margin-bottom: 1rem;
+.toolCode {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.agentPrompt strong {
+.toolCode strong {
   font-size: 0.875rem;
   color: var(--foreground-primary);
   margin-bottom: 0.5rem;
@@ -525,42 +501,4 @@
   padding: 0;
   border: none;
   color: inherit;
-}
-
-.agentLinks {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.linkedSection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.linkedSection strong {
-  font-size: 0.875rem;
-  color: var(--foreground-primary);
-}
-
-.linkedItems {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.linkedItem {
-  background-color: var(--background-secondary);
-  color: var(--foreground-primary);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  border: 1px solid var(--background-quaternary);
-}
-
-.noItems {
-  color: var(--foreground-secondary);
-  font-style: italic;
-  font-size: 0.75rem;
 }

@@ -1524,3 +1524,9 @@ For issues, questions, or contributions, please [open an issue](link-to-issues) 
 ---
 
 Built with ❤️ for the Penpot community
+
+## Additional Resources
+
+- [React Documentation](https://react.dev/)
+- [Zustand Documentation](https://zustand-demo.pmnd.rs/)
+- [Vite Documentation](https://vitejs.dev/)
