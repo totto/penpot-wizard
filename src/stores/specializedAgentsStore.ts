@@ -8,15 +8,28 @@ import { createModelInstance } from '@/utils/modelUtils';
 import { $isConnected } from '@/stores/settingsStore';
 import { z } from 'zod';
 import { StreamHandler } from '@/utils/streamingMessageUtils';
+import { $userSpecializedAgents } from '@/stores/userAgentsStore';
 
 let specializedAgentsInitialized = false;
 
-// Base atom for specialized agents data
-export const $specializedAgentsData = atom<SpecializedAgent[]>(
-  specializedAgents.map((agent: SpecializedAgent) => ({
+$userSpecializedAgents.listen(() => {
+  specializedAgentsInitialized = false;
+  $specializedAgentsData.set(getCombinedSpecializedAgents());
+  initializeSpecializedAgents();
+});
+
+function getCombinedSpecializedAgents() {
+  return specializedAgents.map((agent: SpecializedAgent) => ({
     ...agent,
-  }))
-);
+    isUserCreated: false,
+  })).concat($userSpecializedAgents.get().map(agent => ({
+    ...agent,
+    isUserCreated: true,
+  })));
+}
+
+// Base atom for specialized agents data
+export const $specializedAgentsData = atom<SpecializedAgent[]>(getCombinedSpecializedAgents());
 
 // Derived functions for getters
 export const getSpecializedAgentById = (agentId: string) => {
@@ -86,7 +99,11 @@ const initializeSpecializedAgent = async (specializedAgentId: string): Promise<b
     experimental_output: specializedAgentDef.outputSchema ? Output.object({
       schema: specializedAgentDef.outputSchema,
     }) : undefined,
-    stopWhen: stepCountIs(20)
+    stopWhen: stepCountIs(20),
+    prepareStep: async (payload) => {
+      console.log('prepareStep', payload);
+      return {};
+    }
   });
   
   // Wrap the agent in a tool
@@ -94,14 +111,15 @@ const initializeSpecializedAgent = async (specializedAgentId: string): Promise<b
     id: specializedAgentDef.id as `${string}.${string}`,
     name: specializedAgentDef.name,
     description: specializedAgentDef.description,
-    inputSchema: z.object({
+    inputSchema: specializedAgentDef.inputSchema || z.object({
       query: z.string().describe('The query or task for the specialized agent to process')
     }),
-    execute: async ({ query }, { toolCallId }) => {
+    execute: async (input, { toolCallId }) => {
       try {
+        //const context = 
         // Use streaming to capture nested tool calls
         const stream = await agentInstance.stream({ 
-          messages: [{ role: 'user', content: query }] 
+          messages: [{ role: 'user', content: JSON.stringify(input) }]
         });
         
         // Process the stream and capture nested tool calls
@@ -140,6 +158,7 @@ export const initializeSpecializedAgents = async () => {
     }
 
     specializedAgentsInitialized = true;
+    console.log('Specialized agents initialized:', $specializedAgentsData.get());
   } catch (error) {
     console.error('Failed to initialize specialized agents:', error);
   }

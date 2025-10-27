@@ -1,0 +1,519 @@
+.toolsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0;
+}
+
+.createToolSection {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.createToolButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--accent-primary);
+  color: var(--background-primary);
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.createToolButton:disabled {
+  background-color: var(--background-primary);
+  color: var(--foreground-secondary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.createToolButton:hover:not(:disabled) {
+  background-color: var(--accent-tertiary);
+}
+
+.plusIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.jsonToolsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.jsonButtonsContainer {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.jsonButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--background-tertiary);
+  color: var(--foreground-primary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.jsonButton:hover {
+  background-color: var(--background-quaternary);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.jsonButton:active {
+  transform: translateY(1px);
+}
+
+.jsonButtonIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.jsonToolsDescription {
+  font-size: 0.75rem;
+  color: var(--foreground-secondary);
+  margin: 0;
+  font-style: italic;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.section:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground-primary);
+  margin: 0;
+  padding: 0.75rem 0 0.5rem 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.editingIndicator {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent-primary);
+  background-color: rgba(126, 255, 245, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--accent-primary);
+  margin-left: auto;
+}
+
+.sectionTitle::before {
+  content: "";
+  width: 4px;
+  height: 1.25rem;
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary),
+    var(--accent-tertiary)
+  );
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.sectionTitle::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent-primary), transparent);
+  margin-left: 0.5rem;
+}
+
+.sectionDescription {
+  font-size: 0.875rem;
+  color: var(--foreground-secondary);
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+  padding: 0.75rem 1rem;
+  background-color: var(--background-primary);
+  border-radius: 0.5rem;
+  border-left: 3px solid var(--accent-primary);
+  font-style: italic;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: var(--background-tertiary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.formGroup:last-of-type {
+  margin-bottom: 0;
+}
+
+.formFieldsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background-color: var(--background-tertiary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.formFieldsContainer .formGroup {
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  margin-bottom: 0;
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--background-quaternary);
+}
+
+.formFieldsContainer .formGroup:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.required {
+  color: var(--error-500);
+  font-weight: 600;
+}
+
+.input,
+.textarea,
+.codeTextarea {
+  padding: 0.75rem;
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  background-color: var(--background-primary);
+  color: var(--foreground-primary);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  font-family: inherit;
+  width: 100%;
+}
+
+.input:focus,
+.textarea:focus,
+.codeTextarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(126, 255, 245, 0.1);
+}
+
+.textarea,
+.codeTextarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.codeTextarea {
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.helpText {
+  font-size: 0.75rem;
+  color: var(--foreground-secondary);
+  margin-top: 0.25rem;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.createButton {
+  padding: 0.5rem 1rem;
+  background-color: var(--accent-primary);
+  color: var(--background-primary);
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.createButton:hover:not(:disabled) {
+  background-color: var(--accent-tertiary);
+}
+
+.createButton:disabled {
+  background-color: var(--background-quaternary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.cancelButton {
+  padding: 0.5rem 1rem;
+  background-color: var(--background-quaternary);
+  color: var(--foreground-primary);
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.cancelButton:hover {
+  background-color: var(--background-tertiary);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 2rem;
+  color: var(--foreground-secondary);
+  font-style: italic;
+}
+
+.toolsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.toolItem {
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.toolItem:hover {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toolItem.editing {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(126, 255, 245, 0.2);
+  background-color: rgba(126, 255, 245, 0.05);
+}
+
+.toolHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+.toolHeaderButton {
+  flex: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  transition: background-color 0.2s ease-in-out;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.toolHeaderButton:hover {
+  background-color: var(--background-secondary);
+}
+
+.toolInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.toolNameRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.toolName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground-primary);
+  margin: 0;
+}
+
+.toolType {
+  font-size: 0.625rem;
+  font-weight: 500;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.toolType.function {
+  background-color: var(--accent-primary);
+  color: var(--background-primary);
+}
+
+.toolType.rag {
+  background-color: var(--success-500);
+  color: var(--background-primary);
+}
+
+.toolTechnicalName {
+  font-size: 0.75rem;
+  color: var(--foreground-secondary);
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  background-color: var(--background-quaternary);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+}
+
+.chevronIcon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--foreground-secondary);
+  transition: transform 0.2s ease-in-out;
+  flex-shrink: 0;
+}
+
+.toolActions {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.actionButton {
+  background: none;
+  border: none;
+  padding: 0.375rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease-in-out;
+  color: var(--foreground-secondary);
+}
+
+.actionButton:hover {
+  background-color: var(--background-quaternary);
+}
+
+.actionButton:first-child:hover {
+  color: var(--accent-primary);
+}
+
+.actionButton:last-child:hover {
+  color: var(--error-500);
+}
+
+.actionIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.toolContent {
+  padding: 1rem;
+  border-top: 1px solid var(--background-quaternary);
+  background-color: var(--background-primary);
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.toolDescription {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--foreground-primary);
+  font-weight: 600;
+}
+
+.toolDescriptionText {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--background-secondary);
+  border-radius: 0.375rem;
+  border-left: 3px solid var(--accent-primary);
+  font-size: 0.875rem;
+  color: var(--foreground-primary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.toolCode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toolCode strong {
+  font-size: 0.875rem;
+  color: var(--foreground-primary);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.codeBlock {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  margin: 0;
+  overflow-x: auto;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--foreground-primary);
+  border-left: 3px solid var(--accent-tertiary);
+}
+
+.codeBlock code {
+  background: none;
+  padding: 0;
+  border: none;
+  color: inherit;
+}

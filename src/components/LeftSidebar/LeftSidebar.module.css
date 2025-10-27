@@ -145,6 +145,7 @@
 .tab.active {
   background-color: var(--background-quaternary);
   color: var(--foreground-primary);
+  font-weight: bold;
 }
 
 .tab:hover:not(:disabled) {
