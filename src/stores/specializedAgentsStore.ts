@@ -8,15 +8,28 @@ import { createModelInstance } from '@/utils/modelUtils';
 import { $isConnected } from '@/stores/settingsStore';
 import { z } from 'zod';
 import { StreamHandler } from '@/utils/streamingMessageUtils';
+import { $userSpecializedAgents } from '@/stores/userAgentsStore';
 
 let specializedAgentsInitialized = false;
 
-// Base atom for specialized agents data
-export const $specializedAgentsData = atom<SpecializedAgent[]>(
-  specializedAgents.map((agent: SpecializedAgent) => ({
+$userSpecializedAgents.listen(() => {
+  specializedAgentsInitialized = false;
+  $specializedAgentsData.set(getCombinedSpecializedAgents());
+  initializeSpecializedAgents();
+});
+
+function getCombinedSpecializedAgents() {
+  return specializedAgents.map((agent: SpecializedAgent) => ({
     ...agent,
-  }))
-);
+    isUserCreated: false,
+  })).concat($userSpecializedAgents.get().map(agent => ({
+    ...agent,
+    isUserCreated: true,
+  })));
+}
+
+// Base atom for specialized agents data
+export const $specializedAgentsData = atom<SpecializedAgent[]>(getCombinedSpecializedAgents());
 
 // Derived functions for getters
 export const getSpecializedAgentById = (agentId: string) => {
@@ -145,6 +158,7 @@ export const initializeSpecializedAgents = async () => {
     }
 
     specializedAgentsInitialized = true;
+    console.log('Specialized agents initialized:', $specializedAgentsData.get());
   } catch (error) {
     console.error('Failed to initialize specialized agents:', error);
   }

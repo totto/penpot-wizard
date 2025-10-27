@@ -21,8 +21,8 @@ import {
   setSelectedImageModel,
   checkApiKeys,
   clearErrors,
-} from "../../stores/settingsStore";
-import styles from "@/components/SettingsForm/SettingsForm.module.css";
+} from "@/stores/settingsStore";
+import styles from "./SettingsForm.module.css";
 
 function SettingsForm() {
   const openaiApiKey = useStore($openaiApiKey);

@@ -1,0 +1,72 @@
+.agentContent {
+  padding: 1rem;
+  border-top: 1px solid var(--background-quaternary);
+  background-color: var(--background-primary);
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.fieldSection {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fieldTitle {
+  font-size: 0.875rem;
+  color: var(--foreground-primary);
+  font-weight: 600;
+}
+
+.fieldValue {
+  padding: 0.75rem 1rem;
+  background-color: var(--background-secondary);
+  border-radius: 0.375rem;
+  border-left: 3px solid var(--accent-primary);
+  font-size: 0.875rem;
+  color: var(--foreground-primary);
+  line-height: 1.5;
+}
+
+.codeBlock {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-quaternary);
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre-line;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--foreground-primary);
+  border-left: 3px solid var(--accent-tertiary);
+}
+
+.codeBlock code {
+  background: none;
+  padding: 0;
+  border: none;
+  color: inherit;
+}
+
+.linkedItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.linkedItem {
+  background-color: var(--background-secondary);
+  color: var(--foreground-primary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--background-quaternary);
+}
+
+.noItems {
+  color: var(--foreground-secondary);
+  font-style: italic;
+  font-size: 0.75rem;
+}

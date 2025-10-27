@@ -11,7 +11,7 @@ let toolsInitialized = false;
 export const $toolsData = atom<(FunctionTool | RagTool)[]>([
   ...functionTools,
   ...ragTools,
-  ...drawingTools
+  ...drawingTools,
 ]);
 
 // Derived functions for getters
@@ -37,7 +37,8 @@ const initializeFunctionTool = async (toolDef: FunctionTool): Promise<FunctionTo
 
   return {
     ...toolDef,
-    instance: toolInstance
+    instance: toolInstance,
+    type: 'function'
   };
 };
 
@@ -87,7 +88,8 @@ const initializeRagTool = async (toolDef: RagTool): Promise<RagTool> => {
   return {
     ...toolDef,
     dbInstance,
-    instance: toolInstance
+    instance: toolInstance,
+    type: 'rag'
   };
 };
 

@@ -101,6 +101,8 @@ export interface ToolBase {
   id: string;
   name: string;
   description: string;
+  isUserCreated?: boolean;
+  type?: string
 }
 
 export interface FunctionTool extends ToolBase {
