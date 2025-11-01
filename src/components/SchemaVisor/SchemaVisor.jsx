@@ -15,6 +15,10 @@ function SchemaVisor({ schema, level = 0 }) {
     // Handle arrays
     if (propSchema.type === 'array') {
       if (propSchema.items) {
+        // If array items are objects with properties, they will be expanded separately
+        if (propSchema.items.type === 'object' && propSchema.items.properties) {
+          return 'Array<object>';
+        }
         return `Array<${renderInlineType(propSchema.items)}>`;
       }
       return 'Array<any>';
@@ -68,6 +72,15 @@ function SchemaVisor({ schema, level = 0 }) {
            Object.keys(propSchema.properties).length > 0;
   };
 
+  // Check if a property is a nested array with object items that should be expanded
+  const isNestedArray = (propSchema) => {
+    return propSchema.type === 'array' && 
+           propSchema.items && 
+           propSchema.items.type === 'object' &&
+           propSchema.items.properties &&
+           Object.keys(propSchema.items.properties).length > 0;
+  };
+
   // Render the schema properties recursively
   const renderSchema = () => {
     // Check if it's an object with properties (standard JSON Schema)
@@ -81,6 +94,7 @@ function SchemaVisor({ schema, level = 0 }) {
         const description = propSchema.description;
         const defaultValue = propSchema.default;
         const isNested = isNestedObject(propSchema);
+        const isArrayNested = isNestedArray(propSchema);
 
         return (
           <div key={key} className={styles.propertyGroup}>
@@ -88,7 +102,7 @@ function SchemaVisor({ schema, level = 0 }) {
               <span className={styles.propertyName}>{key}</span>
               <span className={styles.optional}>{optionalMark}</span>
               <span className={styles.colon}>: </span>
-              {!isNested && (
+              {!isNested && !isArrayNested && (
                 <>
                   <span className={styles.type}>{renderInlineType(propSchema)}</span>
                   {defaultValue !== undefined && defaultValue !== null && (
@@ -102,6 +116,7 @@ function SchemaVisor({ schema, level = 0 }) {
                 </>
               )}
               {isNested && <span className={styles.type}>{'{'}</span>}
+              {isArrayNested && <span className={styles.type}>{'Array<{'}</span>}
               {description && (
                 <span className={styles.comment}> // {description}</span>
               )}
@@ -112,6 +127,15 @@ function SchemaVisor({ schema, level = 0 }) {
                 <SchemaVisor schema={propSchema} level={level + 1} />
                 <div className={styles.propertyLine} style={{ paddingLeft: `${level * 1.5}rem` }}>
                   <span className={styles.type}>{'}'}</span>
+                </div>
+              </div>
+            )}
+            {/* Recursively render nested array with object items */}
+            {isArrayNested && (
+              <div className={styles.nestedArray}>
+                <SchemaVisor schema={propSchema.items} level={level + 1} />
+                <div className={styles.propertyLine} style={{ paddingLeft: `${level * 1.5}rem` }}>
+                  <span className={styles.type}>{'>}'}</span>
                 </div>
               </div>
             )}

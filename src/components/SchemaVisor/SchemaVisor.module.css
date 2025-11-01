@@ -28,6 +28,10 @@
   margin: 0;
 }
 
+.nestedArray {
+  margin: 0;
+}
+
 .propertyName {
   color: var(--text-primary, #333);
   font-weight: 500;
