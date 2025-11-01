@@ -6,7 +6,8 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import { $toolsData } from "@/stores/toolsStore";
-import { convertZodSchemaToJS, renderSchemaAsString } from "@/utils/schemaUtils";
+import { parseZodSchema } from "@/utils/zodSchemaParser";
+import SchemaVisor from "@/components/SchemaVisor/SchemaVisor";
 import styles from "./Tools.module.css";
 
 function Tools() {
@@ -22,8 +23,13 @@ function Tools() {
       const schemas = {};
       tools.forEach(tool => {
         if (tool.inputSchema) {
-          const schemaJS = convertZodSchemaToJS(tool.inputSchema);
-          schemas[tool.id] = schemaJS;
+          try {
+            const schemaParsed = parseZodSchema(tool.inputSchema);
+            schemas[tool.id] = schemaParsed;
+          } catch (error) {
+            console.error(`Error parsing schema for tool ${tool.id}:`, error);
+            schemas[tool.id] = null;
+          }
         }
       });
       setToolSchemas(schemas);
@@ -109,9 +115,7 @@ function Tools() {
                     {tool.inputSchema && (
                       <div className={styles.toolCode}>
                         <strong>Input Schema:</strong>
-                        <pre className={styles.codeBlock}>
-                          <code>{renderSchemaAsString(toolSchemas[tool.id])}</code>
-                        </pre>
+                        <SchemaVisor schema={toolSchemas[tool.id]} />
                       </div>
                     )}
                   </div>

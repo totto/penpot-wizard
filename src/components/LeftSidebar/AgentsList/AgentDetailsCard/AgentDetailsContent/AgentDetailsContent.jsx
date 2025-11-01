@@ -3,7 +3,8 @@ import { useStore } from "@nanostores/react";
 import { getToolById } from "@/stores/toolsStore";
 import { $specializedAgentsData } from "@/stores/specializedAgentsStore";
 import { $directorAgentsData } from "@/stores/directorAgentsStore";
-import { convertZodSchemaToJS, renderSchemaAsString } from "@/utils/schemaUtils";
+import { parseZodSchema } from "@/utils/zodSchemaParser";
+import SchemaVisor from "@/components/SchemaVisor/SchemaVisor";
 import styles from "./AgentDetailsContent.module.css";
 
 function AgentDetailsContent({ agent }) {
@@ -29,17 +30,24 @@ function AgentDetailsContent({ agent }) {
 
 
   // State for schema conversions
-  const [inputSchemaJS, setInputSchemaJS] = useState(null);
-  const [outputSchemaJS, setOutputSchemaJS] = useState(null);
+  const [inputJsonSchema, setInputJsonSchema] = useState(null);
+  const [outputJsonSchema, setOutputJsonSchema] = useState(null);
 
   // Convert schemas when component mounts or agent changes
   useEffect(() => {
     const convertSchemas = () => {
       if (agent.type === 'specialized') {
-        const inputJS = convertZodSchemaToJS(agent.inputSchema);
-        const outputJS = convertZodSchemaToJS(agent.outputSchema);
-        setInputSchemaJS(inputJS);
-        setOutputSchemaJS(outputJS);
+        try {
+          const inputParsed = agent.inputSchema ? parseZodSchema(agent.inputSchema) : null;
+          const outputParsed = agent.outputSchema ? parseZodSchema(agent.outputSchema) : null;
+          
+          setInputJsonSchema(inputParsed);
+          setOutputJsonSchema(outputParsed);
+        } catch (error) {
+          console.error('Error parsing Zod schemas:', error);
+          setInputJsonSchema(null);
+          setOutputJsonSchema(null);
+        }
       }
     };
     
@@ -68,18 +76,14 @@ function AgentDetailsContent({ agent }) {
           {agent.inputSchema && (
             <div className={styles.fieldSection}>
               <strong className={styles.fieldTitle}>Input Schema:</strong>
-              <pre className={styles.codeBlock}>
-                <code>{renderSchemaAsString(inputSchemaJS)}</code>
-              </pre>
+              <SchemaVisor schema={inputJsonSchema} />
             </div>
           )}
           
           {agent.outputSchema && (
             <div className={styles.fieldSection}>
               <strong className={styles.fieldTitle}>Output Schema:</strong>
-              <pre className={styles.codeBlock}>
-                <code>{renderSchemaAsString(outputSchemaJS)}</code>
-              </pre>
+              <SchemaVisor schema={outputJsonSchema} />
             </div>
           )}
         </>
