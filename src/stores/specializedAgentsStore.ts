@@ -10,6 +10,7 @@ import { $isConnected } from '@/stores/settingsStore';
 import { z, ZodType } from 'zod';
 import { StreamHandler } from '@/utils/streamingMessageUtils';
 import { $userSpecializedAgents } from '@/stores/userAgentsStore';
+import { getAbortSignal } from './streamingMessageStore';
 
 let specializedAgentsInitialized = false;
 
@@ -132,8 +133,10 @@ const initializeSpecializedAgent = async (specializedAgentId: string): Promise<b
       try {
         //const context = 
         // Use streaming to capture nested tool calls
+        const abortSignal = getAbortSignal();
         const stream = await agentInstance.stream({ 
-          messages: [{ role: 'user', content: JSON.stringify(input) }]
+          messages: [{ role: 'user', content: JSON.stringify(input) }],
+          ...(abortSignal && { abortSignal })
         });
         
         // Process the stream and capture nested tool calls

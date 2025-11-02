@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useStore } from '@nanostores/react'
-import { PaperAirplaneIcon } from '@heroicons/react/24/outline'
+import { PaperAirplaneIcon, StopIcon } from '@heroicons/react/24/outline'
 import { $activeConversationFull } from '@/stores/activeConversationStore'
-import { $streamingMessage } from '@/stores/streamingMessageStore'
+import { $streamingMessage, abortCurrentStream } from '@/stores/streamingMessageStore'
 import { sendUserMessage } from '@/stores/conversationActionsStore'
 import styles from './Footer.module.css'
 
@@ -48,6 +48,10 @@ function Footer() {
     }
   }
 
+  const handleStop = () => {
+    abortCurrentStream()
+  }
+
   // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current
@@ -75,14 +79,24 @@ function Footer() {
           rows={1}
           disabled={isStreaming}
         />
-        <button 
-          onClick={handleSend}
-          disabled={!message.trim() || isStreaming}
-          className={styles.sendButton}
-          title={isStreaming ? "AI is responding..." : "Send message"}
-        >
-          <PaperAirplaneIcon className={styles.sendIcon} />
-        </button>
+        {isStreaming ? (
+          <button 
+            onClick={handleStop}
+            className={styles.stopButton}
+            title="Detener generación"
+          >
+            <StopIcon className={styles.stopIcon} />
+          </button>
+        ) : (
+          <button 
+            onClick={handleSend}
+            disabled={!message.trim()}
+            className={styles.sendButton}
+            title="Enviar mensaje"
+          >
+            <PaperAirplaneIcon className={styles.sendIcon} />
+          </button>
+        )}
       </div>
     </footer>
   )
