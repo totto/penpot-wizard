@@ -97,7 +97,7 @@ const initializeRagTool = async (toolDef: RagTool): Promise<RagTool> => {
 export const initializeTools = async () => {
   if (toolsInitialized) {
     console.log('Tools already initialized, skipping initialization');
-    return;
+    return true;
   }
 
   try {
@@ -130,7 +130,10 @@ export const initializeTools = async () => {
     
     $toolsData.set(allTools);
     toolsInitialized = true;
+    console.log('Tools initialized:', allTools);
+    return true;
   } catch (error) {
     console.error('Failed to initialize tools:', error);
+    return false;
   }
 };

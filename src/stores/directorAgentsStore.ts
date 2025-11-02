@@ -13,6 +13,9 @@ import { $userDirectorAgents } from '@/stores/userAgentsStore';
 let modelIdInitialized = '';
 
 $userDirectorAgents.listen(() => {
+  if (!modelIdInitialized) {
+    return;
+  }
   modelIdInitialized = '';
   initializeDirectorAgents();
 });
@@ -112,6 +115,7 @@ export const initializeDirectorAgents = () => {
       }
     });
     
+    console.log('initialized director agents', updatedDirectors);
     $directorAgentsData.set(updatedDirectors);
     modelIdInitialized = $selectedLanguageModel.get();
     

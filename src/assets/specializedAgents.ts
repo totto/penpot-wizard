@@ -3,105 +3,174 @@ import { z } from 'zod';
 
 export const specializedAgents: SpecializedAgent[] = [
   {
-    id: "ui-delivery-coordinator",
-    name: "UIDeliveryCoordinator",
-    description: `Orchestrates UI project delivery: validates brief, defines phases, coordinates analysis, design language and screen execution; returns progress and next steps.`,
+    id: 'ui-design-specialist',
+    name: 'UIDesignSpecialist',
+    description:
+      'Defines the design system for mobile UI projects: colors, typography, spacing, radii, elevation, iconography, image styles and guidelines.',
     system: `
       <role>
-        You coordinate internal specialized agents to deliver interface projects.
-        You do not speak with the end user. Work in English and return concise progress summaries and next steps.
+        You define a coherent, scalable and accessible design system for mobile UI projects.
+        Work in English. Prioritize WCAG AA/AAA, consistency, and feasibility with available fonts.
       </role>
       <behavior>
-        Receive a consolidated brief; plan and sequence internal calls (analysis → design language → screen execution).
+        Return structured outputs only. Prefer neutral defaults if branding is missing. Align to platform conventions when helpful.
       </behavior>
     `,
-    outputSchema: z.object({
-      success: z.boolean().describe('success'),
-      description: z.string().describe('what was done and current status'),
-      plan: z.string().optional().describe('next steps or execution plan')
+    inputSchema: z.object({
+      project: z.object({ platform: z.string(), language: z.string() }),
+      branding: z
+        .object({
+          references: z.array(z.string()).optional(),
+          tone: z.array(z.string()).optional(),
+          preferredColors: z.array(z.string()).optional(),
+          preferredFonts: z.array(z.string()).optional(),
+        })
+        .optional(),
+      accessibility: z
+        .object({ target: z.string(), requirements: z.array(z.string()).optional() })
+        .optional(),
+      availableFonts: z.array(z.string()).optional(),
     }),
-    toolIds: ["get-project-data", "get-available-fonts", "get-current-page"],
-    specializedAgentIds: ["product-ui-analyst", "design-language-lead", "screen-layout-designer"],
-    imageGenerationAgentIds: ["image-generator"],
-  },
-  {
-    id: "product-ui-analyst",
-    name: "ProductUiAnalyst",
-    description: `
-      Analyzes the project and produces:
-      - recommended design approach
-      - a list of screens/views with descriptions
-      - a step-by-step execution plan.
-    `,
-    system: `
-      <role>
-        You analyze interface projects and produce a clear, actionable document.
-        Work in English and optimize for structure, completeness and feasibility.
-      </role>
-    `,
-    outputSchema: z.object({
-      projectAnalysis: z.object({
-        analysis: z.string().describe('recommended design approach and rationale'),
-        views: z.string().describe('list of views/screens with purpose and content'),
-        stepByStepPlan: z.string().describe('ordered plan to build the project')
-      }).describe('project analysis')
-    }),
-    toolIds: ["penpot-user-guide-rag"],
-    specializedAgentIds: [],
-  },
-  {
-    id: "design-language-lead",
-    name: "DesignLanguageLead",
-    description: `
-      Defines the design language: color palette, base typography and UI/UX guidelines;
-      can suggest visual assets if helpful.
-    `,
-    system: `
-      <role>
-        You specify a coherent design language for the project.
-        Work in English and ensure accessibility, consistency and applicability to prototypes.
-      </role>
-    `,
     outputSchema: z.object({
       designSystem: z.object({
-        colorPalette: z.string().describe('final color palette and usage notes'),
-        typography: z.string().describe('font families, sizes, weights and pairing'),
-        guidelines: z.string().describe('layout, spacing, states, components, accessibility')
-      })
+        colorPalette: z.array(
+          z.object({ name: z.string(), value: z.string(), usage: z.string().optional() })
+        ),
+        typography: z.object({
+          families: z.array(z.string()),
+          scales: z.array(
+            z.object({ name: z.string(), size: z.number(), lineHeight: z.number(), weight: z.string() })
+          ),
+        }),
+        spacing: z.array(z.number()).describe('spacing scale in px'),
+        radii: z.array(z.number()).describe('border radius scale in px'),
+        elevation: z.array(z.number()).describe('shadow/elevation scale'),
+        iconography: z.object({ style: z.string().optional(), source: z.string().optional() }).optional(),
+        imageStyles: z.object({ treatment: z.string().optional(), borders: z.string().optional() }).optional(),
+        guidelines: z.object({ layout: z.string(), states: z.string(), accessibility: z.string() }),
+      }),
     }),
-    toolIds: ["penpot-user-guide-rag", "get-available-fonts"],
-    imageGenerationAgentIds: ["image-generator"],
-    specializedAgentIds: [],
+    toolIds: ['penpot-user-guide-rag', 'get-available-fonts'],
   },
   {
-    id: "screen-layout-designer",
-    name: "ScreenLayoutDesigner",
-    description: `
-      Executes screen/view designs in the Penpot project from concrete instructions.
-      Draws precisely and respects visual hierarchy; returns a brief summary of what was created.
-      *IMPORTANT FOR YOUR QUERIES* Always provide context to better understand the project. Add analysis, views, color palette, typography and guidelines.
-    `,
+    id: 'ux-design-specialist',
+    name: 'UXDesignSpecialist',
+    description:
+      'Defines the set of views/screens, their purpose, sections and components, including flows and states for a mobile project.',
     system: `
       <role>
-        You are a drawing-only agent. Work in English and focus solely on executing drawings without giving design advice.
+        You define the required views and user flows for a mobile project.
+        Work in English. Focus on user tasks, states (empty/loading/error/success), and navigation.
+      </role>
+      <behavior>
+        Be practical and complete. Provide enough detail to draw each view later.
+      </behavior>
+    `,
+    inputSchema: z.object({
+      goals: z.array(z.string()),
+      features: z.array(z.string()),
+      targetAudience: z.string(),
+      preferredNavigation: z.string().optional(),
+    }),
+    outputSchema: z.object({
+      views: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          purpose: z.string(),
+          sections: z.array(z.string()),
+          components: z.array(z.string()),
+          states: z.array(z.enum(['empty', 'loading', 'error', 'success'])).optional(),
+          requiredData: z.array(z.string()).optional(),
+          priority: z.enum(['high', 'medium', 'low']).default('high'),
+          breakpoints: z.array(z.string()).default(['mobile']),
+        })
+      ),
+      flows: z
+        .array(
+          z.object({ name: z.string(), fromViewId: z.string(), toViewId: z.string(), action: z.string() })
+        )
+        .optional(),
+    }),
+    toolIds: ['penpot-user-guide-rag'],
+  },
+  {
+    id: 'project-plan-specialist',
+    name: 'ProjectPlanSpecialist',
+    description: 'Plans phased delivery with deliverables and acceptance criteria for a mobile UI project.',
+    system: `
+      <role>
+        You create an incremental delivery plan that minimizes risk and clarifies dependencies.
+        Work in English. Be explicit about acceptance criteria and sequencing.
+      </role>
+    `,
+    inputSchema: z.object({
+      scope: z.string(),
+      risks: z.array(z.string()).optional(),
+      dependencies: z.array(z.string()).optional(),
+      views: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          purpose: z.string(),
+          sections: z.array(z.string()),
+          components: z.array(z.string()),
+        })
+      ),
+      designSystem: z.object({}).passthrough(),
+    }),
+    outputSchema: z.object({
+      phases: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          goal: z.string(),
+          tasks: z.array(z.string()),
+          deliverables: z.array(z.string()),
+          acceptanceCriteria: z.array(z.string()),
+          dependencies: z.array(z.string()).optional(),
+          risks: z.array(z.string()).optional(),
+          estimatedDays: z.number().optional(),
+          order: z.number(),
+        })
+      ),
+      nextSteps: z.array(z.string()),
+    }),
+  },
+  {
+    id: 'mobile-view-designer',
+    name: 'MobileViewDesigner',
+    description:
+      'Draws mobile views in the Penpot project from concrete instructions, respecting the provided design system and UX specs.',
+    system: `
+      <role>
+        You are a drawing-only agent. Work in English and focus on executing drawings without giving design advice.
       </role>
       <drawing>
         Respect stacking order strictly: draw foreground elements first and backgrounds last.
-        Organize content with boards and place items within their parents appropriately.
-        Keep typography and spacing consistent with the received brief.
+        Use boards as screens and place items within their parents appropriately.
+        Keep typography and spacing consistent with the received brief. Use available fonts.
       </drawing>
     `,
     inputSchema: z.object({
-      designSystem: z.string().describe('design system to use'),
-      projectAnalysis: z.string().describe('project analysis')
+      view: z.object({ id: z.string(), name: z.string(), sections: z.array(z.string()), components: z.array(z.string()) }),
+      designSystem: z.object({}).passthrough(),
+      target: z.object({ pageId: z.string().optional(), boardName: z.string().default('Screen') }).optional(),
     }),
     outputSchema: z.object({
-      success: z.boolean().describe('success'),
-      description: z.string().describe('what you created')
+      success: z.boolean(),
+      description: z.string(),
+      artifacts: z.object({ boardIds: z.array(z.string()).optional(), notes: z.string().optional() }).optional(),
     }),
-    toolIds: ["board-maker", "rectangle-maker", "ellipse-maker", "path-maker", "text-maker", "get-current-page"],
-    imageGenerationAgentIds: ["image-generator"],
-    specializedAgentIds: [],
-  }
+    toolIds: [
+      'board-maker',
+      'rectangle-maker',
+      'ellipse-maker',
+      'path-maker',
+      'text-maker',
+      'get-current-page',
+    ],
+    imageGenerationAgentIds: ['image-generator'],
+  },
 ];
 

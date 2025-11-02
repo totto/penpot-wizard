@@ -27,7 +27,6 @@ const OPENAI_SUPPORTED_MODELS: AiBaseModel[] = [
 
 // Curated list of OpenAI image generation models
 const OPENAI_IMAGE_MODELS: AiBaseModel[] = [
-  { id: 'gpt-5', name: 'GPT-5', provider: 'openai' },
   { id: 'dall-e-3', name: 'DALL-E 3', provider: 'openai' },
   { id: 'dall-e-2', name: 'DALL-E 2', provider: 'openai' },
 ];

@@ -1,6 +1,7 @@
 import { atom } from 'nanostores';
 import { tool, Experimental_Agent as Agent, Output, stepCountIs, Tool, ToolSet, jsonSchema, JSONSchema7 } from 'ai';
-import { specializedAgents } from '@/assets/specializedAgents';
+import { specializedAgents as specializedAgentsAssets } from '@/assets/specializedAgents';
+import { coordinatorAgents as coordinatorAgentsAssets } from '@/assets/coordinatorAgents';
 import { SpecializedAgent } from '@/types/types';
 import { getToolsByIds } from '@/stores/toolsStore';
 import { getImageGenerationAgentsByIds } from '@/stores/imageGenerationAgentsStore';
@@ -13,19 +14,28 @@ import { $userSpecializedAgents } from '@/stores/userAgentsStore';
 let specializedAgentsInitialized = false;
 
 $userSpecializedAgents.listen(() => {
+  if (!specializedAgentsInitialized) {
+    return;
+  }
   specializedAgentsInitialized = false;
   $specializedAgentsData.set(getCombinedSpecializedAgents());
   initializeSpecializedAgents();
 });
 
 function getCombinedSpecializedAgents() {
-  return specializedAgents.map((agent: SpecializedAgent) => ({
-    ...agent,
-    isUserCreated: false,
-  })).concat($userSpecializedAgents.get().map(agent => ({
+  const predefined = (coordinatorAgentsAssets as SpecializedAgent[])
+    .concat(specializedAgentsAssets as SpecializedAgent[])
+    .map((agent: SpecializedAgent) => ({
+      ...agent,
+      isUserCreated: false,
+    }));
+
+  const userCreated = $userSpecializedAgents.get().map(agent => ({
     ...agent,
     isUserCreated: true,
-  })));
+  }));
+
+  return predefined.concat(userCreated);
 }
 
 // Base atom for specialized agents data
@@ -162,6 +172,7 @@ export const initializeSpecializedAgents = async () => {
     }
 
     specializedAgentsInitialized = true;
+    console.log('Specialized agents initialized:', $specializedAgentsData.get());
   } catch (error) {
     console.error('Failed to initialize specialized agents:', error);
   }
