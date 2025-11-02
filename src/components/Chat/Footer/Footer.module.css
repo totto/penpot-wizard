@@ -74,3 +74,35 @@
 .sendButton:active:not(:disabled) {
   transform: translateY(0);
 }
+
+.stopButton {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stopIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.stopButton:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+.stopButton:active {
+  transform: translateY(0);
+}

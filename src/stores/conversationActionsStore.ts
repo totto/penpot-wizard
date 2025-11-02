@@ -33,7 +33,11 @@ import {
   clearPendingAction,
   getPendingAction,
   cancelStreamingWithMessage,
-  setStreamingError
+  setStreamingError,
+  createAbortController,
+  clearAbortController,
+  isStreamAborting,
+  resetAbortFlag
 } from './streamingMessageStore';
 
 // Messages storage utilities
@@ -164,7 +168,10 @@ export const sendUserMessage = async (text: string, hidden: boolean = false): Pr
     // 4. Start streaming
     startStreaming(assistantMessageId);
 
-    // 5. Prepare messages for the agent
+    // 5. Create AbortController for this stream
+    const abortController = createAbortController();
+
+    // 6. Prepare messages for the agent
     const currentMessages = getActiveMessages();
     const agentMessages = currentMessages.map(msg => ({
       role: msg.role,
@@ -177,16 +184,39 @@ export const sendUserMessage = async (text: string, hidden: boolean = false): Pr
       content: text
     });
 
-    // 6. Stream response from agent
+    // 7. Stream response from agent
     const stream = await director.instance.stream({
-      messages: agentMessages
+      messages: agentMessages,
+      abortSignal: abortController.signal
     });
 
-    // 7. Handle stream processing
+    // 8. Handle stream processing
     const streamHandler = new StreamHandler(stream.fullStream);
     await streamHandler.handleStream();
 
-    // 8. Finalize streaming
+    // 9. Check if stream was aborted (even if no error was thrown)
+    if (isStreamAborting()) {
+      resetAbortFlag();
+      clearAbortController();
+      
+      // Finalize with cancellation note
+      const cancelMessage = finalizeStreaming();
+      if (cancelMessage) {
+        const messageContent = cancelMessage.content || '';
+        addMessageToActive({
+          role: 'assistant',
+          content: messageContent + '\n\n⚠️ _Cancelado por el usuario_',
+          toolCalls: cancelMessage.toolCalls
+        });
+        incrementMessageCount(activeConversation.id);
+      }
+      return;
+    }
+
+    // 10. Clear AbortController after successful completion
+    clearAbortController();
+
+    // 11. Finalize streaming
     const finalMessage = finalizeStreaming();
 
     if (finalMessage) {
@@ -201,7 +231,7 @@ export const sendUserMessage = async (text: string, hidden: boolean = false): Pr
       incrementMessageCount(activeConversation.id);
     }
 
-    // 9. Generate summary after first exchange if not exists
+    // 12. Generate summary after first exchange if not exists
     if (!activeConversation.summary && currentMessages.length <= 2) {
       // Wait a bit for the message to be fully added
       setTimeout(() => {
@@ -211,7 +241,37 @@ export const sendUserMessage = async (text: string, hidden: boolean = false): Pr
   } catch (error) {
     console.error('Error sending message:', error);
 
-    // Handle error - show error in streaming message
+    // Clear AbortController on error
+    clearAbortController();
+    
+    // Check if it was an abort
+    const wasAborting = isStreamAborting();
+    resetAbortFlag(); // Always reset the flag
+
+    // Handle AbortError (user cancelled)
+    // Check for both 'AbortError' name and message containing 'abort' or if flag was set
+    const isAborted = wasAborting || (error instanceof Error && 
+      (error.name === 'AbortError' || 
+       error.message?.toLowerCase().includes('abort') ||
+       error.message?.toLowerCase().includes('cancel')));
+    
+    if (isAborted) {
+      // Finalize with cancellation note
+      const cancelMessage = finalizeStreaming();
+      
+      if (cancelMessage) {
+        const messageContent = cancelMessage.content || '';
+        addMessageToActive({
+          role: 'assistant',
+          content: messageContent + '\n\n⚠️ _Cancelado por el usuario_',
+          toolCalls: cancelMessage.toolCalls
+        });
+        incrementMessageCount(activeConversation.id);
+      }
+      return; // Exit without showing error
+    }
+
+    // Handle real errors
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     setStreamingError(`Error: ${errorMessage}`);
     

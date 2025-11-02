@@ -18,6 +18,17 @@ import type { StreamingMessage, AgentToolCall } from '@/types/types';
 export const $streamingMessage = atom<StreamingMessage | null>(null);
 
 /**
+ * AbortController for cancelling the current stream
+ * Allows user to stop AI generation in progress
+ */
+let currentAbortController: AbortController | null = null;
+
+/**
+ * Flag to track if stream is being aborted by user
+ */
+let isAborting: boolean = false;
+
+/**
  * Pending action to execute after user confirms cancellation
  */
 type PendingAction = {
@@ -265,5 +276,65 @@ export const cancelStreamingWithMessage = (): { conversationId: string | null; m
   
   // Return info so caller can add the cancellation message to the right conversation
   return { conversationId: null, messageId }; // conversationId will be determined by caller
+};
+
+/**
+ * Creates a new AbortController for the current stream
+ * Aborts any previous controller if it exists
+ * @returns The new AbortController
+ */
+export const createAbortController = (): AbortController => {
+  // Abort the previous controller if it exists
+  if (currentAbortController) {
+    currentAbortController.abort();
+  }
+  currentAbortController = new AbortController();
+  isAborting = false; // Reset flag
+  return currentAbortController;
+};
+
+/**
+ * Aborts the current stream
+ * Called when user clicks the STOP button
+ */
+export const abortCurrentStream = (): void => {
+  if (currentAbortController) {
+    isAborting = true; // Set flag before aborting
+    currentAbortController.abort();
+    currentAbortController = null;
+  }
+};
+
+/**
+ * Clears the AbortController reference
+ * Called after stream completes normally
+ */
+export const clearAbortController = (): void => {
+  currentAbortController = null;
+  isAborting = false;
+};
+
+/**
+ * Checks if stream is currently being aborted
+ * @returns true if user initiated abort
+ */
+export const isStreamAborting = (): boolean => {
+  return isAborting;
+};
+
+/**
+ * Resets the aborting flag
+ */
+export const resetAbortFlag = (): void => {
+  isAborting = false;
+};
+
+/**
+ * Gets the current AbortSignal
+ * Used by specialized agents to share the same abort signal
+ * @returns The current AbortSignal or undefined if none exists
+ */
+export const getAbortSignal = (): AbortSignal | undefined => {
+  return currentAbortController?.signal;
 };
 
