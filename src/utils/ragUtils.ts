@@ -72,9 +72,7 @@ async function decompressGzip(compressedData: ArrayBuffer): Promise<string> {
  * Inicializa la base de datos Orama desde el archivo ZIP comprimido
  */
 export async function initializeDataBase(dbFile: string): Promise<AnyOrama> {
-  try {
-    console.log(`🔄 Initializing RAG database from ${dbFile}...`);
-    
+  try {    
     // Cargar el archivo ZIP comprimido desde la carpeta public
     const response = await fetch(`/${dbFile}`);
     if (!response.ok) {

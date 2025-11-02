@@ -4,7 +4,7 @@ import { getToolById } from "@/stores/toolsStore";
 import { $specializedAgentsData } from "@/stores/specializedAgentsStore";
 import { $directorAgentsData } from "@/stores/directorAgentsStore";
 import { parseZodSchema } from "@/utils/zodSchemaParser";
-import SchemaVisor from "@/components/SchemaVisor/SchemaVisor";
+import SchemaVisor from "@/components/LeftSidebar/AgentsList/SchemaVisor/SchemaVisor";
 import styles from "./AgentDetailsContent.module.css";
 
 function AgentDetailsContent({ agent }) {

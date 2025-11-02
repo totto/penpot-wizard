@@ -1,4 +1,5 @@
 import { atom, computed } from 'nanostores';
+import { persistentAtom } from '@nanostores/persistent';
 import { Experimental_Agent as Agent, stepCountIs, Tool, ToolSet } from 'ai';
 import { directorAgents } from '@/assets/directorAgents';
 import { $selectedLanguageModel, $isConnected } from '@/stores/settingsStore';
@@ -41,8 +42,14 @@ const $combinedDirectorAgents = computed(
 // Atom for initialized agents (with AI instances)
 export const $directorAgentsData = atom<DirectorAgent[]>([]);
 
-export const $activeDirectorAgent = atom<string | null>(
-  directorAgents.length > 0 ? directorAgents[0].id : null
+// Persistent atom for active director agent - saved to localStorage
+export const $activeDirectorAgent = persistentAtom<string | null>(
+  'activeDirectorAgent',
+  directorAgents.length > 0 ? directorAgents[0].id : null,
+  {
+    encode: JSON.stringify,
+    decode: JSON.parse,
+  }
 );
 
 // Derived functions for getters
@@ -106,8 +113,16 @@ export const initializeDirectorAgents = () => {
     });
     
     $directorAgentsData.set(updatedDirectors);
-    console.log('Director agents initialized:', updatedDirectors);
     modelIdInitialized = $selectedLanguageModel.get();
+    
+    // Validate that the active director agent still exists
+    const activeAgentId = $activeDirectorAgent.get();
+    const activeAgentExists = updatedDirectors.some(agent => agent.id === activeAgentId);
+    
+    // If the active agent doesn't exist (e.g., was deleted), reset to the first available agent
+    if (!activeAgentExists && updatedDirectors.length > 0) {
+      $activeDirectorAgent.set(updatedDirectors[0].id);
+    }
   } catch (error) {
     console.error('Failed to initialize director agents:', error);
   }

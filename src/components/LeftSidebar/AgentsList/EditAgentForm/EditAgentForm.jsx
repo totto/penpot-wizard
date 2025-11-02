@@ -10,7 +10,7 @@ import {
   createUserSpecializedAgent, 
   updateUserSpecializedAgent 
 } from "@/stores/userAgentsStore";
-import SchemaEditor from "@/components/SchemaEditor/SchemaEditor";
+import SchemaEditor from "@/components/LeftSidebar/AgentsList/SchemaEditor/SchemaEditor";
 import styles from "./EditAgentForm.module.css";
 
 function EditAgentForm({ agentToEdit, onClose }) {

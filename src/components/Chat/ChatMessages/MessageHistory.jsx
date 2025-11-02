@@ -13,7 +13,7 @@ const MessageHistory = memo(({ messages }) => {
   return (
     <>
       {messages.map((message) => {
-        return (
+        return !message.hidden && (
           <div
             key={message.id}
             className={`${styles.message} ${styles[message.role]}`}

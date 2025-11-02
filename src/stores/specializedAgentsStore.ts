@@ -104,10 +104,6 @@ const initializeSpecializedAgent = async (specializedAgentId: string): Promise<b
       schema: agentOutputSchema,
     }) : undefined,
     stopWhen: stepCountIs(20),
-    prepareStep: async (payload) => {
-      console.log('prepareStep', payload);
-      return {};
-    }
   });
   
   const toolInputSchema = specializedAgentDef.inputSchema ?
@@ -166,7 +162,6 @@ export const initializeSpecializedAgents = async () => {
     }
 
     specializedAgentsInitialized = true;
-    console.log('Specialized agents initialized:', $specializedAgentsData.get());
   } catch (error) {
     console.error('Failed to initialize specialized agents:', error);
   }

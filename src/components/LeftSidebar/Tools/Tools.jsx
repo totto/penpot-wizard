@@ -7,7 +7,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { $toolsData } from "@/stores/toolsStore";
 import { parseZodSchema } from "@/utils/zodSchemaParser";
-import SchemaVisor from "@/components/SchemaVisor/SchemaVisor";
+import SchemaVisor from "@/components/LeftSidebar/AgentsList/SchemaVisor/SchemaVisor";
 import styles from "./Tools.module.css";
 
 function Tools() {

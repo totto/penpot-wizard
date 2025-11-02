@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import SchemaVisor from "@/components/SchemaVisor/SchemaVisor";
+import SchemaVisor from "@/components/LeftSidebar/AgentsList/SchemaVisor/SchemaVisor";
 import styles from "./SchemaEditor.module.css";
 
 /**
