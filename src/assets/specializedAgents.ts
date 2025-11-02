@@ -44,7 +44,7 @@ export const specializedAgents: SpecializedAgent[] = [
         analysis: z.string().describe('recommended design approach and rationale'),
         views: z.string().describe('list of views/screens with purpose and content'),
         stepByStepPlan: z.string().describe('ordered plan to build the project')
-      })
+      }).describe('project analysis')
     }),
     toolIds: ["penpot-user-guide-rag"],
     specializedAgentIds: [],

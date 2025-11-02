@@ -10,6 +10,7 @@ import {
   createUserSpecializedAgent, 
   updateUserSpecializedAgent 
 } from "@/stores/userAgentsStore";
+import SchemaEditor from "@/components/SchemaEditor/SchemaEditor";
 import styles from "./EditAgentForm.module.css";
 
 function EditAgentForm({ agentToEdit, onClose }) {
@@ -24,8 +25,8 @@ function EditAgentForm({ agentToEdit, onClose }) {
     description: "",
     prompt: "",
     agent_type: "director", // "director" or "specialized"
-    input_schema: "",
-    output_schema: "",
+    input_schema: null,
+    output_schema: null,
     linked_tools: [],
     linked_agents: [],
   });
@@ -33,14 +34,15 @@ function EditAgentForm({ agentToEdit, onClose }) {
   // Initialize form data when agentToEdit changes
   useEffect(() => {
     if (agentToEdit) {
+      // User-created agents already have schemas in JSON Schema format
       setFormData({
         name: agentToEdit.name || "",
         technical_name: agentToEdit.technical_name || agentToEdit.id || "",
         description: agentToEdit.description || "",
         prompt: agentToEdit.system || "",
         agent_type: agentToEdit.type || "director",
-        input_schema: agentToEdit.inputSchema ? JSON.stringify(agentToEdit.inputSchema, null, 2) : "",
-        output_schema: agentToEdit.outputSchema ? JSON.stringify(agentToEdit.outputSchema, null, 2) : "",
+        input_schema: agentToEdit.inputSchema || null,
+        output_schema: agentToEdit.outputSchema || null,
         linked_tools: agentToEdit.toolIds || [],
         linked_agents: agentToEdit.specializedAgentIds || [],
       });
@@ -51,8 +53,8 @@ function EditAgentForm({ agentToEdit, onClose }) {
         description: "",
         prompt: "",
         agent_type: "director",
-        input_schema: "",
-        output_schema: "",
+        input_schema: null,
+        output_schema: null,
         linked_tools: [],
         linked_agents: [],
       });
@@ -117,9 +119,9 @@ function EditAgentForm({ agentToEdit, onClose }) {
           system: formData.prompt,
           toolIds: formData.linked_tools,
           specializedAgentIds: formData.linked_agents,
-          // Parse schemas if they exist
-          inputSchema: formData.input_schema ? JSON.parse(formData.input_schema) : undefined,
-          outputSchema: formData.output_schema ? JSON.parse(formData.output_schema) : undefined,
+          // Schemas are already in JSON Schema format
+          inputSchema: formData.input_schema || undefined,
+          outputSchema: formData.output_schema || undefined,
         };
         
         if (formData.agent_type === "director") {
@@ -273,16 +275,10 @@ function EditAgentForm({ agentToEdit, onClose }) {
           {formData.agent_type === "specialized" && (
             <>
               <div className={styles.formGroup}>
-                <label htmlFor="input-schema" className={styles.label}>
-                  Input Schema (Optional)
-                </label>
-                <textarea
-                  id="input-schema"
-                  value={formData.input_schema}
-                  onChange={(e) => handleInputChange("input_schema", e.target.value)}
-                  className={styles.codeTextarea}
-                  placeholder="Define the input schema as JSON..."
-                  rows={6}
+                <SchemaEditor
+                  schema={formData.input_schema}
+                  onChange={(schema) => handleInputChange("input_schema", schema)}
+                  label="Input Schema (Optional)"
                 />
                 <small className={styles.helpText}>
                   Define the expected input structure for this specialized agent
@@ -290,16 +286,10 @@ function EditAgentForm({ agentToEdit, onClose }) {
               </div>
 
               <div className={styles.formGroup}>
-                <label htmlFor="output-schema" className={styles.label}>
-                  Output Schema (Optional)
-                </label>
-                <textarea
-                  id="output-schema"
-                  value={formData.output_schema}
-                  onChange={(e) => handleInputChange("output_schema", e.target.value)}
-                  className={styles.codeTextarea}
-                  placeholder="Define the output schema as JSON..."
-                  rows={6}
+                <SchemaEditor
+                  schema={formData.output_schema}
+                  onChange={(schema) => handleInputChange("output_schema", schema)}
+                  label="Output Schema (Optional)"
                 />
                 <small className={styles.helpText}>
                   Define the expected output structure for this specialized agent

@@ -1,12 +1,12 @@
 import { atom } from 'nanostores';
-import { tool, Experimental_Agent as Agent, Output, stepCountIs, Tool, ToolSet } from 'ai';
+import { tool, Experimental_Agent as Agent, Output, stepCountIs, Tool, ToolSet, jsonSchema, JSONSchema7 } from 'ai';
 import { specializedAgents } from '@/assets/specializedAgents';
 import { SpecializedAgent } from '@/types/types';
 import { getToolsByIds } from '@/stores/toolsStore';
 import { getImageGenerationAgentsByIds } from '@/stores/imageGenerationAgentsStore';
 import { createModelInstance } from '@/utils/modelUtils';
 import { $isConnected } from '@/stores/settingsStore';
-import { z } from 'zod';
+import { z, ZodType } from 'zod';
 import { StreamHandler } from '@/utils/streamingMessageUtils';
 import { $userSpecializedAgents } from '@/stores/userAgentsStore';
 
@@ -88,6 +88,10 @@ const initializeSpecializedAgent = async (specializedAgentId: string): Promise<b
   // Combine all tools
   const allTools = [...mainTools, ...specializedAgentTools, ...imageGenerationAgentTools];
 
+  const agentOutputSchema = specializedAgentDef.outputSchema ?
+    specializedAgentDef.isUserCreated ? jsonSchema(specializedAgentDef.outputSchema as JSONSchema7) : specializedAgentDef.outputSchema as ZodType
+    : null;
+
   // Create the Agent instance
   const agentInstance = new Agent({
     model: modelInstance,
@@ -96,8 +100,8 @@ const initializeSpecializedAgent = async (specializedAgentId: string): Promise<b
       acc[tool.id] = tool.instance as Tool;
       return acc;
     }, {}),
-    experimental_output: specializedAgentDef.outputSchema ? Output.object({
-      schema: specializedAgentDef.outputSchema,
+    experimental_output: agentOutputSchema ? Output.object({
+      schema: agentOutputSchema,
     }) : undefined,
     stopWhen: stepCountIs(20),
     prepareStep: async (payload) => {
@@ -106,14 +110,18 @@ const initializeSpecializedAgent = async (specializedAgentId: string): Promise<b
     }
   });
   
+  const toolInputSchema = specializedAgentDef.inputSchema ?
+    specializedAgentDef.isUserCreated ? jsonSchema(specializedAgentDef.inputSchema as JSONSchema7) : specializedAgentDef.inputSchema as ZodType
+    : z.object({
+      query: z.string().describe('The query or task for the specialized agent to process')
+    });
+
   // Wrap the agent in a tool
   const toolInstance = tool({
     id: specializedAgentDef.id as `${string}.${string}`,
     name: specializedAgentDef.name,
     description: specializedAgentDef.description,
-    inputSchema: specializedAgentDef.inputSchema || z.object({
-      query: z.string().describe('The query or task for the specialized agent to process')
-    }),
+    inputSchema: toolInputSchema,
     execute: async (input, { toolCallId }) => {
       try {
         //const context = 
