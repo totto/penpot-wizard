@@ -5,6 +5,7 @@ import {
   GetProjectDataPayload,
   MessageSourceName,
   PluginResponseMessage,
+
 } from "../types/types";
 
 const pluginResponse: PluginResponseMessage = {
@@ -83,6 +84,17 @@ export function getCurrentPage(): PluginResponseMessage {
       shapes: penpot.currentPage?.findShapes({}) || [],
     },
   };
+}
+
+export function getCurrentTheme(): PluginResponseMessage {
+  return {
+    source: MessageSourceName.Plugin,
+    type: ClientQueryType.GET_CURRENT_THEME,
+    messageId: '',
+    message: 'current theme',
+    success: true,
+    payload: { theme: penpot.theme },
+  } as PluginResponseMessage;
 }
 
 export async function handleAddImage(payload: AddImageQueryPayload) : Promise<PluginResponseMessage> {
