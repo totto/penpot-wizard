@@ -1493,17 +1493,95 @@ console.log($directorAgentsData.get());
 // Check if .instance is defined for each agent
 ```
 
+## Documentation
+
+Comprehensive documentation is available in the `/docs` folder:
+
+### Core Documentation
+
+- **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - System architecture overview
+  - Three-layer architecture
+  - Multi-agent system design
+  - Data flow diagrams
+  - Key design decisions
+
+- **[CODE_STRUCTURE.md](./docs/CODE_STRUCTURE.md)** - File organization and structure
+  - Directory overview
+  - Module responsibilities
+  - Import conventions
+  - Naming conventions
+
+- **[STATE_MANAGEMENT.md](./docs/STATE_MANAGEMENT.md)** - State management with nanostores
+  - Store architecture
+  - Settings, agents, and conversation stores
+  - V2 conversation architecture
+  - Best practices
+
+### System-Specific Documentation
+
+- **[AGENT_SYSTEM.md](./docs/AGENT_SYSTEM.md)** - Multi-agent system details
+  - Director, coordinator, and specialized agents
+  - Agent communication
+  - Creating custom agents
+  - System prompt engineering
+
+- **[TOOLS_SYSTEM.md](./docs/TOOLS_SYSTEM.md)** - Tools creation and usage
+  - Function tools, RAG tools, drawing tools
+  - Creating custom tools
+  - Tool best practices
+  - Stacking order for drawing
+
+- **[PLUGIN_COMMUNICATION.md](./docs/PLUGIN_COMMUNICATION.md)** - Plugin integration
+  - postMessage protocol
+  - Plugin handlers
+  - Adding new operations
+  - Debugging tips
+
+### Development Documentation
+
+- **[DEVELOPMENT.md](./docs/DEVELOPMENT.md)** - Development setup and workflow
+  - Setup instructions
+  - Build system
+  - Testing
+  - Debugging
+  - Common tasks
+
+- **[CONTRIBUTING.md](./docs/CONTRIBUTING.md)** - Contribution guidelines
+  - Code of conduct
+  - Development workflow
+  - Code style
+  - Pull request process
+  - Bug reporting
+
+### Additional Guides
+
+- **[PATH_COMMANDS_GUIDE.md](./docs/PATH_COMMANDS_GUIDE.md)** - Drawing path commands reference
+  - Path command syntax
+  - Examples for common shapes
+  - Bezier curves and arcs
+
 ## Contributing
 
-When contributing to this project:
+We welcome contributions! Please read [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for details on:
 
-1. **Follow the architecture** - Use the established patterns for agents/tools
-2. **Write in English** - All code, comments, and documentation
-3. **Test your changes** - Verify agents/tools work as expected
-4. **Document new features** - Update README with new capabilities
-5. **Use TypeScript** - Maintain type safety throughout
+- Code of conduct
+- Development workflow
+- Code style guidelines
+- Testing requirements
+- Pull request process
+
+Quick start:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+See [DEVELOPMENT.md](./docs/DEVELOPMENT.md) for detailed development setup.
 
 ## Resources
+
+### External Documentation
 
 - [Penpot Plugin API Documentation](https://help.penpot.app/technical-guide/plugins/)
 - [Vercel AI SDK Documentation](https://sdk.vercel.ai/docs)
@@ -1512,6 +1590,8 @@ When contributing to this project:
 - [Zod Documentation](https://zod.dev/)
 - [OpenAI API Documentation](https://platform.openai.com/docs)
 - [OpenRouter Documentation](https://openrouter.ai/docs)
+- [React Documentation](https://react.dev/)
+- [Vite Documentation](https://vitejs.dev/)
 
 ## License
 
@@ -1519,14 +1599,12 @@ When contributing to this project:
 
 ## Support
 
-For issues, questions, or contributions, please [open an issue](link-to-issues) or contact [your contact info].
+For issues, questions, or contributions:
+- **Issues**: [Open an issue](link-to-issues)
+- **Discussions**: Use GitHub Discussions for questions
+- **Documentation**: Check the `/docs` folder
+- **Contact**: [Your contact info]
 
 ---
 
 Built with ❤️ for the Penpot community
-
-## Additional Resources
-
-- [React Documentation](https://react.dev/)
-- [Zustand Documentation](https://zustand-demo.pmnd.rs/)
-- [Vite Documentation](https://vitejs.dev/)
