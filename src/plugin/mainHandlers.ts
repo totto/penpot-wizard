@@ -97,6 +97,35 @@ export function getCurrentTheme(): PluginResponseMessage {
   } as PluginResponseMessage;
 }
 
+export function getActiveUsers(): PluginResponseMessage {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const raw = (penpot.currentFile as any)?.collaborators ?? [];
+  // DEBUG: log the raw collaborators value at runtime so we can confirm the API shape (array or single object)
+  // Remove this log after verification.
+  console.log('[plugin] getActiveUsers raw value:', raw);
+  const users = Array.isArray(raw)
+    ? (
+        raw.map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (u: any) => ({
+            id: String(u.id ?? u.userId ?? ''),
+            name: u.name ?? u.fullName ?? u.username ?? undefined,
+            // API may provide avatarURL (camel U RL) — normalize to avatarUrl
+            avatarUrl: u.avatarUrl ?? u.avatarURL ?? u.avatar ?? undefined,
+            color: u.color ?? undefined,
+          })
+        )
+      )
+    : [];
+
+  return {
+    ...pluginResponse,
+    type: ClientQueryType.GET_ACTIVE_USERS,
+    message: 'Active users retrieved',
+    payload: { users },
+  };
+} 
+
 export async function handleAddImage(payload: AddImageQueryPayload) : Promise<PluginResponseMessage> {
   const { name, data, mimeType } = payload;
 

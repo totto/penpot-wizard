@@ -23,6 +23,7 @@ export enum ClientQueryType {
   GET_AVAILABLE_FONTS = 'GET_AVAILABLE_FONTS',
   GET_CURRENT_PAGE = 'GET_CURRENT_PAGE',
   GET_CURRENT_THEME = 'GET_CURRENT_THEME',
+  GET_ACTIVE_USERS = 'GET_ACTIVE_USERS',
   DRAW_SHAPE = 'DRAW_SHAPE',
   ADD_IMAGE = 'ADD_IMAGE',
 }
@@ -99,8 +100,28 @@ export interface GetCurrentThemePayload {
     theme: Theme;
 }
 
+export interface ActiveUser {
+  id: string;
+  name: string;
+  avatarUrl?: string; // mapped from Penpot's avatarURL
+  color?: string;
+}
 
-export type PluginResponsePayload = GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | GetCurrentThemePayload | DrawShapeResponsePayload | AddImagePayload;
+// Payload for GET_ACTIVE_USERS responses
+export interface GetActiveUsersPayload {
+  users: ActiveUser[];
+}
+
+// include the new payload in the union
+export type PluginResponsePayload =
+  | GetUserDataPayload
+  | GetProjectDataPayload
+  | GetAvailableFontsPayload
+  | GetCurrentPagePayload
+  | GetCurrentThemePayload
+  | GetActiveUsersPayload
+  | DrawShapeResponsePayload
+  | AddImagePayload;
 
 
 
