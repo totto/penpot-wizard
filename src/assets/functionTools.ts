@@ -52,5 +52,18 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
+    {
+    id: "get-current-theme",
+    name: "getCurrentTheme",
+    description: `
+      Use this tool to get the current theme (light or dark) on Penpot.
+      This includes: 'light' or 'dark'
+    `,
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.GET_CURRENT_THEME, undefined);
+      return response;
+    },
+  },
 ];
 

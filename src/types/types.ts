@@ -22,6 +22,7 @@ export enum ClientQueryType {
   GET_PROJECT_DATA = 'GET_PROJECT_DATA',
   GET_AVAILABLE_FONTS = 'GET_AVAILABLE_FONTS',
   GET_CURRENT_PAGE = 'GET_CURRENT_PAGE',
+  GET_CURRENT_THEME = 'GET_CURRENT_THEME',
   DRAW_SHAPE = 'DRAW_SHAPE',
   ADD_IMAGE = 'ADD_IMAGE',
 }
@@ -93,7 +94,15 @@ export interface GetCurrentPagePayload {
   shapes: Shape[];
 }
 
-export type PluginResponsePayload = GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | DrawShapeResponsePayload | AddImagePayload;
+
+export interface GetCurrentThemePayload {
+    theme: Theme;
+}
+
+
+export type PluginResponsePayload = GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | GetCurrentThemePayload | DrawShapeResponsePayload | AddImagePayload;
+
+
 
 // Theme type definition
 export type Theme = 'light' | 'dark';
