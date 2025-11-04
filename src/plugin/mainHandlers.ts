@@ -100,9 +100,6 @@ export function getCurrentTheme(): PluginResponseMessage {
 export function getActiveUsers(): PluginResponseMessage {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const raw = (penpot.currentFile as any)?.collaborators ?? [];
-  // DEBUG: log the raw collaborators value at runtime so we can confirm the API shape (array or single object)
-  // Remove this log after verification.
-  console.log('[plugin] getActiveUsers raw value:', raw);
   const users = Array.isArray(raw)
     ? (
         raw.map(
