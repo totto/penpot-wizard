@@ -129,6 +129,7 @@ export interface GetFileVersionsPayload {
 
 // File version interface (from Penpot API)
 export interface FileVersion {
+  id?: string;  // Version identifier (may not always be present)
   label: string;
   createdBy?: User;
   createdAt: Date;

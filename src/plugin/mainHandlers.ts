@@ -233,53 +233,90 @@ export async function getFileVersions(): Promise<PluginResponseMessage> {
     console.log('Calling findVersions...');
 
     // Get all versions of the current file
-    const allVersions = await penpot.currentFile.findVersions();
-
-    console.log('findVersions returned:', allVersions.length, 'versions');
-
-    // Use JSON serialization to convert all special Penpot objects to plain JavaScript objects
-    let safeVersions: unknown[] = [];
+    let allVersions: unknown;
     try {
-      // JSON.stringify/parse will convert special Penpot objects to serializable format
-      safeVersions = JSON.parse(JSON.stringify(allVersions));
-      console.log('Successfully serialized versions');
-    } catch (serializeError) {
-      console.error('Failed to serialize versions:', serializeError);
-      // Fallback: return basic info without the problematic objects
-      safeVersions = allVersions.map((_version, index) => ({
-        id: `version-${index}`,
-        label: index === 0 ? 'File Created' : `Version ${index}`,
-        createdAt: new Date().toISOString(),
-        isAutosave: false,
-      }));
+      allVersions = await penpot.currentFile.findVersions();
+    } catch (findVersionsError) {
+      console.error('findVersions() threw an error:', findVersionsError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_FILE_VERSIONS,
+        success: false,
+        message: `findVersions API error: ${findVersionsError instanceof Error ? findVersionsError.message : String(findVersionsError)}`,
+      };
     }
 
-    // Sort versions by createdAt descending (newest first)
-    safeVersions.sort((a, b) => {
-      const dateA = new Date((a as Record<string, unknown>).createdAt as string);
-      const dateB = new Date((b as Record<string, unknown>).createdAt as string);
-      return dateB.getTime() - dateA.getTime();
+    if (!Array.isArray(allVersions)) {
+      console.warn('findVersions did not return an array:', allVersions);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_FILE_VERSIONS,
+        success: false,
+        message: 'findVersions did not return a valid array',
+      };
+    }
+
+    console.log('findVersions returned:', allVersions.length, 'versions');
+    console.log('NOTE: Penpot plugin API does not provide reliable access to version timestamps via findVersions(). The createdAt getter is broken.');
+
+    // Extract version information that IS accessible
+    const safeVersions = allVersions.map((version, index) => {
+      const versionData: Record<string, unknown> = {};
+
+      try {
+        // Extract ID
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const id = (version as any).id;
+          if (id !== undefined) {
+            versionData.id = id;
+          }
+        } catch (idError) {
+          console.warn(`Failed to extract ID for version ${index}:`, idError);
+        }
+
+        // Extract label
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          versionData.label = (version as any).label || `Version ${index}`;
+        } catch (labelError) {
+          console.warn(`Failed to extract label for version ${index}:`, labelError);
+          versionData.label = `Version ${index}`;
+        }
+
+        // Extract isAutosave
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          versionData.isAutosave = (version as any).isAutosave || false;
+        } catch (autosaveError) {
+          console.warn(`Failed to extract isAutosave for version ${index}:`, autosaveError);
+          versionData.isAutosave = false;
+        }
+
+        // Note: createdAt is not accessible via the plugin API's findVersions() method
+        // The getter throws errors. This is a Penpot API limitation.
+        versionData.createdAt = null;
+      } catch (versionError) {
+        console.error(`Error processing version ${index}:`, versionError);
+      }
+
+      return versionData;
     });
 
-    // Rename the oldest version (now last in array) to "File Created - Version 0"
-    // and number the subsequent versions from highest to lowest (newest to oldest)
-    if (safeVersions.length > 0) {
-      // The oldest version is now at the end after sorting
-      const oldestVersion = safeVersions[safeVersions.length - 1] as Record<string, unknown>;
-      const oldestDate = new Date(oldestVersion.createdAt as string);
-      oldestVersion.label = `File Created - ${oldestDate.toISOString().slice(0, 19).replace('T', ' ')} - Initial save (initial version)`;
+    console.log('Safe versions with extracted data:', safeVersions);
 
-      // Number the other versions starting from highest number for newest (newest to oldest)
-      const numberedVersions = safeVersions.length - 1; // Exclude the file creation version
-      for (let i = 0; i < safeVersions.length - 1; i++) {
-        const version = safeVersions[i] as Record<string, unknown>;
-        const versionNumber = numberedVersions - i; // Start from highest number, count down
-        const versionDate = new Date(version.createdAt as string);
-        const formattedDate = versionDate.toISOString().slice(0, 19).replace('T', ' ');
-        const saveType = version.isAutosave ? 'Autosave' : 'Manual save';
-        const isCurrent = i === 0 ? ' (current version)' : ''; // Mark newest as current
-        version.label = `Version ID: ${versionNumber} - ${formattedDate} - ${saveType}${isCurrent}`;
-      }
+    // Check if the data appears to be mock data (all same label, synthetic IDs)
+    const isMockData = safeVersions.length > 1 && safeVersions.every(v => 
+      typeof v.id === 'string' && v.id.startsWith('version-')
+    );
+
+    if (isMockData) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_FILE_VERSIONS,
+        success: false,
+        message: 'File versions API returned mock data. This feature may not be available in the current Penpot environment.',
+      };
     }
 
     // Limit display to most recent 10 versions for performance and usability
@@ -291,15 +328,9 @@ export async function getFileVersions(): Promise<PluginResponseMessage> {
     return {
       ...pluginResponse,
       type: ClientQueryType.GET_FILE_VERSIONS,
-      message: hasMoreVersions
-        ? `Showing ${displayedVersions.length} most recent versions out of ${totalVersions} total. Ask for versions from a specific time period if needed.`
-        : `Found ${totalVersions} file versions`,
-      payload: {
-        versions: displayedVersions as FileVersion[],
-        totalVersions,
-        displayedVersions: displayedVersions.length,
-        hasMoreVersions
-      },
+      message: `Found ${totalVersions} file versions. Note: Precise timestamps aren't available through the plugin API, but you can view them in the History panel on the right side of Penpot. Would you like me to guide you to that panel or help with anything else about these versions?`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      payload: { versions: displayedVersions as any, totalVersions, displayedVersions: displayedVersions.length, hasMoreVersions },
     };
   } catch (error) {
     console.error('Error in getFileVersions:', error);
