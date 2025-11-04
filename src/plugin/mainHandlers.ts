@@ -261,17 +261,19 @@ export async function getFileVersions(): Promise<PluginResponseMessage> {
       return dateB.getTime() - dateA.getTime();
     });
 
-    // Rename the oldest version (now last in array) to "File Created"
-    // and number the subsequent versions
+    // Rename the oldest version (now last in array) to "File Created - Version 0"
+    // and number the subsequent versions from highest to lowest (newest to oldest)
     if (safeVersions.length > 0) {
       // The oldest version is now at the end after sorting
       const oldestVersion = safeVersions[safeVersions.length - 1] as Record<string, unknown>;
-      oldestVersion.label = 'File Created';
+      oldestVersion.label = 'File Created - Version 0';
 
-      // Number the other versions starting from 1 (newest to oldest)
+      // Number the other versions starting from highest number for newest (newest to oldest)
+      const numberedVersions = safeVersions.length - 1; // Exclude the file creation version
       for (let i = 0; i < safeVersions.length - 1; i++) {
         const version = safeVersions[i] as Record<string, unknown>;
-        version.label = `Version ${i + 1}`;
+        const versionNumber = numberedVersions - i; // Start from highest number, count down
+        version.label = `Version ${versionNumber}`;
       }
     }
 
