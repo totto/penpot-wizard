@@ -248,15 +248,36 @@ export async function getFileVersions(): Promise<PluginResponseMessage> {
       // Fallback: return basic info without the problematic objects
       safeVersions = allVersions.map((_version, index) => ({
         id: `version-${index}`,
-        label: `Version ${index + 1}`,
+        label: index === 0 ? 'File Created' : `Version ${index}`,
         createdAt: new Date().toISOString(),
         isAutosave: false,
       }));
     }
 
+    // Sort versions by createdAt descending (newest first)
+    safeVersions.sort((a, b) => {
+      const dateA = new Date((a as Record<string, unknown>).createdAt as string);
+      const dateB = new Date((b as Record<string, unknown>).createdAt as string);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    // Rename the oldest version (now last in array) to "File Created"
+    // and number the subsequent versions
+    if (safeVersions.length > 0) {
+      // The oldest version is now at the end after sorting
+      const oldestVersion = safeVersions[safeVersions.length - 1] as Record<string, unknown>;
+      oldestVersion.label = 'File Created';
+
+      // Number the other versions starting from 1 (newest to oldest)
+      for (let i = 0; i < safeVersions.length - 1; i++) {
+        const version = safeVersions[i] as Record<string, unknown>;
+        version.label = `Version ${i + 1}`;
+      }
+    }
+
     // Limit display to most recent 10 versions for performance and usability
     const maxDisplayVersions = 10;
-    const displayedVersions = safeVersions.slice(-maxDisplayVersions);
+    const displayedVersions = safeVersions.slice(0, maxDisplayVersions);
     const totalVersions = safeVersions.length;
     const hasMoreVersions = totalVersions > maxDisplayVersions;
 
