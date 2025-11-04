@@ -2,6 +2,7 @@ import {
   AddImagePayload,
   AddImageQueryPayload,
   ClientQueryType,
+  FileVersion,
   GetProjectDataPayload,
   MessageSourceName,
   PluginResponseMessage,
@@ -232,20 +233,20 @@ export async function getFileVersions(): Promise<PluginResponseMessage> {
     console.log('Calling findVersions...');
 
     // Get all versions of the current file
-    const versions = await penpot.currentFile.findVersions();
+    const allVersions = await penpot.currentFile.findVersions();
 
-    console.log('findVersions returned:', versions);
+    console.log('findVersions returned:', allVersions.length, 'versions');
 
     // Use JSON serialization to convert all special Penpot objects to plain JavaScript objects
     let safeVersions: unknown[] = [];
     try {
       // JSON.stringify/parse will convert special Penpot objects to serializable format
-      safeVersions = JSON.parse(JSON.stringify(versions.slice(-5)));
-      console.log('Successfully serialized versions:', safeVersions);
+      safeVersions = JSON.parse(JSON.stringify(allVersions));
+      console.log('Successfully serialized versions');
     } catch (serializeError) {
       console.error('Failed to serialize versions:', serializeError);
       // Fallback: return basic info without the problematic objects
-      safeVersions = versions.slice(-5).map((_version, index) => ({
+      safeVersions = allVersions.map((_version, index) => ({
         id: `version-${index}`,
         label: `Version ${index + 1}`,
         createdAt: new Date().toISOString(),
@@ -253,12 +254,24 @@ export async function getFileVersions(): Promise<PluginResponseMessage> {
       }));
     }
 
+    // Limit display to most recent 10 versions for performance and usability
+    const maxDisplayVersions = 10;
+    const displayedVersions = safeVersions.slice(-maxDisplayVersions);
+    const totalVersions = safeVersions.length;
+    const hasMoreVersions = totalVersions > maxDisplayVersions;
+
     return {
       ...pluginResponse,
       type: ClientQueryType.GET_FILE_VERSIONS,
-      message: `Found ${safeVersions.length} recent file versions`,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      payload: { versions: safeVersions as any },
+      message: hasMoreVersions
+        ? `Showing ${displayedVersions.length} most recent versions out of ${totalVersions} total. Ask for versions from a specific time period if needed.`
+        : `Found ${totalVersions} file versions`,
+      payload: {
+        versions: displayedVersions as FileVersion[],
+        totalVersions,
+        displayedVersions: displayedVersions.length,
+        hasMoreVersions
+      },
     };
   } catch (error) {
     console.error('Error in getFileVersions:', error);

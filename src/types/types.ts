@@ -122,6 +122,9 @@ export interface ExploreHistoryAPIPayload {
 // Payload for GET_FILE_VERSIONS responses
 export interface GetFileVersionsPayload {
   versions: FileVersion[];
+  totalVersions: number;
+  displayedVersions: number;
+  hasMoreVersions: boolean;
 }
 
 // File version interface (from Penpot API)
