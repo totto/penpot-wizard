@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .env
 codealike.json
+
+# Local copilot instructions (should not be committed)
+.github/copilot-instructions.md
