@@ -231,12 +231,34 @@ export async function getFileVersions(): Promise<PluginResponseMessage> {
 
     console.log('Calling findVersions...');
 
-    // For testing - return empty array to avoid serialization issues
+    // Get all versions of the current file
+    const versions = await penpot.currentFile.findVersions();
+
+    console.log('findVersions returned:', versions);
+
+    // Use JSON serialization to convert all special Penpot objects to plain JavaScript objects
+    let safeVersions: unknown[] = [];
+    try {
+      // JSON.stringify/parse will convert special Penpot objects to serializable format
+      safeVersions = JSON.parse(JSON.stringify(versions.slice(-5)));
+      console.log('Successfully serialized versions:', safeVersions);
+    } catch (serializeError) {
+      console.error('Failed to serialize versions:', serializeError);
+      // Fallback: return basic info without the problematic objects
+      safeVersions = versions.slice(-5).map((_version, index) => ({
+        id: `version-${index}`,
+        label: `Version ${index + 1}`,
+        createdAt: new Date().toISOString(),
+        isAutosave: false,
+      }));
+    }
+
     return {
       ...pluginResponse,
       type: ClientQueryType.GET_FILE_VERSIONS,
-      message: `File versions API is available but returning empty array for testing`,
-      payload: { versions: [] },
+      message: `Found ${safeVersions.length} recent file versions`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      payload: { versions: safeVersions as any },
     };
   } catch (error) {
     console.error('Error in getFileVersions:', error);

@@ -28,7 +28,7 @@ export const getToolsByIds = (toolIds: string[]) => {
 // Initialize tools based on their type
 const initializeFunctionTool = async (toolDef: FunctionTool): Promise<FunctionTool> => {
   const toolInstance = tool({
-    id: toolDef.id as `${string}.${string}`,
+    id: toolDef.id,
     name: toolDef.name,
     description: toolDef.description,
     inputSchema: toolDef.inputSchema,
