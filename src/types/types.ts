@@ -1,7 +1,7 @@
 import { AnyOrama } from '@orama/orama';
 import { Experimental_Agent as Agent, Tool, ToolSet, JSONSchema7 } from 'ai';
 import { ZodType } from 'zod';
-import type { Shape, ImageData as PenpotImageData } from '@penpot/plugin-types';
+import type { Shape, ImageData as PenpotImageData, User } from '@penpot/plugin-types';
 import { PenpotShapeProperties } from './shapeTypes';
 
 /**
@@ -25,6 +25,7 @@ export enum ClientQueryType {
   GET_CURRENT_THEME = 'GET_CURRENT_THEME',
   GET_ACTIVE_USERS = 'GET_ACTIVE_USERS',
   EXPLORE_HISTORY_API = 'EXPLORE_HISTORY_API',
+  GET_FILE_VERSIONS = 'GET_FILE_VERSIONS',
   DRAW_SHAPE = 'DRAW_SHAPE',
   ADD_IMAGE = 'ADD_IMAGE',
 }
@@ -118,6 +119,19 @@ export interface ExploreHistoryAPIPayload {
   history: unknown; // Information about the history API capabilities
 }
 
+// Payload for GET_FILE_VERSIONS responses
+export interface GetFileVersionsPayload {
+  versions: FileVersion[];
+}
+
+// File version interface (from Penpot API)
+export interface FileVersion {
+  label: string;
+  createdBy?: User;
+  createdAt: Date;
+  isAutosave: boolean;
+}
+
 // include the new payload in the union
 export type PluginResponsePayload =
   | GetUserDataPayload
@@ -127,6 +141,7 @@ export type PluginResponsePayload =
   | GetCurrentThemePayload
   | GetActiveUsersPayload
   | ExploreHistoryAPIPayload
+  | GetFileVersionsPayload
   | DrawShapeResponsePayload
   | AddImagePayload;
 

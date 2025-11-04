@@ -207,3 +207,33 @@ export async function handleAddImage(payload: AddImageQueryPayload) : Promise<Pl
     }
   }
 }
+
+export async function getFileVersions(): Promise<PluginResponseMessage> {
+  try {
+    if (!penpot.currentFile) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_FILE_VERSIONS,
+        success: false,
+        message: 'No current file available',
+      };
+    }
+
+    // Get all versions of the current file
+    const versions = await penpot.currentFile.findVersions();
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_FILE_VERSIONS,
+      message: `Found ${versions.length} file versions`,
+      payload: { versions },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_FILE_VERSIONS,
+      success: false,
+      message: `Error retrieving file versions: ${error}`,
+    };
+  }
+}

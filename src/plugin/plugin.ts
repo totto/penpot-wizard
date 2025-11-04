@@ -9,7 +9,7 @@ import {
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
-import { handleGetProjectData, handleGetUserData, handleAddImage, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, exploreHistoryAPI } from './mainHandlers';
+import { handleGetProjectData, handleGetUserData, handleAddImage, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, exploreHistoryAPI, getFileVersions } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
@@ -71,6 +71,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.EXPLORE_HISTORY_API:
       responseMessage = exploreHistoryAPI();
+      break;
+
+    case ClientQueryType.GET_FILE_VERSIONS:
+      responseMessage = await getFileVersions();
       break;
 
     default:
