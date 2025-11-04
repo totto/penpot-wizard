@@ -24,6 +24,7 @@ export enum ClientQueryType {
   GET_CURRENT_PAGE = 'GET_CURRENT_PAGE',
   GET_CURRENT_THEME = 'GET_CURRENT_THEME',
   GET_ACTIVE_USERS = 'GET_ACTIVE_USERS',
+  EXPLORE_HISTORY_API = 'EXPLORE_HISTORY_API',
   DRAW_SHAPE = 'DRAW_SHAPE',
   ADD_IMAGE = 'ADD_IMAGE',
 }
@@ -112,6 +113,11 @@ export interface GetActiveUsersPayload {
   users: ActiveUser[];
 }
 
+// Payload for EXPLORE_HISTORY_API responses
+export interface ExploreHistoryAPIPayload {
+  history: unknown; // Information about the history API capabilities
+}
+
 // include the new payload in the union
 export type PluginResponsePayload =
   | GetUserDataPayload
@@ -120,6 +126,7 @@ export type PluginResponsePayload =
   | GetCurrentPagePayload
   | GetCurrentThemePayload
   | GetActiveUsersPayload
+  | ExploreHistoryAPIPayload
   | DrawShapeResponsePayload
   | AddImagePayload;
 

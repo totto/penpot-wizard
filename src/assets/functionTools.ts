@@ -77,5 +77,19 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
+  {
+    id: "explore-history-api",
+    name: "exploreHistoryAPI",
+    description: `
+      Use this tool to learn about Penpot's undo/redo grouping API.
+      This explains how plugins can group multiple operations into single undo steps.
+      Note: This does NOT provide access to file change history or versions.
+    `,
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.EXPLORE_HISTORY_API, undefined);
+      return response;
+    },
+  },
 ];
 

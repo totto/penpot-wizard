@@ -98,16 +98,13 @@ export function getCurrentTheme(): PluginResponseMessage {
 }
 
 export function getActiveUsers(): PluginResponseMessage {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const raw = (penpot.currentFile as any)?.collaborators ?? [];
   const users = Array.isArray(raw)
     ? (
         raw.map(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (u: any) => ({
             id: String(u.id ?? u.userId ?? ''),
             name: u.name ?? u.fullName ?? u.username ?? undefined,
-            // API may provide avatarURL (camel U RL) — normalize to avatarUrl
             avatarUrl: u.avatarUrl ?? u.avatarURL ?? u.avatar ?? undefined,
             color: u.color ?? undefined,
           })
@@ -121,6 +118,69 @@ export function getActiveUsers(): PluginResponseMessage {
     message: 'Active users retrieved',
     payload: { users },
   };
+}
+
+export function exploreHistoryAPI(): PluginResponseMessage {
+  try {
+    const historyContext = penpot.history;
+
+    // Demonstrate what the history API is actually for
+    const historyInfo = {
+      // The history API is for undo/redo operations, not file change history
+      explanation: "The Penpot Plugin API 'history' property is for grouping undo operations, not accessing file change history",
+
+      // What the history object contains
+      historyObject: historyContext,
+      availableMethods: Object.getOwnPropertyNames(historyContext).filter(name =>
+        typeof (historyContext as unknown as Record<string, unknown>)[name] === 'function'
+      ),
+
+      // Purpose of the history API
+      purpose: {
+        undoBlockBegin: "Groups multiple operations into a single undo step",
+        undoBlockFinish: "Ends the undo grouping",
+        usage: "penpot.history.undoBlockBegin(); /* make changes */ penpot.history.undoBlockFinish();"
+      },
+
+      // What we CANNOT access (file change history)
+      limitations: [
+        "File version history (autosaves, saves)",
+        "Change history/timeline",
+        "Historical file data",
+        "Revision history"
+      ],
+
+      // What plugins CAN access
+      availableData: {
+        currentFile: penpot.currentFile ? {
+          id: penpot.currentFile.id,
+          name: penpot.currentFile.name,
+        } : null,
+        currentPage: penpot.currentPage ? {
+          id: penpot.currentPage.id,
+          name: penpot.currentPage.name,
+        } : null,
+        currentUser: penpot.currentUser ? {
+          id: penpot.currentUser.id,
+          name: penpot.currentUser.name,
+        } : null,
+      }
+    };
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.EXPLORE_HISTORY_API,
+      message: 'History API exploration completed - this API is for undo grouping, not file change history',
+      payload: { history: historyInfo },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.EXPLORE_HISTORY_API,
+      success: false,
+      message: `Error exploring history API: ${error}`,
+    };
+  }
 } 
 
 export async function handleAddImage(payload: AddImageQueryPayload) : Promise<PluginResponseMessage> {
