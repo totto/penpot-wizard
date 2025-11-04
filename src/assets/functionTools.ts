@@ -91,5 +91,18 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
+  {
+    id: "get-file-versions",
+    name: "getFileVersions",
+    description: `
+      Use this tool to get all saved versions of the current Penpot file.
+      It lists version labels, creation dates, and whether they are autosaves or manual saves.
+    `,
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.GET_FILE_VERSIONS, undefined);
+      return response;
+    },
+  }
 ];
 
