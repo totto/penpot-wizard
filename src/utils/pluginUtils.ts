@@ -95,6 +95,9 @@ function localResponse(type: ClientQueryType): PluginResponseMessage {
         },
       };
 
+    // NOTE: Removed local mock for GET_ACTIVE_USERS to rely on real plugin data during testing.
+    // If running outside the Penpot iframe there will be no mocked active users returned.
+
     default:
       return {
         ...pluginMessage,
