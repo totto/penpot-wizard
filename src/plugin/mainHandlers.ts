@@ -51,9 +51,8 @@ export async function createLibraryColor(payload: any): Promise<PluginResponseMe
       };
     }
 
-    // Check library API availability
-    const lib: any = (penpot as any).library ?? (penpot.currentFile as any)?.library;
-    if (!lib || typeof lib.createColor !== 'function') {
+    // Check library API availability - use the correct Penpot API
+    if (!penpot.library || !penpot.library.local || typeof penpot.library.local.createColor !== 'function') {
       return {
         ...pluginResponse,
         type: ClientQueryType.CREATE_LIBRARY_COLOR,
@@ -65,13 +64,8 @@ export async function createLibraryColor(payload: any): Promise<PluginResponseMe
     // Try to obtain existing colors for duplicate detection
     let existingColors: any[] = [];
     try {
-      if (typeof lib.getColors === 'function') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        existingColors = await lib.getColors();
-      } else if (Array.isArray(lib.colors)) {
-        existingColors = lib.colors;
-      } else if (Array.isArray((penpot.currentFile as any)?.library?.colors)) {
-        existingColors = (penpot.currentFile as any).library.colors;
+      if (Array.isArray(penpot.library.local.colors)) {
+        existingColors = penpot.library.local.colors;
       }
     } catch (e) {
       console.warn('Could not fetch existing library colors:', e);
@@ -97,19 +91,11 @@ export async function createLibraryColor(payload: any): Promise<PluginResponseMe
 
     // Attempt to create (or create will overwrite depending on API)
     try {
-      let created: any;
-      try {
-        created = await lib.createColor({ name, color });
-      } catch (e) {
-        // Try alternate signature
-        try {
-          created = await lib.createColor(name, color);
-        } catch (e2) {
-          throw e2;
-        }
-      }
+      const created = penpot.library.local.createColor();
+      created.name = name;
+      created.color = color;
 
-      const createdId = created?.id ?? created?._id ?? undefined;
+      const createdId = created?.id ?? undefined;
       return {
         ...pluginResponse,
         type: ClientQueryType.CREATE_LIBRARY_COLOR,
@@ -118,27 +104,6 @@ export async function createLibraryColor(payload: any): Promise<PluginResponseMe
         payload: { id: createdId, name, color },
       };
     } catch (createError) {
-      // If overwrite requested and an update API exists, try update
-      if (dup && overwrite && typeof lib.updateColor === 'function') {
-        try {
-          const updated = await lib.updateColor(dup.id ?? dup._id, { name, color });
-          return {
-            ...pluginResponse,
-            type: ClientQueryType.CREATE_LIBRARY_COLOR,
-            success: true,
-            message: 'Existing library color updated',
-            payload: { id: dup.id ?? dup._id, name, color },
-          };
-        } catch (updateError) {
-          return {
-            ...pluginResponse,
-            type: ClientQueryType.CREATE_LIBRARY_COLOR,
-            success: false,
-            message: `Failed to create or update library color: ${updateError instanceof Error ? updateError.message : String(updateError)}`,
-          };
-        }
-      }
-
       return {
         ...pluginResponse,
         type: ClientQueryType.CREATE_LIBRARY_COLOR,
