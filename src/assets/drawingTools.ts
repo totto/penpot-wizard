@@ -83,7 +83,7 @@ export const drawingTools: FunctionTool[] = [
   },
 {
 id: 'create-library-color',
-    name: 'CreateLibraryColorTool',
+    name: 'CreateLibraryColor',
     description: `
       Use this tool to create a new color in the library.
       Provide a name and hex color value.
@@ -99,7 +99,7 @@ id: 'create-library-color',
   },
 {
     id: 'create-library-font',
-    name: 'CreateLibraryFontTool',
+    name: 'CreateLibraryFont',
     description: `
       Use this tool to create a new typography style in the library.
       Provide a name, font family, and font size. Optional properties include font weight, style, line height, letter spacing, and text transform.
@@ -121,7 +121,7 @@ id: 'create-library-color',
   },
 {
     id: 'create-component-from-selection',
-    name: 'CreateComponentFromSelectionTool',
+    name: 'CreateComponentFromSelection',
     description: `
       Use this tool to create a new component in the library from currently selected shapes.
       
