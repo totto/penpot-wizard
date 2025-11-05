@@ -6,10 +6,11 @@ import {
   AddImageQueryPayload,
   DrawShapeQueryPayload,
   PluginResponseMessage,
+  CreateLibraryFontPayload,
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
-import { handleGetProjectData, handleGetUserData, handleAddImage, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, getCurrentSelection, createLibraryColor, } from './mainHandlers';
+import { handleGetProjectData, handleGetUserData, handleAddImage, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, getCurrentSelection, createLibraryColor, createLibraryFont, } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
@@ -89,6 +90,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
     
     case ClientQueryType.CREATE_LIBRARY_COLOR:
       responseMessage = await createLibraryColor(payload);
+      break;
+    
+    case ClientQueryType.CREATE_LIBRARY_FONT:
+      responseMessage = await createLibraryFont(payload as unknown as CreateLibraryFontPayload);
       break;
 
     default:

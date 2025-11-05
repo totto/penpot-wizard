@@ -97,6 +97,28 @@ id: 'create-library-color',
       return response;
     },
   },
+{
+    id: 'create-library-font',
+    name: 'CreateLibraryFontTool',
+    description: `
+      Use this tool to create a new typography style in the library.
+      Provide a name, font family, and font size. Optional properties include font weight, style, line height, letter spacing, and text transform.
+    `,
+    inputSchema: z.object({
+      name: z.string().describe('The name of the typography style in the library'),
+      fontFamily: z.string().describe('The font family name, e.g. "Inter", "Arial", "Helvetica"'),
+      fontSize: z.string().describe('The font size, e.g. "16px", "1.5rem", "24"'),
+      fontWeight: z.string().optional().describe('The font weight, e.g. "400", "bold", "normal"'),
+      fontStyle: z.enum(['normal', 'italic']).optional().describe('The font style'),
+      lineHeight: z.string().optional().describe('The line height, e.g. "1.5", "24px"'),
+      letterSpacing: z.string().optional().describe('The letter spacing, e.g. "0.5px", "2%"'),
+      textTransform: z.enum(['uppercase', 'capitalize', 'lowercase']).optional().describe('The text transform'),
+    }),
+    function: async (fontProperties) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CREATE_LIBRARY_FONT, fontProperties);
+      return response;
+    },
+  },
 
 
 ];

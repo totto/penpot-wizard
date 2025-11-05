@@ -37,7 +37,7 @@ Use the Penpot user‑guide RAG to answer concrete questions about Penpot. Trans
 Before calling a coordinator, present the collected brief to the user and ask for a short "OK to proceed" confirmation. Proceed only when the brief satisfies the coordinator's input schema and the user confirms.
 </handoff_protocol>
     `,
-toolIds: ['get-user-data',  'get-current-page',  'get-selection', 'create-library-color'],
+toolIds: ['get-user-data',  'get-current-page',  'get-selection', 'create-library-color', 'create-library-font'],
 
     specializedAgentIds: ['mobile-projects-coordinator'],
   },

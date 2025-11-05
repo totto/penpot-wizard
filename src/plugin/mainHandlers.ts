@@ -6,6 +6,8 @@ import {
   GetProjectDataPayload,
   MessageSourceName,
   PluginResponseMessage,
+  CreateLibraryFontPayload,
+  CreateLibraryFontResponse,
 
 } from "../types/types";
 
@@ -117,6 +119,94 @@ export async function createLibraryColor(payload: any): Promise<PluginResponseMe
       type: ClientQueryType.CREATE_LIBRARY_COLOR,
       success: false,
       message: `Error in createLibraryColor: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function createLibraryFont(payload: CreateLibraryFontPayload): Promise<PluginResponseMessage> {
+  try {
+    const { name, fontFamily, fontSize, fontWeight, fontStyle, lineHeight, letterSpacing, textTransform, overwrite } = payload ?? {};
+
+    if (!name || typeof name !== 'string' || !fontFamily || typeof fontFamily !== 'string' || !fontSize || typeof fontSize !== 'string') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_FONT,
+        success: false,
+        message: 'Invalid payload. Expected { name: string, fontFamily: string, fontSize: string }',
+      };
+    }
+
+    // Check library API availability - use the correct Penpot API
+    if (!penpot.library || !penpot.library.local || typeof penpot.library.local.createTypography !== 'function') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_FONT,
+        success: false,
+        message: 'Penpot library API for creating typography is not available in this environment.',
+      };
+    }
+
+    // Try to obtain existing typography for duplicate detection
+    let existingTypography: Record<string, unknown>[] = [];
+    try {
+      if (Array.isArray(penpot.library.local.typographies)) {
+        existingTypography = penpot.library.local.typographies as unknown as Record<string, unknown>[];
+      }
+    } catch (e) {
+      console.warn('Could not fetch existing library typography:', e);
+      existingTypography = [];
+    }
+
+    const normalize = (s: unknown) => (String(s ?? '').trim().toLowerCase());
+    const dup = existingTypography.find((t: Record<string, unknown>) => {
+      const tname = normalize(t.name ?? t.label);
+      const tfamily = normalize(t.fontFamily ?? t.family);
+      return tname === normalize(name) || (tname === normalize(name) && tfamily === normalize(fontFamily));
+    });
+
+    if (dup && !overwrite) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_FONT,
+        success: false,
+        message: `A library typography with the same name already exists: ${String(dup.name ?? dup.label)}.`,
+      };
+    }
+
+    // Attempt to create (or create will overwrite depending on API)
+    try {
+      const created = penpot.library.local.createTypography();
+      created.name = name;
+      created.fontFamily = fontFamily;
+      created.fontSize = fontSize;
+      if (fontWeight) created.fontWeight = fontWeight;
+      if (fontStyle) created.fontStyle = fontStyle;
+      if (lineHeight) created.lineHeight = lineHeight;
+      if (letterSpacing) created.letterSpacing = letterSpacing;
+      if (textTransform) created.textTransform = textTransform;
+
+      const createdId = created?.id ?? undefined;
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_FONT,
+        success: true,
+        message: 'Library typography created',
+        payload: { id: createdId, name, fontFamily, fontSize, fontWeight, fontStyle, lineHeight, letterSpacing, textTransform },
+      };
+    } catch (createError) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_FONT,
+        success: false,
+        message: `Failed to create library typography: ${createError instanceof Error ? createError.message : String(createError)}`,
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CREATE_LIBRARY_FONT,
+      success: false,
+      message: `Error in createLibraryFont: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

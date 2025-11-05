@@ -27,6 +27,7 @@ export enum ClientQueryType {
   GET_FILE_VERSIONS = 'GET_FILE_VERSIONS',
   GET_CURRENT_SELECTION = 'GET_CURRENT_SELECTION',
   CREATE_LIBRARY_COLOR = 'CREATE_LIBRARY_COLOR',
+  CREATE_LIBRARY_FONT = 'CREATE_LIBRARY_FONT',
   DRAW_SHAPE = 'DRAW_SHAPE',
   ADD_IMAGE = 'ADD_IMAGE',
 }
@@ -153,6 +154,31 @@ export interface CreateLibraryColorResponse {
   color: string;
 }
 
+// Payload for creating a library font/typography
+export interface CreateLibraryFontPayload {
+  name: string;
+  fontFamily: string;
+  fontSize: string;
+  fontWeight?: string;
+  fontStyle?: 'normal' | 'italic';
+  lineHeight?: string;
+  letterSpacing?: string;
+  textTransform?: 'uppercase' | 'capitalize' | 'lowercase';
+  overwrite?: boolean; // if true, attempt to overwrite existing typography
+}
+
+export interface CreateLibraryFontResponse {
+  id?: string;
+  name: string;
+  fontFamily: string;
+  fontSize: string;
+  fontWeight: string;
+  fontStyle?: 'normal' | 'italic';
+  lineHeight: string;
+  letterSpacing: string;
+  textTransform?: 'uppercase' | 'capitalize' | 'lowercase';
+}
+
 // File version interface (from Penpot API)
 export interface FileVersion {
   id?: string;  // Version identifier (may not always be present)
@@ -173,6 +199,7 @@ export type PluginResponsePayload =
   | GetFileVersionsPayload
   | GetCurrentSelectionPayload
   | CreateLibraryColorResponse
+  | CreateLibraryFontResponse
   | DrawShapeResponsePayload
   | AddImagePayload;
 
