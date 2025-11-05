@@ -1,5 +1,6 @@
-import { drawShape } from '@/utils/pluginUtils';
-import { PenpotShapeType, FunctionTool } from '@/types/types';
+import { drawShape, sendMessageToPlugin } from '@/utils/pluginUtils';
+import { z } from 'zod';
+import { PenpotShapeType, FunctionTool, ClientQueryType } from '@/types/types';
 import { baseShapeProperties, pathShapeProperties, textShapeProperties } from '@/types/shapeTypes';
 
 export const drawingTools: FunctionTool[] = [
@@ -80,4 +81,22 @@ export const drawingTools: FunctionTool[] = [
       return response;
     },
   },
+{
+id: 'create-library-color',
+    name: 'CreateLibraryColorTool',
+    description: `
+      Use this tool to create a new color in the library.
+      Provide a name and hex color value.
+    `,
+    inputSchema: z.object({
+      name: z.string().describe('The name of the color in the library'),
+      color: z.string().describe('The hex color value, e.g. #FF5733'),
+    }),
+    function: async (colorProperties) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CREATE_LIBRARY_COLOR, colorProperties);
+      return response;
+    },
+  },
+
+
 ];

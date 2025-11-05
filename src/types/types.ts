@@ -26,6 +26,7 @@ export enum ClientQueryType {
   GET_ACTIVE_USERS = 'GET_ACTIVE_USERS',
   GET_FILE_VERSIONS = 'GET_FILE_VERSIONS',
   GET_CURRENT_SELECTION = 'GET_CURRENT_SELECTION',
+  CREATE_LIBRARY_COLOR = 'CREATE_LIBRARY_COLOR',
   DRAW_SHAPE = 'DRAW_SHAPE',
   ADD_IMAGE = 'ADD_IMAGE',
 }
@@ -139,6 +140,19 @@ export interface GetCurrentSelectionPayload {
   count: number;
 }
 
+// Payload for creating a library color
+export interface CreateLibraryColorPayload {
+  name: string;
+  color: string; // hex or other CSS color string
+  overwrite?: boolean; // if true, attempt to overwrite existing color
+}
+
+export interface CreateLibraryColorResponse {
+  id?: string;
+  name: string;
+  color: string;
+}
+
 // File version interface (from Penpot API)
 export interface FileVersion {
   id?: string;  // Version identifier (may not always be present)
@@ -158,6 +172,7 @@ export type PluginResponsePayload =
   | GetActiveUsersPayload
   | GetFileVersionsPayload
   | GetCurrentSelectionPayload
+  | CreateLibraryColorResponse
   | DrawShapeResponsePayload
   | AddImagePayload;
 

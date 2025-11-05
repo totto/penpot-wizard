@@ -38,6 +38,124 @@ export function handleGetUserData(): PluginResponseMessage {
     }
 }
 
+export async function createLibraryColor(payload: any): Promise<PluginResponseMessage> {
+  try {
+    const { name, color, overwrite } = payload ?? {};
+
+    if (!name || typeof name !== 'string' || !color || typeof color !== 'string') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_COLOR,
+        success: false,
+        message: 'Invalid payload. Expected { name: string, color: string }',
+      };
+    }
+
+    // Check library API availability
+    const lib: any = (penpot as any).library ?? (penpot.currentFile as any)?.library;
+    if (!lib || typeof lib.createColor !== 'function') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_COLOR,
+        success: false,
+        message: 'Penpot library API for creating colors is not available in this environment.',
+      };
+    }
+
+    // Try to obtain existing colors for duplicate detection
+    let existingColors: any[] = [];
+    try {
+      if (typeof lib.getColors === 'function') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        existingColors = await lib.getColors();
+      } else if (Array.isArray(lib.colors)) {
+        existingColors = lib.colors;
+      } else if (Array.isArray((penpot.currentFile as any)?.library?.colors)) {
+        existingColors = (penpot.currentFile as any).library.colors;
+      }
+    } catch (e) {
+      console.warn('Could not fetch existing library colors:', e);
+      existingColors = [];
+    }
+
+    const normalize = (s: any) => (String(s ?? '').trim().toLowerCase());
+    const dup = existingColors.find((c: any) => {
+      const cname = normalize(c.name ?? c.label);
+      const cval = normalize(c.value ?? c.color ?? c.hex ?? c.hexValue ?? c.hexString);
+      return cname === normalize(name) || cval === normalize(color);
+    });
+
+    if (dup && !overwrite) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_COLOR,
+        success: false,
+        message: `A library color with the same name or value already exists: ${dup.name ?? dup.label}.`,
+        payload: { duplicate: true, existing: { id: dup.id ?? dup._id ?? undefined, name: dup.name ?? dup.label, color: dup.value ?? dup.color ?? dup.hex } },
+      };
+    }
+
+    // Attempt to create (or create will overwrite depending on API)
+    try {
+      let created: any;
+      try {
+        created = await lib.createColor({ name, color });
+      } catch (e) {
+        // Try alternate signature
+        try {
+          created = await lib.createColor(name, color);
+        } catch (e2) {
+          throw e2;
+        }
+      }
+
+      const createdId = created?.id ?? created?._id ?? undefined;
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_COLOR,
+        success: true,
+        message: 'Library color created',
+        payload: { id: createdId, name, color },
+      };
+    } catch (createError) {
+      // If overwrite requested and an update API exists, try update
+      if (dup && overwrite && typeof lib.updateColor === 'function') {
+        try {
+          const updated = await lib.updateColor(dup.id ?? dup._id, { name, color });
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.CREATE_LIBRARY_COLOR,
+            success: true,
+            message: 'Existing library color updated',
+            payload: { id: dup.id ?? dup._id, name, color },
+          };
+        } catch (updateError) {
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.CREATE_LIBRARY_COLOR,
+            success: false,
+            message: `Failed to create or update library color: ${updateError instanceof Error ? updateError.message : String(updateError)}`,
+          };
+        }
+      }
+
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_COLOR,
+        success: false,
+        message: `Failed to create library color: ${createError instanceof Error ? createError.message : String(createError)}`,
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CREATE_LIBRARY_COLOR,
+      success: false,
+      message: `Error in createLibraryColor: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export function handleGetProjectData(): PluginResponseMessage {
   if (penpot.currentFile && penpot.currentPage) {
     return {
@@ -95,7 +213,7 @@ export function getCurrentSelection(): PluginResponseMessage {
     if (!sel) {
       return {
         ...pluginResponse,
-        type: ClientQueryType.GET_SELECTION,
+        type: ClientQueryType.GET_CURRENT_SELECTION,
         success: false,
         message: 'No selection available',
       };
@@ -169,10 +287,6 @@ export function getActiveUsers(): PluginResponseMessage {
     payload: { users },
   };
 }
-
-// exploreHistoryAPI handler removed — tool deleted. If you need a history introspection helper
-// consider adding a small, read-only ping that returns limited history capabilities without
-// attempting to access internal version/timeline data which the plugin API doesn't expose.
 
 export async function handleAddImage(payload: AddImageQueryPayload) : Promise<PluginResponseMessage> {
   const { name, data, mimeType } = payload;
