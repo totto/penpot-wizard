@@ -28,14 +28,14 @@ export function handleGetUserData(): PluginResponseMessage {
         id: penpot.currentUser.id,
       },
     };
-  } else {
-    return {
-      ...pluginResponse,
-      type: ClientQueryType.GET_USER_DATA,
-      success: false,
-      message: 'Error retrieving user data',
+    } else {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_USER_DATA,
+        success: false,
+        message: 'Error retrieving user data',
+      };
     }
-  }
 }
 
 export function handleGetProjectData(): PluginResponseMessage {
@@ -87,6 +87,55 @@ export function getCurrentPage(): PluginResponseMessage {
   };
 }
 
+export function getCurrentSelection(): PluginResponseMessage {
+  try {
+    // penpot.selection may be an object with an 'items' array or an array itself depending on API shape
+    const sel: any = (penpot as any).selection;
+
+    if (!sel) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_SELECTION,
+        success: false,
+        message: 'No selection available',
+      };
+    }
+
+    let items: any[] = [];
+    if (Array.isArray(sel)) {
+      items = sel;
+    } else if (Array.isArray(sel.items)) {
+      items = sel.items;
+    } else if (sel.item) {
+      items = [sel.item];
+    }
+
+    const mapped = items.map((s: any) => ({
+      id: String(s.id ?? ''),
+      name: s.name ?? s.label ?? undefined,
+      type: s.type ?? undefined,
+      x: typeof s.x === 'number' ? s.x : undefined,
+      y: typeof s.y === 'number' ? s.y : undefined,
+      width: typeof s.width === 'number' ? s.width : undefined,
+      height: typeof s.height === 'number' ? s.height : undefined,
+    }));
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_CURRENT_SELECTION,
+      message: 'Selection retrieved',
+      payload: { items: mapped, count: mapped.length },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_CURRENT_SELECTION,
+      success: false,
+      message: `Error retrieving selection: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export function getCurrentTheme(): PluginResponseMessage {
   return {
     source: MessageSourceName.Plugin,
@@ -121,68 +170,9 @@ export function getActiveUsers(): PluginResponseMessage {
   };
 }
 
-export function exploreHistoryAPI(): PluginResponseMessage {
-  try {
-    const historyContext = penpot.history;
-
-    // Demonstrate what the history API is actually for
-    const historyInfo = {
-      // The history API is for undo/redo operations, not file change history
-      explanation: "The Penpot Plugin API 'history' property is for grouping undo operations, not accessing file change history",
-
-      // What the history object contains
-      historyObject: historyContext,
-      availableMethods: Object.getOwnPropertyNames(historyContext).filter(name =>
-        typeof (historyContext as unknown as Record<string, unknown>)[name] === 'function'
-      ),
-
-      // Purpose of the history API
-      purpose: {
-        undoBlockBegin: "Groups multiple operations into a single undo step",
-        undoBlockFinish: "Ends the undo grouping",
-        usage: "penpot.history.undoBlockBegin(); /* make changes */ penpot.history.undoBlockFinish();"
-      },
-
-      // What we CANNOT access (file change history)
-      limitations: [
-        "File version history (autosaves, saves)",
-        "Change history/timeline",
-        "Historical file data",
-        "Revision history"
-      ],
-
-      // What plugins CAN access
-      availableData: {
-        currentFile: penpot.currentFile ? {
-          id: penpot.currentFile.id,
-          name: penpot.currentFile.name,
-        } : null,
-        currentPage: penpot.currentPage ? {
-          id: penpot.currentPage.id,
-          name: penpot.currentPage.name,
-        } : null,
-        currentUser: penpot.currentUser ? {
-          id: penpot.currentUser.id,
-          name: penpot.currentUser.name,
-        } : null,
-      }
-    };
-
-    return {
-      ...pluginResponse,
-      type: ClientQueryType.EXPLORE_HISTORY_API,
-      message: 'History API exploration completed - this API is for undo grouping, not file change history',
-      payload: { history: historyInfo },
-    };
-  } catch (error) {
-    return {
-      ...pluginResponse,
-      type: ClientQueryType.EXPLORE_HISTORY_API,
-      success: false,
-      message: `Error exploring history API: ${error}`,
-    };
-  }
-} 
+// exploreHistoryAPI handler removed — tool deleted. If you need a history introspection helper
+// consider adding a small, read-only ping that returns limited history capabilities without
+// attempting to access internal version/timeline data which the plugin API doesn't expose.
 
 export async function handleAddImage(payload: AddImageQueryPayload) : Promise<PluginResponseMessage> {
   const { name, data, mimeType } = payload;

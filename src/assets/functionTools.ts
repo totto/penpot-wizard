@@ -78,20 +78,6 @@ export const functionTools: FunctionTool[] = [
     },
   },
   {
-    id: "explore-history-api",
-    name: "exploreHistoryAPI",
-    description: `
-      Use this tool to learn about Penpot's undo/redo grouping API.
-      This explains how plugins can group multiple operations into single undo steps.
-      Note: This does NOT provide access to file change history or versions.
-    `,
-    inputSchema: z.object({}),
-    function: async () => {
-      const response = await sendMessageToPlugin(ClientQueryType.EXPLORE_HISTORY_API, undefined);
-      return response;
-    },
-  },
-  {
     id: "get-file-versions",
     name: "getFileVersions",
     description: `
@@ -101,6 +87,19 @@ export const functionTools: FunctionTool[] = [
     inputSchema: z.object({}),
     function: async () => {
       const response = await sendMessageToPlugin(ClientQueryType.GET_FILE_VERSIONS, undefined);
+      return response;
+    },
+  },
+  {
+    id: "get-current-selection",
+    name: "getCurrentSelection",
+    description: `
+      Read-only: returns basic information about the current selection on the canvas.
+      Each item includes id, name, type and bounding values (x,y,width,height) when available.
+    `,
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.GET_CURRENT_SELECTION, undefined);
       return response;
     },
   }
