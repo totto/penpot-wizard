@@ -8,6 +8,8 @@ import {
   PluginResponseMessage,
   CreateLibraryFontPayload,
   CreateLibraryFontResponse,
+  CreateLibraryComponentPayload,
+  CreateLibraryComponentResponse,
 
 } from "../types/types";
 
@@ -207,6 +209,86 @@ export async function createLibraryFont(payload: CreateLibraryFontPayload): Prom
       type: ClientQueryType.CREATE_LIBRARY_FONT,
       success: false,
       message: `Error in createLibraryFont: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function createLibraryComponent(payload: CreateLibraryComponentPayload): Promise<PluginResponseMessage> {
+  try {
+    const { name, shapes, overwrite } = payload ?? {};
+
+    if (!name || typeof name !== 'string' || !shapes || !Array.isArray(shapes)) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+        success: false,
+        message: 'Invalid payload. Expected { name: string, shapes: Shape[] }',
+      };
+    }
+
+    // Check library API availability - use the correct Penpot API
+    if (!penpot.library || !penpot.library.local || typeof penpot.library.local.createComponent !== 'function') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+        success: false,
+        message: 'Penpot library API for creating components is not available in this environment.',
+      };
+    }
+
+    // Try to obtain existing components for duplicate detection
+    let existingComponents: Record<string, unknown>[] = [];
+    try {
+      if (Array.isArray(penpot.library.local.components)) {
+        existingComponents = penpot.library.local.components as unknown as Record<string, unknown>[];
+      }
+    } catch (e) {
+      console.warn('Could not fetch existing library components:', e);
+      existingComponents = [];
+    }
+
+    const normalize = (s: unknown) => (String(s ?? '').trim().toLowerCase());
+    const dup = existingComponents.find((c: Record<string, unknown>) => {
+      const cname = normalize(c.name ?? c.label);
+      return cname === normalize(name);
+    });
+
+    if (dup && !overwrite) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+        success: false,
+        message: `A library component with the same name already exists: ${String(dup.name ?? dup.label)}.`,
+      };
+    }
+
+    // Attempt to create (or create will overwrite depending on API)
+    try {
+      const created = penpot.library.local.createComponent(shapes);
+      created.name = name;
+
+      const createdId = created?.id ?? undefined;
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+        success: true,
+        message: 'Library component created',
+        payload: { id: createdId, name, shapes },
+      };
+    } catch (createError) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+        success: false,
+        message: `Failed to create library component: ${createError instanceof Error ? createError.message : String(createError)}`,
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+      success: false,
+      message: `Error in createLibraryComponent: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

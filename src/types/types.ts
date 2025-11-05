@@ -28,6 +28,7 @@ export enum ClientQueryType {
   GET_CURRENT_SELECTION = 'GET_CURRENT_SELECTION',
   CREATE_LIBRARY_COLOR = 'CREATE_LIBRARY_COLOR',
   CREATE_LIBRARY_FONT = 'CREATE_LIBRARY_FONT',
+  CREATE_LIBRARY_COMPONENT = 'CREATE_LIBRARY_COMPONENT',
   DRAW_SHAPE = 'DRAW_SHAPE',
   ADD_IMAGE = 'ADD_IMAGE',
 }
@@ -179,6 +180,19 @@ export interface CreateLibraryFontResponse {
   textTransform?: 'uppercase' | 'capitalize' | 'lowercase';
 }
 
+// Payload for creating a library component
+export interface CreateLibraryComponentPayload {
+  name: string;
+  shapes: Shape[]; // Array of shapes that make up the component
+  overwrite?: boolean; // if true, attempt to overwrite existing component
+}
+
+export interface CreateLibraryComponentResponse {
+  id?: string;
+  name: string;
+  shapes: Shape[];
+}
+
 // File version interface (from Penpot API)
 export interface FileVersion {
   id?: string;  // Version identifier (may not always be present)
@@ -200,6 +214,7 @@ export type PluginResponsePayload =
   | GetCurrentSelectionPayload
   | CreateLibraryColorResponse
   | CreateLibraryFontResponse
+  | CreateLibraryComponentResponse
   | DrawShapeResponsePayload
   | AddImagePayload;
 

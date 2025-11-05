@@ -119,6 +119,23 @@ id: 'create-library-color',
       return response;
     },
   },
+{
+    id: 'create-library-component',
+    name: 'CreateLibraryComponentTool',
+    description: `
+      Use this tool to create a new component in the library from a collection of shapes.
+      Provide a name and an array of shapes that will make up the component.
+      Components are reusable design elements that can be instantiated multiple times.
+    `,
+    inputSchema: z.object({
+      name: z.string().describe('The name of the component in the library'),
+      shapes: z.array(z.any()).describe('Array of shapes that make up the component'),
+    }),
+    function: async (componentProperties) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CREATE_LIBRARY_COMPONENT, componentProperties);
+      return response;
+    },
+  },
 
 
 ];
