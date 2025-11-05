@@ -1,16 +1,11 @@
 import {
   AddImagePayload,
-  AddImageQueryPayload,
+  AddImageFromUrlQueryPayload,
   ClientQueryType,
-  FileVersion,
-  GetProjectDataPayload,
   MessageSourceName,
   PluginResponseMessage,
   CreateLibraryFontPayload,
-  CreateLibraryFontResponse,
   CreateLibraryComponentPayload,
-  CreateLibraryComponentResponse,
-
 } from "../types/types";
 import type { Shape } from '@penpot/plugin-types';
 
@@ -262,7 +257,7 @@ export async function createLibraryComponent(payload: CreateLibraryComponentPayl
         }
 
         componentShapes = selectedItems as Shape[];
-      } catch (_error) {
+      } catch {
         return {
           ...pluginResponse,
           type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
@@ -513,27 +508,51 @@ export function getActiveUsers(): PluginResponseMessage {
   };
 }
 
-export async function handleAddImage(payload: AddImageQueryPayload) : Promise<PluginResponseMessage> {
-  const { name, data, mimeType } = payload;
+export async function handleAddImageFromUrl(payload: AddImageFromUrlQueryPayload): Promise<PluginResponseMessage> {
+  const { name, url } = payload;
 
   try {
-    const imageCreatedData = await penpot.uploadMediaData(name, data, mimeType);
+    const imageCreatedData = await penpot.uploadMediaUrl(name, url);
     if (imageCreatedData) {
+      // Create a rectangle shape with the uploaded image as fill
+      const imageShape = penpot.createRectangle();
+      imageShape.name = name;
+
+      // Set the image as fill
+      const fills = [{
+        fillImage: {
+          id: imageCreatedData.id,
+          width: imageCreatedData.width || 100,
+          height: imageCreatedData.height || 100,
+          mtype: imageCreatedData.mtype || "image/jpeg",
+          keepAspectRatio: true,
+        }
+      }];
+      imageShape.fills = fills;
+
+      // Resize the shape to match the image dimensions
+      if (imageCreatedData.width && imageCreatedData.height) {
+        imageShape.resize(imageCreatedData.width, imageCreatedData.height);
+      }
+
       return {
         ...pluginResponse,
-        message: 'Image added successfully',
+        type: ClientQueryType.ADD_IMAGE_FROM_URL,
+        message: 'Image imported successfully from URL',
         payload: {
           newImageData: imageCreatedData,
+          shapeId: imageShape.id,
         },
       };
     } else {
-      throw new Error('error creating image in Penpot');
+      throw new Error('error importing image from URL in Penpot');
     }
   } catch (error) {
     return {
       ...pluginResponse,
+      type: ClientQueryType.ADD_IMAGE_FROM_URL,
       success: false,
-      message: `error adding image ${name}: ${error}`,
+      message: `error importing image from URL ${url}: ${error}`,
     }
   }
 }

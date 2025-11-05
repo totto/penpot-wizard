@@ -31,6 +31,7 @@ export enum ClientQueryType {
   CREATE_LIBRARY_COMPONENT = 'CREATE_LIBRARY_COMPONENT',
   DRAW_SHAPE = 'DRAW_SHAPE',
   ADD_IMAGE = 'ADD_IMAGE',
+  ADD_IMAGE_FROM_URL = 'ADD_IMAGE_FROM_URL',
 }
 
 export enum PenpotShapeType {
@@ -59,7 +60,12 @@ export interface AddImageQueryPayload {
   mimeType: string;
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload;
+export interface AddImageFromUrlQueryPayload {
+  name: string;
+  url: string;
+}
+
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload;
 export interface PluginMessage {
   source: MessageSourceName.Plugin;
   type: PluginMessageType | ClientQueryType;
@@ -76,6 +82,7 @@ export interface DrawShapeResponsePayload {
 }
 export interface AddImagePayload {
   newImageData: PenpotImageData;
+  shapeId?: string;
 }
 export interface GetUserDataPayload {
   name: string;

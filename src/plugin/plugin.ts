@@ -3,7 +3,7 @@ import {
   ClientQueryType,
   MessageSourceName,
   ClientMessage,
-  AddImageQueryPayload,
+  AddImageFromUrlQueryPayload,
   DrawShapeQueryPayload,
   PluginResponseMessage,
   CreateLibraryFontPayload,
@@ -11,7 +11,7 @@ import {
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
-import { handleGetProjectData, handleGetUserData, handleAddImage, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, getCurrentSelection, createLibraryColor, createLibraryFont, createLibraryComponent, } from './mainHandlers';
+import { handleGetProjectData, handleGetUserData, handleAddImageFromUrl, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, getCurrentSelection, createLibraryColor, createLibraryFont, createLibraryComponent, } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
@@ -52,8 +52,8 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       responseMessage = handleDrawShape(payload as DrawShapeQueryPayload);
       break;
 
-    case ClientQueryType.ADD_IMAGE:
-      responseMessage = await handleAddImage(payload as AddImageQueryPayload);
+    case ClientQueryType.ADD_IMAGE_FROM_URL:
+      responseMessage = await handleAddImageFromUrl(payload as unknown as AddImageFromUrlQueryPayload);
       break;
 
     case ClientQueryType.GET_USER_DATA:

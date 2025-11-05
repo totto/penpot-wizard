@@ -102,6 +102,23 @@ export const functionTools: FunctionTool[] = [
       const response = await sendMessageToPlugin(ClientQueryType.GET_CURRENT_SELECTION, undefined);
       return response;
     },
-  }
+  },
+  {
+    id: "add-image-from-url",
+    name: "addImageFromUrl",
+    description: `
+      Upload an image to Penpot from a URL.
+      Use this when you want to import an image directly from a web URL.
+      The image will be downloaded and added to the current page.
+    `,
+    inputSchema: z.object({
+      name: z.string().describe("The name for the uploaded image"),
+      url: z.string().url().describe("The URL of the image to upload"),
+    }),
+    function: async (input: { name: string; url: string }) => {
+      const response = await sendMessageToPlugin(ClientQueryType.ADD_IMAGE_FROM_URL, input);
+      return response;
+    },
+  },
 ];
 
