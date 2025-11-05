@@ -9,7 +9,7 @@ import {
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
-import { handleGetProjectData, handleGetUserData, handleAddImage, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, getCurrentSelection } from './mainHandlers';
+import { handleGetProjectData, handleGetUserData, handleAddImage, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, getCurrentSelection, createLibraryColor, } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
@@ -28,6 +28,15 @@ penpot.on('themechange', (newTheme: string) => {
 });
 
 penpot.ui.onMessage(async (message: ClientMessage) => {
+  // Diagnostic log: print incoming message so we can verify runtime message types.
+  // This helps detect mismatches between the UI and the plugin (stale builds, enum differences).
+  try {
+    console.log('Plugin received message from client:', message);
+  } catch {
+    // Defensive logging in case message contains unserializable proxies
+    console.log('Plugin received message (unserializable) - type maybe present:', (message as unknown as { type?: string })?.type);
+  }
+
   const { type, messageId, payload, source } = message;
 
   if (source !== MessageSourceName.Client) {
@@ -69,7 +78,6 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       responseMessage = getActiveUsers();
       break;
 
-    // EXPLORE_HISTORY_API tool removed
 
     case ClientQueryType.GET_FILE_VERSIONS:
       responseMessage = await getFileVersions();
@@ -77,6 +85,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.GET_CURRENT_SELECTION:
       responseMessage = getCurrentSelection();
+      break;
+    
+    case ClientQueryType.CREATE_LIBRARY_COLOR:
+      responseMessage = await createLibraryColor(payload);
       break;
 
     default:

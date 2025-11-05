@@ -6,6 +6,8 @@
   "permissions": [
     "content:read",
     "content:write",
+    "library:read",
+    "library:write",
     "user:read",
     "allow:localstorage"
   ]
