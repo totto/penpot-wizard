@@ -183,7 +183,8 @@ export interface CreateLibraryFontResponse {
 // Payload for creating a library component
 export interface CreateLibraryComponentPayload {
   name: string;
-  shapes: Shape[]; // Array of shapes that make up the component
+  shapes?: Shape[]; // Optional: array of shapes to use for the component
+  useSelection?: boolean; // If true (default), use currently selected shapes instead of provided shapes
   overwrite?: boolean; // if true, attempt to overwrite existing component
 }
 

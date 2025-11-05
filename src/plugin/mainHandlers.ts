@@ -12,6 +12,7 @@ import {
   CreateLibraryComponentResponse,
 
 } from "../types/types";
+import type { Shape } from '@penpot/plugin-types';
 
 const pluginResponse: PluginResponseMessage = {
   source: MessageSourceName.Plugin,
@@ -215,14 +216,77 @@ export async function createLibraryFont(payload: CreateLibraryFontPayload): Prom
 
 export async function createLibraryComponent(payload: CreateLibraryComponentPayload): Promise<PluginResponseMessage> {
   try {
-    const { name, shapes, overwrite } = payload ?? {};
+    const { name, shapes, useSelection = true, overwrite } = payload ?? {};
 
-    if (!name || typeof name !== 'string' || !shapes || !Array.isArray(shapes)) {
+    if (!name || typeof name !== 'string') {
       return {
         ...pluginResponse,
         type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
         success: false,
-        message: 'Invalid payload. Expected { name: string, shapes: Shape[] }',
+        message: 'Invalid payload. Expected { name: string }',
+      };
+    }
+
+    let componentShapes: Shape[] = [];
+
+    if (useSelection) {
+      // Get currently selected shapes using the same logic as getCurrentSelection
+      try {
+        const sel: any = (penpot as any).selection;
+
+        if (!sel) {
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+            success: false,
+            message: 'NO_SELECTION',
+          };
+        }
+
+        let selectedItems: any[] = [];
+        if (Array.isArray(sel)) {
+          selectedItems = sel;
+        } else if (sel && typeof sel === 'object' && Array.isArray(sel.items)) {
+          selectedItems = sel.items;
+        } else if (sel && typeof sel === 'object' && sel.item) {
+          selectedItems = [sel.item];
+        }
+
+        if (selectedItems.length === 0) {
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+            success: false,
+            message: 'NO_SELECTION',
+          };
+        }
+
+        componentShapes = selectedItems as Shape[];
+      } catch (_error) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+          success: false,
+          message: 'NO_SELECTION',
+        };
+      }
+    } else if (shapes && Array.isArray(shapes)) {
+      componentShapes = shapes;
+    } else {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+        success: false,
+        message: 'Either set useSelection: true (default) to use currently selected shapes, or provide shapes array directly.',
+      };
+    }
+
+    if (componentShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+        success: false,
+        message: 'No shapes available for the component.',
       };
     }
 
@@ -264,8 +328,15 @@ export async function createLibraryComponent(payload: CreateLibraryComponentPayl
 
     // Attempt to create (or create will overwrite depending on API)
     try {
-      const created = penpot.library.local.createComponent(shapes);
-      created.name = name;
+      const created = penpot.library.local.createComponent(componentShapes);
+
+      // Try to set the name, but wrap in try-catch as Penpot objects might be read-only
+      try {
+        created.name = name;
+      } catch (nameError) {
+        console.warn('Could not set component name:', nameError);
+        // Component created but name not set - this might still be usable
+      }
 
       const createdId = created?.id ?? undefined;
       return {
@@ -273,7 +344,7 @@ export async function createLibraryComponent(payload: CreateLibraryComponentPayl
         type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
         success: true,
         message: 'Library component created',
-        payload: { id: createdId, name, shapes },
+        payload: { id: createdId, name, shapes: componentShapes },
       };
     } catch (createError) {
       return {
@@ -351,29 +422,46 @@ export function getCurrentSelection(): PluginResponseMessage {
       return {
         ...pluginResponse,
         type: ClientQueryType.GET_CURRENT_SELECTION,
-        success: false,
-        message: 'No selection available',
+        success: true,
+        message: 'No selection',
+        payload: { items: [], count: 0 },
       };
     }
 
     let items: any[] = [];
     if (Array.isArray(sel)) {
       items = sel;
-    } else if (Array.isArray(sel.items)) {
+    } else if (sel && typeof sel === 'object' && Array.isArray(sel.items)) {
       items = sel.items;
-    } else if (sel.item) {
+    } else if (sel && typeof sel === 'object' && sel.item) {
       items = [sel.item];
     }
 
-    const mapped = items.map((s: any) => ({
-      id: String(s.id ?? ''),
-      name: s.name ?? s.label ?? undefined,
-      type: s.type ?? undefined,
-      x: typeof s.x === 'number' ? s.x : undefined,
-      y: typeof s.y === 'number' ? s.y : undefined,
-      width: typeof s.width === 'number' ? s.width : undefined,
-      height: typeof s.height === 'number' ? s.height : undefined,
-    }));
+    const mapped = items.map((s: any) => {
+      try {
+        return {
+          id: s?.id ? String(s.id) : '',
+          name: s?.name || s?.label || undefined,
+          type: s?.type || undefined,
+          x: (typeof s?.x === 'number') ? s.x : undefined,
+          y: (typeof s?.y === 'number') ? s.y : undefined,
+          width: (typeof s?.width === 'number') ? s.width : undefined,
+          height: (typeof s?.height === 'number') ? s.height : undefined,
+        };
+      } catch (itemError) {
+        // If we can't access properties on this item, return a safe default
+        console.warn('Could not map selection item:', itemError);
+        return {
+          id: '',
+          name: undefined,
+          type: undefined,
+          x: undefined,
+          y: undefined,
+          width: undefined,
+          height: undefined,
+        };
+      }
+    });
 
     return {
       ...pluginResponse,

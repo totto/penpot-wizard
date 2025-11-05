@@ -120,16 +120,27 @@ id: 'create-library-color',
     },
   },
 {
-    id: 'create-library-component',
-    name: 'CreateLibraryComponentTool',
+    id: 'create-component-from-selection',
+    name: 'CreateComponentFromSelectionTool',
     description: `
-      Use this tool to create a new component in the library from a collection of shapes.
-      Provide a name and an array of shapes that will make up the component.
-      Components are reusable design elements that can be instantiated multiple times.
+      Use this tool to create a new component in the library from currently selected shapes.
+      
+      IMPORTANT: This tool ONLY works with shapes that are currently selected on the canvas.
+      - First, ensure you have shapes selected using get-selection tool
+      - The component will be created exactly as the selected shapes appear - ALL properties (size, fill, text, stroke, etc.) come directly from the selection
+      - Properties are completely optional and depend on what shapes you select:
+        * Lines: no fill, no text
+        * Rectangles/circles: may have fill and/or stroke
+        * Text shapes: have text content and styling
+        * Groups: contain multiple shapes with their own properties
+      - You MUST provide a name for the component
+      
+      If no shapes are selected, this tool will return a "NO_SELECTION" response that triggers helpful user guidance.
+      Do NOT make assumptions about what properties shapes should have - accept any valid selection.
     `,
     inputSchema: z.object({
-      name: z.string().describe('The name of the component in the library'),
-      shapes: z.array(z.any()).describe('Array of shapes that make up the component'),
+      name: z.string().describe('The name for the new component (required)'),
+      useSelection: z.boolean().optional().describe('Must be true - this tool only works with selected shapes'),
     }),
     function: async (componentProperties) => {
       const response = await sendMessageToPlugin(ClientQueryType.CREATE_LIBRARY_COMPONENT, componentProperties);
