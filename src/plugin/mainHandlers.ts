@@ -739,54 +739,65 @@ export async function getFileVersions(): Promise<PluginResponseMessage> {
   }
 }
 
-export async function applyBlurTool(_payload: ApplyBlurQueryPayload): Promise<PluginResponseMessage> {
-  // const { blurValue = 5 } = payload;
+export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<PluginResponseMessage> {
+  const { blurValue = 5 } = payload;
 
   try {
-    // Get current selection - DISABLED to prevent crashes
-    // const sel = (penpot as any).selection;
-    // if (!sel || sel.length === 0) {
+    // Get current selection
+    const sel = (penpot as any).selection;
+    if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
         type: ClientQueryType.APPLY_BLUR,
         success: false,
         message: 'NO_SELECTION',
       };
-    // }
+    }
 
     // Apply blur to each selected shape
-    // const blurredShapes: string[] = [];
-    // for (const shape of sel) {
-    //   try {
-    //     // Apply blur effect to the shape
-    //     shape.blur = {
-    //       value: blurValue,
-    //       type: 'layer-blur',
-    //     };
-    //     blurredShapes.push(shape.name || shape.id);
-    //   } catch (shapeError) {
-    //     console.warn(`Failed to apply blur to shape ${shape.id}:`, shapeError);
-    //   }
-    // }
+    const blurredShapes: string[] = [];
+    for (const shape of sel) {
+      try {
+        // Apply blur effect to the shape
+        shape.blur = {
+          value: blurValue,
+          type: 'layer-blur',
+        };
+        blurredShapes.push(shape.name || shape.id);
+      } catch (shapeError) {
+        console.warn(`Failed to apply blur to shape ${shape.id}:`, shapeError);
+      }
+    }
 
-    // if (blurredShapes.length === 0) {
-    //   return {
-    //     ...pluginResponse,
-    //     type: ClientQueryType.APPLY_BLUR,
-    //     success: false,
-    //     message: 'Failed to apply blur to any selected shapes',
-    //   };
-    // }
+    if (blurredShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_BLUR,
+        success: false,
+        message: 'Failed to apply blur to any selected shapes',
+      };
+    }
 
-    // return {
-    //   ...pluginResponse,
-    //   type: ClientQueryType.APPLY_BLUR,
-    //   message: `Applied layer blur (${blurValue}px) to ${blurredShapes.length} shape(s): ${blurredShapes.join(', ')}\n\nBlur intensity guide:\n• 1-3px: Subtle blur for softening edges\n• 5-10px: Moderate blur for background effects\n• 15-30px: Strong blur for depth of field\n• 50+px: Heavy blur for special effects`,
-    //   payload: {
-    //     blurredShapes,
-    //     blurValue,
-    //   },
-    // };
+    const shapeNames = blurredShapes.join(', ');
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPLY_BLUR,
+      message: `Done! I applied a ${blurValue}px blur to your selected shape${blurredShapes.length > 1 ? 's' : ''}: ${shapeNames}.
+
+Want a different intensity?
+
+Blur intensity guide:
+• 1-3px: Subtle blur for softening edges
+• 5-10px: Moderate blur for background effects
+• 15-30px: Strong blur for depth of field
+• 50+px: Heavy blur for special effects
+
+Say "apply blur 10px" (or any value 0–100), or tell me which layers to blur.`,
+      payload: {
+        blurredShapes,
+        blurValue,
+      },
+    };
   } catch (error) {
     return {
       ...pluginResponse,
