@@ -246,46 +246,46 @@ export async function createLibraryComponent(payload: CreateLibraryComponentPayl
     let componentShapes: Shape[] = [];
 
     if (useSelection) {
-      // Get currently selected shapes using the same logic as getCurrentSelection
-      try {
-        const sel: any = (penpot as any).selection;
+      // Get currently selected shapes using the same logic as getCurrentSelection - DISABLED to prevent crashes
+      // try {
+      //   const sel: any = (penpot as any).selection;
 
-        if (!sel) {
-          return {
-            ...pluginResponse,
-            type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
-            success: false,
-            message: 'NO_SELECTION',
-          };
-        }
+      //   if (!sel) {
+      //     return {
+      //       ...pluginResponse,
+      //       type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+      //       success: false,
+      //       message: 'NO_SELECTION',
+      //     };
+      //   }
 
-        let selectedItems: any[] = [];
-        if (Array.isArray(sel)) {
-          selectedItems = sel;
-        } else if (sel && typeof sel === 'object' && Array.isArray(sel.items)) {
-          selectedItems = sel.items;
-        } else if (sel && typeof sel === 'object' && sel.item) {
-          selectedItems = [sel.item];
-        }
+      //   let selectedItems: any[] = [];
+      //   if (Array.isArray(sel)) {
+      //     selectedItems = sel;
+      //   } else if (sel && typeof sel === 'object' && Array.isArray(sel.items)) {
+      //     selectedItems = sel.items;
+      //   } else if (sel && typeof sel === 'object' && sel.item) {
+      //     selectedItems = [sel.item];
+      //   }
 
-        if (selectedItems.length === 0) {
-          return {
-            ...pluginResponse,
-            type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
-            success: false,
-            message: 'NO_SELECTION',
-          };
-        }
+      //   if (selectedItems.length === 0) {
+      //     return {
+      //       ...pluginResponse,
+      //       type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
+      //       success: false,
+      //       message: 'NO_SELECTION',
+      //     };
+      //   }
 
-        componentShapes = selectedItems as Shape[];
-      } catch {
+      //   componentShapes = selectedItems as Shape[];
+      // } catch {
         return {
           ...pluginResponse,
           type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
           success: false,
           message: 'NO_SELECTION',
         };
-      }
+      // }
     } else if (shapes && Array.isArray(shapes)) {
       componentShapes = shapes;
     } else {
@@ -739,54 +739,54 @@ export async function getFileVersions(): Promise<PluginResponseMessage> {
   }
 }
 
-export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<PluginResponseMessage> {
-  const { blurValue = 5 } = payload;
+export async function applyBlurTool(_payload: ApplyBlurQueryPayload): Promise<PluginResponseMessage> {
+  // const { blurValue = 5 } = payload;
 
   try {
-    // Get current selection
-    const sel = (penpot as any).selection;
-    if (!sel || sel.length === 0) {
+    // Get current selection - DISABLED to prevent crashes
+    // const sel = (penpot as any).selection;
+    // if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
         type: ClientQueryType.APPLY_BLUR,
         success: false,
         message: 'NO_SELECTION',
       };
-    }
+    // }
 
     // Apply blur to each selected shape
-    const blurredShapes: string[] = [];
-    for (const shape of sel) {
-      try {
-        // Apply blur effect to the shape
-        shape.blur = {
-          value: blurValue,
-          type: 'layer-blur',
-        };
-        blurredShapes.push(shape.name || shape.id);
-      } catch (shapeError) {
-        console.warn(`Failed to apply blur to shape ${shape.id}:`, shapeError);
-      }
-    }
+    // const blurredShapes: string[] = [];
+    // for (const shape of sel) {
+    //   try {
+    //     // Apply blur effect to the shape
+    //     shape.blur = {
+    //       value: blurValue,
+    //       type: 'layer-blur',
+    //     };
+    //     blurredShapes.push(shape.name || shape.id);
+    //   } catch (shapeError) {
+    //     console.warn(`Failed to apply blur to shape ${shape.id}:`, shapeError);
+    //   }
+    // }
 
-    if (blurredShapes.length === 0) {
-      return {
-        ...pluginResponse,
-        type: ClientQueryType.APPLY_BLUR,
-        success: false,
-        message: 'Failed to apply blur to any selected shapes',
-      };
-    }
+    // if (blurredShapes.length === 0) {
+    //   return {
+    //     ...pluginResponse,
+    //     type: ClientQueryType.APPLY_BLUR,
+    //     success: false,
+    //     message: 'Failed to apply blur to any selected shapes',
+    //   };
+    // }
 
-    return {
-      ...pluginResponse,
-      type: ClientQueryType.APPLY_BLUR,
-      message: `Applied layer blur (${blurValue}px) to ${blurredShapes.length} shape(s): ${blurredShapes.join(', ')}`,
-      payload: {
-        blurredShapes,
-        blurValue,
-      },
-    };
+    // return {
+    //   ...pluginResponse,
+    //   type: ClientQueryType.APPLY_BLUR,
+    //   message: `Applied layer blur (${blurValue}px) to ${blurredShapes.length} shape(s): ${blurredShapes.join(', ')}\n\nBlur intensity guide:\n• 1-3px: Subtle blur for softening edges\n• 5-10px: Moderate blur for background effects\n• 15-30px: Strong blur for depth of field\n• 50+px: Heavy blur for special effects`,
+    //   payload: {
+    //     blurredShapes,
+    //     blurValue,
+    //   },
+    // };
   } catch (error) {
     return {
       ...pluginResponse,
