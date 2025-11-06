@@ -24,6 +24,7 @@ An AI-powered chat assistant plugin for Penpot that uses a sophisticated multi-a
 - [File Structure](#file-structure)
 - [Best Practices](#best-practices)
 - [Troubleshooting](#troubleshooting)
+- [Documentation](#documentation)
 
 ## What is Penpot Wizard?
 
