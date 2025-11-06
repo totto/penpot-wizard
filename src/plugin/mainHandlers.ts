@@ -1,6 +1,6 @@
 import {
-  AddImagePayload,
   AddImageFromUrlQueryPayload,
+  ApplyBlurQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -687,6 +687,65 @@ export async function getFileVersions(): Promise<PluginResponseMessage> {
       type: ClientQueryType.GET_FILE_VERSIONS,
       success: false,
       message: `Error retrieving file versions: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<PluginResponseMessage> {
+  const { blurValue } = payload;
+
+  try {
+    // Get current selection
+    const sel = (penpot as any).selection;
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_BLUR,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    // Apply blur to each selected shape
+    const blurredShapes: string[] = [];
+    for (const shape of sel) {
+      try {
+        // Apply blur effect to the shape
+        shape.blur = {
+          value: blurValue,
+          type: 'layer-blur',
+        };
+        blurredShapes.push(shape.name || shape.id);
+      } catch (shapeError) {
+        console.warn(`Failed to apply blur to shape ${shape.id}:`, shapeError);
+      }
+    }
+
+    if (blurredShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_BLUR,
+        success: false,
+        message: 'Failed to apply blur to any selected shapes',
+      };
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPLY_BLUR,
+      message: `Applied layer blur (${blurValue}px) to ${blurredShapes.length} shape(s): ${blurredShapes.join(', ')}`,
+      payload: {
+        blurredShapes,
+        blurValue,
+        blurType: 'layer-blur',
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPLY_BLUR,
+      success: false,
+      message: `Error applying blur: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

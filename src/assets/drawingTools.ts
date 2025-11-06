@@ -120,33 +120,49 @@ id: 'create-library-color',
     },
   },
 {
-    id: 'create-component-from-selection',
-    name: 'CreateComponentFromSelection',
-    description: `
-      Use this tool to create a new component in the library from currently selected shapes.
-      
-      IMPORTANT: This tool ONLY works with shapes that are currently selected on the canvas.
-      - First, ensure you have shapes selected using get-selection tool
-      - The component will be created exactly as the selected shapes appear - ALL properties (size, fill, text, stroke, etc.) come directly from the selection
-      - Properties are completely optional and depend on what shapes you select:
-        * Lines: no fill, no text
-        * Rectangles/circles: may have fill and/or stroke
-        * Text shapes: have text content and styling
-        * Groups: contain multiple shapes with their own properties
-      - You MUST provide a name for the component
-      
-      If no shapes are selected, this tool will return a "NO_SELECTION" response that triggers helpful user guidance.
-      Do NOT make assumptions about what properties shapes should have - accept any valid selection.
-    `,
-    inputSchema: z.object({
-      name: z.string().describe('The name for the new component (required)'),
-      useSelection: z.boolean().optional().describe('Must be true - this tool only works with selected shapes'),
-    }),
-    function: async (componentProperties) => {
-      const response = await sendMessageToPlugin(ClientQueryType.CREATE_LIBRARY_COMPONENT, componentProperties);
-      return response;
-    },
+  id: 'create-component-from-selection',
+  name: 'CreateComponentFromSelection',
+  description: `
+    Use this tool to create a new component in the library from currently selected shapes.
+    
+    IMPORTANT: This tool ONLY works with shapes that are currently selected on the canvas.
+    - First, ensure you have shapes selected using get-selection tool
+    - The component will be created exactly as the selected shapes appear - ALL properties (size, fill, text, stroke, etc.) come directly from the selection
+    - Properties are completely optional and depend on what shapes you select:
+      * Lines: no fill, no text
+      * Rectangles/circles: may have fill and/or stroke
+      * Text shapes: have text content and styling
+      * Groups: contain multiple shapes with their own properties
+    - You MUST provide a name for the component
+    
+    If no shapes are selected, this tool will return a "NO_SELECTION" response that triggers helpful user guidance.
+    Do NOT make assumptions about what properties shapes should have - accept any valid selection.
+  `,
+  inputSchema: z.object({
+    name: z.string().describe('The name for the new component (required)'),
+    useSelection: z.boolean().optional().describe('Must be true - this tool only works with selected shapes'),
+  }),
+  function: async (componentProperties) => {
+    const response = await sendMessageToPlugin(ClientQueryType.CREATE_LIBRARY_COMPONENT, componentProperties);
+    return response;
   },
-
+},
+{
+  id: 'apply-blur-tool',
+  name: 'ApplyBlurTool',
+  description: `
+    Apply a blur effect to the currently selected shapes on the canvas.
+    The user must first select the shapes they want to blur before using this tool.
+    Use this to create depth, focus attention, or create visual effects.
+  `,
+  inputSchema: z.object({
+    blurValue: z.number().min(0).max(100).describe('The blur radius in pixels (0-100)'),
+    blurType: z.enum(['gaussian', 'box']).optional().default('gaussian').describe('The type of blur effect (gaussian or box)'),
+  }),
+  function: async (blurProperties) => {
+    const response = await sendMessageToPlugin(ClientQueryType.APPLY_BLUR, blurProperties);
+    return response;
+  },
+}
 
 ];

@@ -32,6 +32,7 @@ export enum ClientQueryType {
   DRAW_SHAPE = 'DRAW_SHAPE',
   ADD_IMAGE = 'ADD_IMAGE',
   ADD_IMAGE_FROM_URL = 'ADD_IMAGE_FROM_URL',
+  APPLY_BLUR = 'APPLY_BLUR',
 }
 
 export enum PenpotShapeType {
@@ -46,7 +47,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -65,7 +66,11 @@ export interface AddImageFromUrlQueryPayload {
   url: string;
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload;
+export interface ApplyBlurQueryPayload {
+  blurValue: number;
+}
+
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload;
 export interface PluginMessage {
   source: MessageSourceName.Plugin;
   type: PluginMessageType | ClientQueryType;
@@ -84,6 +89,13 @@ export interface AddImagePayload {
   newImageData: PenpotImageData;
   shapeId?: string;
 }
+
+export interface ApplyBlurResponsePayload {
+  blurredShapes: string[];
+  blurValue: number;
+  blurType: string;
+}
+
 export interface GetUserDataPayload {
   name: string;
   id: string;
@@ -224,7 +236,8 @@ export type PluginResponsePayload =
   | CreateLibraryFontResponse
   | CreateLibraryComponentResponse
   | DrawShapeResponsePayload
-  | AddImagePayload;
+  | AddImagePayload
+  | ApplyBlurResponsePayload;
 
 
 
