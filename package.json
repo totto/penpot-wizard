@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "dev:penpot": "vite build -c vite.config.plugin.ts && NODE_ENV='development' vite build --watch",
