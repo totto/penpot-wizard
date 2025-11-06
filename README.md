@@ -24,6 +24,7 @@ An AI-powered chat assistant plugin for Penpot that uses a sophisticated multi-a
 - [File Structure](#file-structure)
 - [Best Practices](#best-practices)
 - [Troubleshooting](#troubleshooting)
+- [Documentation](#documentation)
 
 ## What is Penpot Wizard?
 
@@ -1595,7 +1596,7 @@ See [DEVELOPMENT.md](./docs/DEVELOPMENT.md) for detailed development setup.
 
 ## License
 
-[Your license here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
