@@ -812,6 +812,23 @@ Say "apply blur 10px" (or any value 0–100), or tell me which layers to blur.`,
 export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<PluginResponseMessage> {
   const { fillColor = '#000000', fillOpacity = 1 } = payload;
 
+  // Convert named colors to hex
+  const colorMap: Record<string, string> = {
+    'red': '#FF0000',
+    'green': '#00FF00',
+    'blue': '#0000FF',
+    'yellow': '#FFFF00',
+    'cyan': '#00FFFF',
+    'magenta': '#FF00FF',
+    'black': '#000000',
+    'white': '#FFFFFF',
+    'gray': '#808080',
+    'grey': '#808080',
+  };
+
+  const normalizedColor = fillColor.toLowerCase();
+  const hexColor = colorMap[normalizedColor] || (fillColor.startsWith('#') ? fillColor : `#${fillColor}`);
+
   try {
     // Get current selection
     const sel = (penpot as any).selection;
@@ -828,9 +845,9 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
     const filledShapes: string[] = [];
     for (const shape of sel) {
       try {
-        // Apply fill to the shape
+        // Apply fill to the shape - replace all existing fills with solid color fill
         shape.fills = [{
-          fillColor: fillColor,
+          fillColor: hexColor,
           fillOpacity: fillOpacity,
         }];
         filledShapes.push(shape.name || shape.id);
@@ -852,7 +869,7 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
     return {
       ...pluginResponse,
       type: ClientQueryType.APPLY_FILL,
-      message: `Done! I applied ${fillColor}${fillOpacity < 1 ? ` at ${Math.round(fillOpacity * 100)}% opacity` : ''} fill to your selected shape${filledShapes.length > 1 ? 's' : ''}: ${shapeNames}.
+      message: `Done! I applied ${hexColor}${fillOpacity < 1 ? ` at ${Math.round(fillOpacity * 100)}% opacity` : ''} fill to your selected shape${filledShapes.length > 1 ? 's' : ''}: ${shapeNames}.
 
 Want a different color or opacity?
 
@@ -864,7 +881,7 @@ Fill options:
 Say "apply fill #FF5733" or "apply fill blue at 70% opacity".`,
       payload: {
         filledShapes,
-        fillColor,
+        fillColor: hexColor,
         fillOpacity,
       },
     };
