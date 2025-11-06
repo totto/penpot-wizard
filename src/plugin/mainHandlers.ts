@@ -692,7 +692,7 @@ export async function getFileVersions(): Promise<PluginResponseMessage> {
 }
 
 export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<PluginResponseMessage> {
-  const { blurValue } = payload;
+  const { blurValue = 5 } = payload;
 
   try {
     // Get current selection
@@ -737,7 +737,6 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
       payload: {
         blurredShapes,
         blurValue,
-        blurType: 'layer-blur',
       },
     };
   } catch (error) {

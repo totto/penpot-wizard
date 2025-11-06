@@ -154,10 +154,17 @@ id: 'create-library-color',
     Apply a blur effect to the currently selected shapes on the canvas.
     The user must first select the shapes they want to blur before using this tool.
     Use this to create depth, focus attention, or create visual effects.
+    
+    Blur intensity guide:
+    - 1-3px: Subtle blur for softening edges
+    - 5-10px: Moderate blur for background effects  
+    - 15-30px: Strong blur for depth of field
+    - 50+px: Heavy blur for special effects
+    
+    If you don't specify blur intensity, a subtle 5px blur will be applied.
   `,
   inputSchema: z.object({
-    blurValue: z.number().min(0).max(100).describe('The blur radius in pixels (0-100)'),
-    blurType: z.enum(['gaussian', 'box']).optional().default('gaussian').describe('The type of blur effect (gaussian or box)'),
+    blurValue: z.number().min(0).max(100).optional().default(5).describe('The blur radius in pixels (0-100). Defaults to 5px for subtle blur if not specified.'),
   }),
   function: async (blurProperties) => {
     const response = await sendMessageToPlugin(ClientQueryType.APPLY_BLUR, blurProperties);

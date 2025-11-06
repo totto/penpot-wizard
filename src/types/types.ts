@@ -67,7 +67,7 @@ export interface AddImageFromUrlQueryPayload {
 }
 
 export interface ApplyBlurQueryPayload {
-  blurValue: number;
+  blurValue?: number;
 }
 
 export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload;
@@ -93,7 +93,6 @@ export interface AddImagePayload {
 export interface ApplyBlurResponsePayload {
   blurredShapes: string[];
   blurValue: number;
-  blurType: string;
 }
 
 export interface GetUserDataPayload {
