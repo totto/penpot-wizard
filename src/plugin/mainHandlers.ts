@@ -1,3 +1,23 @@
+/**
+ * PLUGIN SELECTION SAFETY PATTERN
+ * ===============================
+ *
+ * CRITICAL: Never create general-purpose selection querying tools like getCurrentSelection.
+ * This causes JavaFX crashes by interfering with Penpot's internal selection handling.
+ *
+ * SAFE APPROACH:
+ * 1. Handle selection access directly within action-performing tools only
+ * 2. Use getSelectionForAction() helper for safe selection access
+ * 3. Check selection validity before performing actions
+ * 4. Handle errors gracefully with try/catch blocks
+ * 5. Never serialize selection data for general AI consumption
+ *
+ * EXAMPLES:
+ * ✅ createLibraryComponent() - accesses selection directly when creating component
+ * ✅ applyBlurTool() - accesses selection directly when applying blur
+ * ❌ getCurrentSelection() - was removed due to crashes
+ */
+
 import {
   AddImageFromUrlQueryPayload,
   ApplyBlurQueryPayload,
@@ -6,6 +26,7 @@ import {
   PluginResponseMessage,
   CreateLibraryFontPayload,
   CreateLibraryComponentPayload,
+  GetUserDataPayload,
 } from "../types/types";
 import type { Shape } from '@penpot/plugin-types';
 
@@ -409,71 +430,96 @@ export function getCurrentPage(): PluginResponseMessage {
 }
 
 
-// export function getCurrentSelection(): PluginResponseMessage {
-//   try {
-//     // penpot.selection may be an object with an 'items' array or an array itself depending on API shape
-//     const sel: any = (penpot as any).selection;
+// SAFE SELECTION ACCESS PATTERN
+// =============================
+// Always handle selection access directly within action tools, never as general queries.
+// This prevents crashes from interfering with Penpot's internal selection handling.
+//
+// Pattern:
+// 1. Access selection directly: const sel = (penpot as any).selection;
+// 2. Check for valid selection before proceeding
+// 3. Handle errors gracefully with try/catch
+// 4. Never serialize or deeply inspect selection objects for general consumption
 
-//     if (!sel) {
-//       return {
-//         ...pluginResponse,
-//         type: ClientQueryType.GET_CURRENT_SELECTION,
-//         success: true,
-//         message: 'No selection',
-//         payload: { items: [], count: 0 },
-//       };
-//     }
+/**
+ * Safely checks if there are selected shapes available
+ * @returns PluginResponseMessage indicating selection status
+ */
+export function hasSelection(): PluginResponseMessage {
+  try {
+    const sel = (penpot as any).selection;
 
-//     let items: any[] = [];
-//     if (Array.isArray(sel)) {
-//       items = sel;
-//     } else if (sel && typeof sel === 'object' && Array.isArray(sel.items)) {
-//       items = sel.items;
-//     } else if (sel && typeof sel === 'object' && sel.item) {
-//       items = [sel.item];
-//     }
+    // Handle different selection formats
+    let count = 0;
+    if (Array.isArray(sel)) {
+      count = sel.length;
+    } else if (sel && typeof sel === 'object') {
+      if (Array.isArray(sel.items)) {
+        count = sel.items.length;
+      } else if (sel.item) {
+        count = 1;
+      }
+    }
 
-//     const mapped = items.map((s: any) => {
-//       try {
-//         return {
-//           id: s?.id ? String(s.id) : '',
-//           name: s?.name || s?.label || undefined,
-//           type: s?.type || undefined,
-//           x: (typeof s?.x === 'number') ? s.x : undefined,
-//           y: (typeof s?.y === 'number') ? s.y : undefined,
-//           width: (typeof s?.width === 'number') ? s.width : undefined,
-//           height: (typeof s?.height === 'number') ? s.height : undefined,
-//         };
-//       } catch (itemError) {
-//         // If we can't access properties on this item, return a safe default
-//         console.warn('Could not map selection item:', itemError);
-//         return {
-//           id: '',
-//           name: undefined,
-//           type: undefined,
-//           x: undefined,
-//           y: undefined,
-//           width: undefined,
-//           height: undefined,
-//         };
-//       }
-//     });
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_USER_DATA, // Using existing type for compatibility
+      success: true,
+      message: count > 0 ? `Found ${count} selected item(s)` : 'No selection',
+      payload: { name: '', id: '', count } as unknown as GetUserDataPayload
+    };
+  } catch {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_USER_DATA,
+      success: false,
+      message: 'Unable to check selection status',
+    };
+  }
+}
 
-//     return {
-//       ...pluginResponse,
-//       type: ClientQueryType.GET_CURRENT_SELECTION,
-//       message: 'Selection retrieved',
-//       payload: { items: mapped, count: mapped.length },
-//     };
-//   } catch (error) {
-//     return {
-//       ...pluginResponse,
-//       type: ClientQueryType.GET_CURRENT_SELECTION,
-//       success: false,
-//       message: `Error retrieving selection: ${error instanceof Error ? error.message : String(error)}`,
-//     };
-//   }
-// }
+/**
+ * Safely gets basic selection info for action tools
+ * Only returns minimal data needed for the specific action
+ * @param actionContext - describes what action needs the selection
+ * @returns basic selection info or error
+ */
+export function getSelectionForAction(actionContext: string): { success: boolean; count: number; items?: any[]; error?: string } {
+  try {
+    const sel = (penpot as any).selection;
+
+    if (!sel) {
+      return { success: false, count: 0, error: 'No selection available' };
+    }
+
+    let items: any[] = [];
+    if (Array.isArray(sel)) {
+      items = sel;
+    } else if (sel && typeof sel === 'object' && Array.isArray(sel.items)) {
+      items = sel.items;
+    } else if (sel && typeof sel === 'object' && sel.item) {
+      items = [sel.item];
+    }
+
+    if (items.length === 0) {
+      return { success: false, count: 0, error: 'No items selected' };
+    }
+
+    // Only return minimal info needed for actions
+    return {
+      success: true,
+      count: items.length,
+      items: items // Pass items directly for action use, don't serialize
+    };
+  } catch (error) {
+    console.warn(`Selection access failed for ${actionContext}:`, error);
+    return {
+      success: false,
+      count: 0,
+      error: `Selection access failed: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+}
 
 
 export function getCurrentTheme(): PluginResponseMessage {
