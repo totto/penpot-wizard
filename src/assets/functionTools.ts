@@ -90,19 +90,19 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
-  {
-    id: "get-current-selection",
-    name: "getCurrentSelection",
-    description: `
-      Read-only: returns basic information about the current selection on the canvas.
-      Each item includes id, name, type and bounding values (x,y,width,height) when available.
-    `,
-    inputSchema: z.object({}),
-    function: async () => {
-      const response = await sendMessageToPlugin(ClientQueryType.GET_CURRENT_SELECTION, undefined);
-      return response;
-    },
-  },
+  // {
+  //   id: "get-current-selection",
+  //   name: "getCurrentSelection",
+  //   description: `
+  //     Read-only: returns basic information about the current selection on the canvas.
+  //     Each item includes id, name, type and bounding values (x,y,width,height) when available.
+  //   `,
+  //   inputSchema: z.object({}),
+  //   function: async () => {
+  //     const response = await sendMessageToPlugin(ClientQueryType.GET_CURRENT_SELECTION, undefined);
+  //     return response;
+  //   },
+  // },
   {
     id: "add-image-from-url",
     name: "addImageFromUrl",

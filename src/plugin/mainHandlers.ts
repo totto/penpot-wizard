@@ -408,71 +408,73 @@ export function getCurrentPage(): PluginResponseMessage {
   };
 }
 
-export function getCurrentSelection(): PluginResponseMessage {
-  try {
-    // penpot.selection may be an object with an 'items' array or an array itself depending on API shape
-    const sel: any = (penpot as any).selection;
 
-    if (!sel) {
-      return {
-        ...pluginResponse,
-        type: ClientQueryType.GET_CURRENT_SELECTION,
-        success: true,
-        message: 'No selection',
-        payload: { items: [], count: 0 },
-      };
-    }
+// export function getCurrentSelection(): PluginResponseMessage {
+//   try {
+//     // penpot.selection may be an object with an 'items' array or an array itself depending on API shape
+//     const sel: any = (penpot as any).selection;
 
-    let items: any[] = [];
-    if (Array.isArray(sel)) {
-      items = sel;
-    } else if (sel && typeof sel === 'object' && Array.isArray(sel.items)) {
-      items = sel.items;
-    } else if (sel && typeof sel === 'object' && sel.item) {
-      items = [sel.item];
-    }
+//     if (!sel) {
+//       return {
+//         ...pluginResponse,
+//         type: ClientQueryType.GET_CURRENT_SELECTION,
+//         success: true,
+//         message: 'No selection',
+//         payload: { items: [], count: 0 },
+//       };
+//     }
 
-    const mapped = items.map((s: any) => {
-      try {
-        return {
-          id: s?.id ? String(s.id) : '',
-          name: s?.name || s?.label || undefined,
-          type: s?.type || undefined,
-          x: (typeof s?.x === 'number') ? s.x : undefined,
-          y: (typeof s?.y === 'number') ? s.y : undefined,
-          width: (typeof s?.width === 'number') ? s.width : undefined,
-          height: (typeof s?.height === 'number') ? s.height : undefined,
-        };
-      } catch (itemError) {
-        // If we can't access properties on this item, return a safe default
-        console.warn('Could not map selection item:', itemError);
-        return {
-          id: '',
-          name: undefined,
-          type: undefined,
-          x: undefined,
-          y: undefined,
-          width: undefined,
-          height: undefined,
-        };
-      }
-    });
+//     let items: any[] = [];
+//     if (Array.isArray(sel)) {
+//       items = sel;
+//     } else if (sel && typeof sel === 'object' && Array.isArray(sel.items)) {
+//       items = sel.items;
+//     } else if (sel && typeof sel === 'object' && sel.item) {
+//       items = [sel.item];
+//     }
 
-    return {
-      ...pluginResponse,
-      type: ClientQueryType.GET_CURRENT_SELECTION,
-      message: 'Selection retrieved',
-      payload: { items: mapped, count: mapped.length },
-    };
-  } catch (error) {
-    return {
-      ...pluginResponse,
-      type: ClientQueryType.GET_CURRENT_SELECTION,
-      success: false,
-      message: `Error retrieving selection: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
-}
+//     const mapped = items.map((s: any) => {
+//       try {
+//         return {
+//           id: s?.id ? String(s.id) : '',
+//           name: s?.name || s?.label || undefined,
+//           type: s?.type || undefined,
+//           x: (typeof s?.x === 'number') ? s.x : undefined,
+//           y: (typeof s?.y === 'number') ? s.y : undefined,
+//           width: (typeof s?.width === 'number') ? s.width : undefined,
+//           height: (typeof s?.height === 'number') ? s.height : undefined,
+//         };
+//       } catch (itemError) {
+//         // If we can't access properties on this item, return a safe default
+//         console.warn('Could not map selection item:', itemError);
+//         return {
+//           id: '',
+//           name: undefined,
+//           type: undefined,
+//           x: undefined,
+//           y: undefined,
+//           width: undefined,
+//           height: undefined,
+//         };
+//       }
+//     });
+
+//     return {
+//       ...pluginResponse,
+//       type: ClientQueryType.GET_CURRENT_SELECTION,
+//       message: 'Selection retrieved',
+//       payload: { items: mapped, count: mapped.length },
+//     };
+//   } catch (error) {
+//     return {
+//       ...pluginResponse,
+//       type: ClientQueryType.GET_CURRENT_SELECTION,
+//       success: false,
+//       message: `Error retrieving selection: ${error instanceof Error ? error.message : String(error)}`,
+//     };
+//   }
+// }
+
 
 export function getCurrentTheme(): PluginResponseMessage {
   return {
