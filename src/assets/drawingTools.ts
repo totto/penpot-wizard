@@ -170,6 +170,31 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.APPLY_BLUR, blurProperties);
     return response;
   },
+},
+{
+  id: 'apply-fill-tool',
+  name: 'ApplyFillTool',
+  description: `
+    Apply a fill color to the currently selected shapes on the canvas.
+    The user must first select the shapes they want to fill before using this tool.
+    Use this to change the background color or fill color of shapes.
+    
+    Fill options:
+    - Hex colors: #FF0000, #00FF00, #0000FF, etc.
+    - Named colors: red, blue, green, etc.
+    - Opacity: 0.0 to 1.0 (0.5 = 50% opacity)
+    
+    If you don't specify a fill color, black (#000000) will be used.
+    If you don't specify opacity, 100% opacity (1.0) will be used.
+  `,
+  inputSchema: z.object({
+    fillColor: z.string().optional().default('#000000').describe('The fill color as a hex string (e.g., #FF5733) or named color. Defaults to black if not specified.'),
+    fillOpacity: z.number().min(0).max(1).optional().default(1).describe('The fill opacity from 0.0 (transparent) to 1.0 (opaque). Defaults to 1.0 if not specified.'),
+  }),
+  function: async (fillProperties) => {
+    const response = await sendMessageToPlugin(ClientQueryType.APPLY_FILL, fillProperties);
+    return response;
+  },
 }
 
 ];

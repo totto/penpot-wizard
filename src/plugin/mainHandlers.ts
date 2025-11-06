@@ -21,6 +21,7 @@
 import {
   AddImageFromUrlQueryPayload,
   ApplyBlurQueryPayload,
+  ApplyFillQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -804,6 +805,75 @@ Say "apply blur 10px" (or any value 0–100), or tell me which layers to blur.`,
       type: ClientQueryType.APPLY_BLUR,
       success: false,
       message: `Error applying blur: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<PluginResponseMessage> {
+  const { fillColor = '#000000', fillOpacity = 1 } = payload;
+
+  try {
+    // Get current selection
+    const sel = (penpot as any).selection;
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_FILL,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    // Apply fill to each selected shape
+    const filledShapes: string[] = [];
+    for (const shape of sel) {
+      try {
+        // Apply fill to the shape
+        shape.fills = [{
+          fillColor: fillColor,
+          fillOpacity: fillOpacity,
+        }];
+        filledShapes.push(shape.name || shape.id);
+      } catch (shapeError) {
+        console.warn(`Failed to apply fill to shape ${shape.id}:`, shapeError);
+      }
+    }
+
+    if (filledShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_FILL,
+        success: false,
+        message: 'Failed to apply fill to any selected shapes',
+      };
+    }
+
+    const shapeNames = filledShapes.join(', ');
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPLY_FILL,
+      message: `Done! I applied ${fillColor}${fillOpacity < 1 ? ` at ${Math.round(fillOpacity * 100)}% opacity` : ''} fill to your selected shape${filledShapes.length > 1 ? 's' : ''}: ${shapeNames}.
+
+Want a different color or opacity?
+
+Fill options:
+• Hex colors: #FF0000, #00FF00, #0000FF, etc.
+• Named colors: red, blue, green, etc.
+• Opacity: 0.0 to 1.0 (0.5 = 50% opacity)
+
+Say "apply fill #FF5733" or "apply fill blue at 70% opacity".`,
+      payload: {
+        filledShapes,
+        fillColor,
+        fillOpacity,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPLY_FILL,
+      success: false,
+      message: `Error applying fill: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
