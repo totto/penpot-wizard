@@ -35,6 +35,7 @@ export enum ClientQueryType {
   APPLY_BLUR = 'APPLY_BLUR',
   APPLY_FILL = 'APPLY_FILL',
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
+  REDO_LAST_ACTION = 'REDO_LAST_ACTION',
 }
 
 export enum PenpotShapeType {
@@ -81,7 +82,11 @@ export interface UndoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to undo, otherwise undo the last one
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | UndoLastActionQueryPayload;
+export interface RedoLastActionQueryPayload {
+  actionId?: string; // Optional: specify which action to redo, otherwise redo the last undone one
+}
+
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -127,6 +132,11 @@ export interface ApplyFillResponsePayload {
 
 export interface UndoLastActionResponsePayload {
   undoneAction: string; // Description of what was undone
+  restoredShapes?: string[]; // Names of shapes that were restored
+}
+
+export interface RedoLastActionResponsePayload {
+  redoneAction: string; // Description of what was redone
   restoredShapes?: string[]; // Names of shapes that were restored
 }
 
@@ -273,7 +283,8 @@ export type PluginResponsePayload =
   | AddImagePayload
   | ApplyBlurResponsePayload
   | ApplyFillResponsePayload
-  | UndoLastActionResponsePayload;
+  | UndoLastActionResponsePayload
+  | RedoLastActionResponsePayload;
 
 
 

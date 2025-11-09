@@ -120,6 +120,23 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
+  // NOTE: This tool should be automatically included on every agent because it is a vital tool
+  // for user safety and error recovery. Without redo functionality, users cannot easily restore
+  // changes they just undid, creating a frustrating user experience.
+  {
+    id: "redo-last-action",
+    name: "redoLastAction",
+    description: `
+      Redo the most recently undone action performed by the AI assistant.
+      This can reapply fill color changes, blur effects, and other modifications that were previously undone.
+      Use this when the user wants to restore a change they just undid.
+    `,
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.REDO_LAST_ACTION, undefined);
+      return response;
+    },
+  },
 ];
 
 

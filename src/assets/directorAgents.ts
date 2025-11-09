@@ -63,8 +63,14 @@ When the user wants to undo a recent action performed by the AI assistant:
 - This can undo fill color changes, blur effects, and other modifications
 - If the user wants to undo multiple actions, they can call undo multiple times
 - Always confirm what was undone in your response to the user
+
+When the user wants to redo a recently undone action:
+- Use the redo-last-action tool to reapply the most recently undone change
+- This can redo fill color changes, blur effects, and other modifications that were undone
+- Redo only works if there are recently undone actions available
+- Always confirm what was redone in your response to the user
 </undo_operations>
     `,
-    toolIds: ['get-user-data', 'get-current-page', 'get-selection', 'rectangle-maker', 'ellipse-maker', 'path-maker', 'text-maker', 'board-maker', 'create-library-color', 'create-library-font', 'create-component-from-selection', 'add-image-from-url', 'apply-blur-tool', 'apply-fill-tool', 'undo-last-action'],    specializedAgentIds: ['mobile-projects-coordinator'],
+    toolIds: ['get-user-data', 'get-current-page', 'get-selection', 'rectangle-maker', 'ellipse-maker', 'path-maker', 'text-maker', 'board-maker', 'create-library-color', 'create-library-font', 'create-component-from-selection', 'add-image-from-url', 'apply-blur-tool', 'apply-fill-tool', 'undo-last-action', 'redo-last-action'],    specializedAgentIds: ['mobile-projects-coordinator'],
   },
 ];

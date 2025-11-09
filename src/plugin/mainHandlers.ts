@@ -30,6 +30,7 @@ import {
   GetUserDataPayload,
   UndoInfo,
   UndoLastActionQueryPayload,
+  RedoLastActionQueryPayload,
 } from "../types/types";
 import type { Shape } from '@penpot/plugin-types';
 
@@ -46,6 +47,8 @@ let currentSelectionIds: string[] = [];
 
 // Global undo stack - stores undo information for reversible actions
 let undoStack: UndoInfo[] = [];
+// Global redo stack - stores undone actions that can be redone
+let redoStack: UndoInfo[] = [];
 const MAX_UNDO_STACK_SIZE = 10; // Keep last 10 undoable actions
 
 // Function to update selection IDs from plugin.ts
@@ -833,6 +836,7 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
     const blurredShapes: string[] = [];
     const shapeIds: string[] = [];
     const previousBlurs: Array<{ value?: number; type?: string } | undefined> = [];
+    const appliedBlurs: Array<{ value: number; type: 'layer-blur' }> = [];
     
     // First pass: capture previous blur values for undo
     for (const shape of sel) {
@@ -842,6 +846,8 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
       } else {
         previousBlurs.push(undefined);
       }
+      // Store the blur that will be applied
+      appliedBlurs.push({ value: blurValue, type: 'layer-blur' });
     }
     
     // Second pass: apply the new blur
@@ -874,6 +880,7 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
       undoData: {
         shapeIds,
         previousBlurs,
+        appliedBlurs,
       },
       description: `Applied ${blurValue}px blur to ${blurredShapes.length} shape${blurredShapes.length > 1 ? 's' : ''}`,
       timestamp: Date.now(),
@@ -948,6 +955,7 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
     const filledShapes: string[] = [];
     const shapeIds: string[] = [];
     const previousFills: Array<{ fillColor?: string; fillOpacity?: number } | undefined> = [];
+    const appliedFills: Array<{ fillColor: string; fillOpacity: number }> = [];
     
     // First pass: capture previous fill values for undo
     for (const shape of sel) {
@@ -957,6 +965,8 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
       } else {
         previousFills.push(undefined);
       }
+      // Store the fill that will be applied
+      appliedFills.push({ fillColor: hexColor, fillOpacity: fillOpacity });
     }
     
     // Second pass: apply the new fills
@@ -1015,6 +1025,7 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
       undoData: {
         shapeIds,
         previousFills,
+        appliedFills,
       },
       description: `Applied ${hexColor}${fillOpacity < 1 ? ` at ${Math.round(fillOpacity * 100)}% opacity` : ''} fill to ${filledShapes.length} shape${filledShapes.length > 1 ? 's' : ''}`,
       timestamp: Date.now(),
@@ -1068,6 +1079,9 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
     // Get the last undoable action
     const lastAction = undoStack.pop()!;
     console.log('Undoing action:', lastAction.description);
+
+    // Push to redo stack so it can be redone
+    redoStack.push(lastAction);
 
     const restoredShapes: string[] = [];
 
@@ -1167,6 +1181,206 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
       type: ClientQueryType.UNDO_LAST_ACTION,
       success: false,
       message: `Error undoing action: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function redoLastAction(_payload: RedoLastActionQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Check if there's anything to redo
+    if (redoStack.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.REDO_LAST_ACTION,
+        success: false,
+        message: 'Nothing to redo. No actions have been undone yet.',
+      };
+    }
+
+    // Get the last redone action
+    const lastAction = redoStack.pop()!;
+    console.log('Redoing action:', lastAction.description);
+
+    const restoredShapes: string[] = [];
+
+    // Perform the redo based on action type
+    switch (lastAction.actionType) {
+      case ClientQueryType.APPLY_FILL: {
+        // Reapply the fill values
+        const fillData = lastAction.undoData as {
+          shapeIds: string[];
+          previousFills: Array<{ fillColor?: string; fillOpacity?: number } | undefined>;
+          appliedFills: Array<{ fillColor: string; fillOpacity: number }>;
+        };
+
+        for (let i = 0; i < fillData.shapeIds.length; i++) {
+          const shapeId = fillData.shapeIds[i];
+          const appliedFill = fillData.appliedFills[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Reapply the fill (opposite of undo - we want to restore the NEW fill, not the old one)
+            // The undoData contains the previous state, so we need to reapply the action
+            // This means we need to store the NEW state in undoData, not the old state
+            // Actually, let me think about this differently...
+
+            // For redo, we need to reapply the action that was undone
+            // The undoData contains the state BEFORE the action was performed
+            // So to redo, we need to apply the INVERSE of what undo did
+
+            // Wait, this is getting confusing. Let me look at how the fill tool stores undo data
+            // In applyFillTool, previousFills contains the state BEFORE the fill was applied
+            // When we undo, we restore previousFills
+            // When we redo, we need to reapply the fill that was undone
+
+            // Actually, I think I need to modify the undo system to store both the before and after states
+            // Or store the action parameters so we can reapply them
+
+            // For now, let's implement a simpler approach: when undo happens, we store the action that was undone
+            // But we need the NEW state to redo. Let me check what the fill tool actually does...
+
+            // Looking back at applyFillTool, it sets shape.fills = [{ fillColor: hexColor, fillOpacity: fillOpacity }]
+            // So the undoData.previousFills contains what was there before
+            // To redo, we need to set it back to the NEW fill values
+
+            // But we don't have the NEW fill values stored! We only have the old ones.
+            // This is a design flaw. Let me fix this by storing both old and new states in undoData.
+
+            // Actually, let me look at the undoInfo structure again...
+            // undoData: Record<string, unknown>; // Data needed to perform the undo
+
+            // For redo to work properly, I need to store the action parameters so I can reapply them.
+            // Let me modify the undo system to store the action parameters instead of just the previous state.
+
+            // For now, let me implement a basic redo that just pushes back to undo stack
+            // This is not ideal but will work for the basic case
+
+            // Actually, let me implement it properly. The undoData should contain enough info to redo.
+            // For fill, I need to store the NEW fill values, not the old ones.
+
+            // Let me modify the applyFillTool to store the NEW values in undoData instead of old values
+            // Then undo restores old values, redo reapplies new values
+
+            // But that would break the current undo. Let me think...
+
+            // Better approach: store both old and new states in undoData
+            // undoData: { oldState: ..., newState: ... }
+
+            // Then undo applies oldState, redo applies newState
+
+            // But for now, let me implement a simple version that just pushes the action back to undo stack
+            // This way undo/redo just toggles the last action
+
+            undoStack.push(lastAction); // Put it back so undo can work again
+
+            // For redo, we need to reapply the action. Since we have the action type and data,
+            // we can reapply based on the stored parameters.
+
+            // Actually, let me look at what data is stored. In applyFillTool, undoData contains:
+            // { shapeIds, previousFills }
+
+            // To redo a fill, I need to know what the NEW fill was.
+            // But I don't have that stored. I only have the old fill.
+
+            // I think the right approach is to modify the undo system to store the action parameters
+            // so we can reapply them. Let me change the undoData structure.
+
+            // For fill: store { shapeIds, fillColor, fillOpacity } - the parameters used
+            // For undo: store the current state before undoing
+            // For redo: reapply the stored parameters
+
+            // This is getting complex. Let me implement a simpler approach for now:
+            // When undo happens, store the undone action in redo stack
+            // When redo happens, reapply the action based on its type and stored data
+
+            // For fill, the undoData has previousFills (the state before the action)
+            // To redo, I need to apply the INVERSE of undo, which means applying the new fill again
+            // But I don't know what the new fill was.
+
+            // I think I need to change the undoData to store the action parameters.
+            // Let me modify applyFillTool to store the applied fill values instead of previous values.
+
+            // Actually, let me look at this differently. The undoData should contain:
+            // - For undo: the state to restore to (previous state)
+            // - For redo: the state to restore to (the state that was undone)
+
+            // When we undo, we restore to previous state and push the undone action to redo
+            // When we redo, we restore to the state that was undone (which is the new state)
+
+            // Reapply the fill
+            shape.fills = [appliedFill];
+            restoredShapes.push(shape.name || shape.id);
+
+          } catch (error) {
+            console.warn(`Failed to redo fill for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.APPLY_BLUR: {
+        // Reapply the blur values
+        const blurData = lastAction.undoData as {
+          shapeIds: string[];
+          previousBlurs: Array<{ value?: number; type?: 'layer-blur' } | undefined>;
+          appliedBlurs: Array<{ value: number; type: 'layer-blur' }>;
+        };
+
+        for (let i = 0; i < blurData.shapeIds.length; i++) {
+          const shapeId = blurData.shapeIds[i];
+          const appliedBlur = blurData.appliedBlurs[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Reapply the blur
+            shape.blur = appliedBlur;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo blur for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      default:
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.REDO_LAST_ACTION,
+          success: false,
+          message: `Cannot redo action type: ${lastAction.actionType}. This action type doesn't support redo yet.`,
+        };
+    }
+
+    // Push the redone action back to undo stack so it can be undone again
+    undoStack.push(lastAction);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.REDO_LAST_ACTION,
+      success: true,
+      message: `Redid: ${lastAction.description}`,
+      payload: {
+        redoneAction: lastAction.description,
+        restoredShapes,
+      },
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.REDO_LAST_ACTION,
+      success: false,
+      message: `Error redoing action: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
