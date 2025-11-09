@@ -34,6 +34,7 @@ export enum ClientQueryType {
   ADD_IMAGE_FROM_URL = 'ADD_IMAGE_FROM_URL',
   APPLY_BLUR = 'APPLY_BLUR',
   APPLY_FILL = 'APPLY_FILL',
+  UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
 }
 
 export enum PenpotShapeType {
@@ -76,7 +77,21 @@ export interface ApplyFillQueryPayload {
   fillOpacity?: number;
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload;
+export interface UndoLastActionQueryPayload {
+  actionId?: string; // Optional: specify which action to undo, otherwise undo the last one
+}
+
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | UndoLastActionQueryPayload;
+
+// Undo system interfaces
+export interface UndoInfo {
+  actionType: ClientQueryType; // What type of action was performed
+  actionId: string; // Unique ID for this action (for tracking)
+  description: string; // Human-readable description of what will be undone
+  undoData: Record<string, unknown>; // Data needed to perform the undo
+  timestamp: number; // When the action was performed
+}
+
 export interface PluginMessage {
   source: MessageSourceName.Plugin;
   type: PluginMessageType | ClientQueryType;
@@ -86,6 +101,7 @@ export interface PluginMessage {
 export interface PluginResponseMessage extends PluginMessage {
   success: boolean;
   payload?: PluginResponsePayload;
+  undoInfo?: UndoInfo; // Optional undo information for reversible actions
 }
 
 export interface DrawShapeResponsePayload {
@@ -99,12 +115,19 @@ export interface AddImagePayload {
 export interface ApplyBlurResponsePayload {
   blurredShapes: string[];
   blurValue: number;
+  undoInfo?: UndoInfo;
 }
 
 export interface ApplyFillResponsePayload {
   filledShapes: string[];
   fillColor: string;
   fillOpacity: number;
+  undoInfo?: UndoInfo;
+}
+
+export interface UndoLastActionResponsePayload {
+  undoneAction: string; // Description of what was undone
+  restoredShapes?: string[]; // Names of shapes that were restored
 }
 
 export interface GetUserDataPayload {
@@ -249,7 +272,8 @@ export type PluginResponsePayload =
   | DrawShapeResponsePayload
   | AddImagePayload
   | ApplyBlurResponsePayload
-  | ApplyFillResponsePayload;
+  | ApplyFillResponsePayload
+  | UndoLastActionResponsePayload;
 
 
 

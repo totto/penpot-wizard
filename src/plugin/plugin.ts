@@ -10,10 +10,11 @@ import {
   PluginResponseMessage,
   CreateLibraryFontPayload,
   CreateLibraryComponentPayload,
+  UndoLastActionQueryPayload,
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
-import { handleGetProjectData, handleGetUserData, handleAddImageFromUrl, applyBlurTool, applyFillTool, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, /* getCurrentSelection, */ createLibraryColor, createLibraryFont, createLibraryComponent, updateCurrentSelection } from './mainHandlers';
+import { handleGetProjectData, handleGetUserData, handleAddImageFromUrl, applyBlurTool, applyFillTool, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, /* getCurrentSelection, */ createLibraryColor, createLibraryFont, createLibraryComponent, updateCurrentSelection, undoLastAction } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
@@ -133,6 +134,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
     
     case ClientQueryType.CREATE_LIBRARY_COMPONENT:
       responseMessage = await createLibraryComponent(payload as unknown as CreateLibraryComponentPayload);
+      break;
+
+    case ClientQueryType.UNDO_LAST_ACTION:
+      responseMessage = await undoLastAction(payload as unknown as UndoLastActionQueryPayload);
       break;
 
     default:

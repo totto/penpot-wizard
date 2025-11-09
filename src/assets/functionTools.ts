@@ -103,20 +103,20 @@ export const functionTools: FunctionTool[] = [
   //     return response;
   //   },
   // },
+  // NOTE: This tool should be automatically included on every agent because it is a vital tool
+  // for user safety and error recovery. Without undo functionality, users cannot easily recover
+  // from accidental or unwanted changes made by AI tools.
   {
-    id: "add-image-from-url",
-    name: "addImageFromUrl",
+    id: "undo-last-action",
+    name: "undoLastAction",
     description: `
-      Upload an image to Penpot from a URL.
-      Use this when you want to import an image directly from a web URL.
-      The image will be downloaded and added to the current page.
+      Undo the most recent action performed by the AI assistant.
+      This can reverse fill color changes, blur effects, and other modifications made to shapes.
+      Use this when the user wants to revert the last change made by the assistant.
     `,
-    inputSchema: z.object({
-      name: z.string().describe("The name for the uploaded image"),
-      url: z.string().url().describe("The URL of the image to upload"),
-    }),
-    function: async (input: { name: string; url: string }) => {
-      const response = await sendMessageToPlugin(ClientQueryType.ADD_IMAGE_FROM_URL, input);
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.UNDO_LAST_ACTION, undefined);
       return response;
     },
   },

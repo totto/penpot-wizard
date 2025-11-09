@@ -56,7 +56,15 @@ For library management tools (create-library-color, create-library-font, create-
 - Confirm with the user before executing any library creation
 - Size, fill, text, stroke, and other properties come directly from the selected shapes - do not override, assume, or require any specific properties
 </library_operations>
+
+<undo_operations>
+When the user wants to undo a recent action performed by the AI assistant:
+- Use the undo-last-action tool to reverse the most recent change
+- This can undo fill color changes, blur effects, and other modifications
+- If the user wants to undo multiple actions, they can call undo multiple times
+- Always confirm what was undone in your response to the user
+</undo_operations>
     `,
-    toolIds: ['get-user-data', 'get-current-page', 'get-selection', 'rectangle-maker', 'ellipse-maker', 'path-maker', 'text-maker', 'board-maker', 'create-library-color', 'create-library-font', 'create-component-from-selection', 'add-image-from-url', 'apply-blur-tool', 'apply-fill-tool'],    specializedAgentIds: ['mobile-projects-coordinator'],
+    toolIds: ['get-user-data', 'get-current-page', 'get-selection', 'rectangle-maker', 'ellipse-maker', 'path-maker', 'text-maker', 'board-maker', 'create-library-color', 'create-library-font', 'create-component-from-selection', 'add-image-from-url', 'apply-blur-tool', 'apply-fill-tool', 'undo-last-action'],    specializedAgentIds: ['mobile-projects-coordinator'],
   },
 ];

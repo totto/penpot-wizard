@@ -28,6 +28,8 @@ import {
   CreateLibraryFontPayload,
   CreateLibraryComponentPayload,
   GetUserDataPayload,
+  UndoInfo,
+  UndoLastActionQueryPayload,
 } from "../types/types";
 import type { Shape } from '@penpot/plugin-types';
 
@@ -42,10 +44,24 @@ const pluginResponse: PluginResponseMessage = {
 // Global variable to store current selection IDs (updated by plugin.ts)
 let currentSelectionIds: string[] = [];
 
+// Global undo stack - stores undo information for reversible actions
+let undoStack: UndoInfo[] = [];
+const MAX_UNDO_STACK_SIZE = 10; // Keep last 10 undoable actions
+
 // Function to update selection IDs from plugin.ts
 export function updateCurrentSelection(ids: string[]) {
   currentSelectionIds = ids;
   console.log('Selection updated to:', ids);
+}
+
+// Function to add undo information to the stack
+export function addToUndoStack(undoInfo: UndoInfo) {
+  undoStack.push(undoInfo);
+  // Keep only the last MAX_UNDO_STACK_SIZE items
+  if (undoStack.length > MAX_UNDO_STACK_SIZE) {
+    undoStack = undoStack.slice(-MAX_UNDO_STACK_SIZE);
+  }
+  console.log('Added to undo stack:', undoInfo.description);
 }
 
 // Helper function to get current selection shapes safely
@@ -815,6 +831,20 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
 
     // Apply blur to each selected shape
     const blurredShapes: string[] = [];
+    const shapeIds: string[] = [];
+    const previousBlurs: Array<{ value?: number; type?: string } | undefined> = [];
+    
+    // First pass: capture previous blur values for undo
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      if (shape.blur) {
+        previousBlurs.push({ ...shape.blur });
+      } else {
+        previousBlurs.push(undefined);
+      }
+    }
+    
+    // Second pass: apply the new blur
     for (const shape of sel) {
       try {
         // Apply blur effect to the shape
@@ -838,6 +868,20 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
     }
 
     const shapeNames = blurredShapes.join(', ');
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.APPLY_BLUR,
+      actionId: `blur_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        shapeIds,
+        previousBlurs,
+      },
+      description: `Applied ${blurValue}px blur to ${blurredShapes.length} shape${blurredShapes.length > 1 ? 's' : ''}`,
+      timestamp: Date.now(),
+    };
+    
+    // Add to undo stack
+    undoStack.push(undoInfo);
+    
     return {
       ...pluginResponse,
       type: ClientQueryType.APPLY_BLUR,
@@ -855,6 +899,7 @@ Say "apply blur 10px" (or any value 0–100), or tell me which layers to blur.`,
       payload: {
         blurredShapes,
         blurValue,
+        undoInfo,
       },
     };
   } catch (error) {
@@ -901,6 +946,20 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
 
     // Apply fill to each selected shape
     const filledShapes: string[] = [];
+    const shapeIds: string[] = [];
+    const previousFills: Array<{ fillColor?: string; fillOpacity?: number } | undefined> = [];
+    
+    // First pass: capture previous fill values for undo
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      if (shape.fills && Array.isArray(shape.fills) && shape.fills.length > 0) {
+        previousFills.push({ ...shape.fills[0] });
+      } else {
+        previousFills.push(undefined);
+      }
+    }
+    
+    // Second pass: apply the new fills
     for (const shape of sel) {
       console.log(`Processing shape: ${shape.id}, has fills: ${'fills' in shape}`);
       try {
@@ -950,6 +1009,20 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
     }
 
     const shapeNames = filledShapes.join(', ');
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.APPLY_FILL,
+      actionId: `fill_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        shapeIds,
+        previousFills,
+      },
+      description: `Applied ${hexColor}${fillOpacity < 1 ? ` at ${Math.round(fillOpacity * 100)}% opacity` : ''} fill to ${filledShapes.length} shape${filledShapes.length > 1 ? 's' : ''}`,
+      timestamp: Date.now(),
+    };
+    
+    // Add to undo stack
+    undoStack.push(undoInfo);
+    
     return {
       ...pluginResponse,
       type: ClientQueryType.APPLY_FILL,
@@ -967,6 +1040,7 @@ Say "apply fill #FF5733" or "apply fill blue at 70% opacity".`,
         filledShapes,
         fillColor: hexColor,
         fillOpacity,
+        undoInfo,
       },
     };
   } catch (error) {
@@ -975,6 +1049,124 @@ Say "apply fill #FF5733" or "apply fill blue at 70% opacity".`,
       type: ClientQueryType.APPLY_FILL,
       success: false,
       message: `Error applying fill: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function undoLastAction(_payload: UndoLastActionQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Check if there's anything to undo
+    if (undoStack.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.UNDO_LAST_ACTION,
+        success: false,
+        message: 'Nothing to undo. No reversible actions have been performed yet.',
+      };
+    }
+
+    // Get the last undoable action
+    const lastAction = undoStack.pop()!;
+    console.log('Undoing action:', lastAction.description);
+
+    const restoredShapes: string[] = [];
+
+    // Perform the undo based on action type
+    switch (lastAction.actionType) {
+      case ClientQueryType.APPLY_FILL: {
+        // Restore previous fill values
+        const fillData = lastAction.undoData as {
+          shapeIds: string[];
+          previousFills: Array<{ fillColor?: string; fillOpacity?: number } | undefined>;
+        };
+
+        for (let i = 0; i < fillData.shapeIds.length; i++) {
+          const shapeId = fillData.shapeIds[i];
+          const previousFill = fillData.previousFills[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore the previous fill
+            if (previousFill) {
+              shape.fills = [previousFill];
+            } else {
+              // If there was no previous fill, remove fills
+              shape.fills = [];
+            }
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore fill for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.APPLY_BLUR: {
+        // Restore previous blur values
+        const blurData = lastAction.undoData as {
+          shapeIds: string[];
+          previousBlurs: Array<{ value?: number; type?: 'layer-blur' } | undefined>;
+        };
+
+        for (let i = 0; i < blurData.shapeIds.length; i++) {
+          const shapeId = blurData.shapeIds[i];
+          const previousBlur = blurData.previousBlurs[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore the previous blur
+            if (previousBlur) {
+              shape.blur = previousBlur;
+            } else {
+              // If there was no previous blur, remove blur by setting to undefined
+              shape.blur = undefined;
+            }
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore blur for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      default:
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.UNDO_LAST_ACTION,
+          success: false,
+          message: `Cannot undo action type: ${lastAction.actionType}. This action type doesn't support undo yet.`,
+        };
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.UNDO_LAST_ACTION,
+      success: true,
+      message: `Undid: ${lastAction.description}`,
+      payload: {
+        undoneAction: lastAction.description,
+        restoredShapes,
+      },
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.UNDO_LAST_ACTION,
+      success: false,
+      message: `Error undoing action: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
