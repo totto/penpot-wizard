@@ -39,6 +39,60 @@ const pluginResponse: PluginResponseMessage = {
   success: true,
 };
 
+// Global variable to store current selection IDs (updated by plugin.ts)
+let currentSelectionIds: string[] = [];
+
+// Function to update selection IDs from plugin.ts
+export function updateCurrentSelection(ids: string[]) {
+  currentSelectionIds = ids;
+}
+
+// Helper function to get current selection shapes safely
+function getCurrentSelectionShapes(): Shape[] {
+  if (!currentSelectionIds || currentSelectionIds.length === 0) {
+    return [];
+  }
+  
+  // Get shapes by their IDs from the current page
+  const currentPage = penpot.currentPage;
+  if (!currentPage) {
+    return [];
+  }
+  
+  const shapes: Shape[] = [];
+  for (const id of currentSelectionIds) {
+    try {
+      // Find shape in the page hierarchy
+      const shape = findShapeById(currentPage, id);
+      if (shape) {
+        shapes.push(shape);
+      }
+    } catch (error) {
+      console.warn(`Could not find shape with ID ${id}:`, error);
+    }
+  }
+  
+  return shapes;
+}
+
+// Recursive helper to find a shape by ID in the page hierarchy
+function findShapeById(container: any, targetId: string): Shape | null {
+  // Check if this container has the shape directly
+  if (container.children) {
+    for (const child of container.children) {
+      if (child.id === targetId) {
+        return child;
+      }
+      // Recursively search in children
+      const found = findShapeById(child, targetId);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+}
+
 export function handleGetUserData(): PluginResponseMessage {
   if (penpot.currentUser) {
     return {
@@ -744,8 +798,8 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
   const { blurValue = 5 } = payload;
 
   try {
-    // Get current selection
-    const sel = (penpot as any).selection;
+    // Get current selection using safe method
+    const sel = getCurrentSelectionShapes();
     if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
@@ -830,8 +884,8 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
   const hexColor = colorMap[normalizedColor] || (fillColor.startsWith('#') ? fillColor : `#${fillColor}`);
 
   try {
-    // Get current selection
-    const sel = (penpot as any).selection;
+    // Get current selection using safe method
+    const sel = getCurrentSelectionShapes();
     if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
@@ -844,15 +898,41 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
     // Apply fill to each selected shape
     const filledShapes: string[] = [];
     for (const shape of sel) {
+      console.log(`Processing shape: ${shape.id}, has fills: ${'fills' in shape}`);
       try {
-        // Apply fill to the shape - replace all existing fills with solid color fill
+        // Apply fill to the shape using the documented Penpot API
+        // Clear existing fills and set new solid color fill
         shape.fills = [{
           fillColor: hexColor,
-          fillOpacity: fillOpacity,
+          fillOpacity: fillOpacity, // Always set opacity
         }];
+        console.log(`Successfully set fills for shape ${shape.id}`);
         filledShapes.push(shape.name || shape.id);
       } catch (shapeError) {
         console.warn(`Failed to apply fill to shape ${shape.id}:`, shapeError);
+        // Try alternative: modify existing fills
+        try {
+          if (shape.fills && Array.isArray(shape.fills)) {
+            if (shape.fills.length > 0) {
+              // Modify first fill
+              shape.fills[0] = {
+                ...shape.fills[0],
+                fillColor: hexColor,
+                fillOpacity: fillOpacity,
+              };
+            } else {
+              // Add new fill
+              shape.fills = [{
+                fillColor: hexColor,
+                fillOpacity: fillOpacity,
+              }];
+            }
+            console.log(`Alternative method succeeded for shape ${shape.id}`);
+            filledShapes.push(shape.name || shape.id);
+          }
+        } catch (altError) {
+          console.warn(`Alternative fill method also failed for shape ${shape.id}:`, altError);
+        }
       }
     }
 

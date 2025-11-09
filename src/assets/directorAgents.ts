@@ -57,8 +57,6 @@ For library management tools (create-library-color, create-library-font, create-
 - Size, fill, text, stroke, and other properties come directly from the selected shapes - do not override, assume, or require any specific properties
 </library_operations>
     `,
-toolIds: ['get-user-data', 'get-current-page', 'get-selection', 'rectangle-maker', 'ellipse-maker', 'path-maker', 'text-maker', 'board-maker', 'create-library-color', 'create-library-font', 'create-component-from-selection', 'add-image-from-url', 'apply-blur-tool'],
-
-    specializedAgentIds: ['mobile-projects-coordinator'],
+    toolIds: ['get-user-data', 'get-current-page', 'get-selection', 'rectangle-maker', 'ellipse-maker', 'path-maker', 'text-maker', 'board-maker', 'create-library-color', 'create-library-font', 'create-component-from-selection', 'add-image-from-url', 'apply-blur-tool', 'apply-fill-tool'],    specializedAgentIds: ['mobile-projects-coordinator'],
   },
 ];

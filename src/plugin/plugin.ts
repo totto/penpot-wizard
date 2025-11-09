@@ -13,9 +13,14 @@ import {
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
-import { handleGetProjectData, handleGetUserData, handleAddImageFromUrl, applyBlurTool, applyFillTool, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, /* getCurrentSelection, */ createLibraryColor, createLibraryFont, createLibraryComponent, } from './mainHandlers';
+import { handleGetProjectData, handleGetUserData, handleAddImageFromUrl, applyBlurTool, applyFillTool, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, /* getCurrentSelection, */ createLibraryColor, createLibraryFont, createLibraryComponent, updateCurrentSelection } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
+
+// Listen for selection changes
+penpot.on('selectionchange', (selectedIds: string[]) => {
+  updateCurrentSelection(selectedIds);
+});
 
 // Open the plugin UI with current theme
 penpot.ui.open("AI Penpot Wizard", `?theme=${penpot.theme}`, {
