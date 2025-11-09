@@ -45,52 +45,56 @@ let currentSelectionIds: string[] = [];
 // Function to update selection IDs from plugin.ts
 export function updateCurrentSelection(ids: string[]) {
   currentSelectionIds = ids;
+  console.log('Selection updated to:', ids);
 }
 
 // Helper function to get current selection shapes safely
 function getCurrentSelectionShapes(): Shape[] {
-  if (!currentSelectionIds || currentSelectionIds.length === 0) {
-    return [];
-  }
-  
-  // Get shapes by their IDs from the current page
-  const currentPage = penpot.currentPage;
-  if (!currentPage) {
-    return [];
-  }
-  
-  const shapes: Shape[] = [];
-  for (const id of currentSelectionIds) {
-    try {
-      // Find shape in the page hierarchy
-      const shape = findShapeById(currentPage, id);
-      if (shape) {
-        shapes.push(shape);
+  // First try using our tracked selection IDs
+  if (currentSelectionIds && currentSelectionIds.length > 0) {
+    console.log('Using tracked selection IDs:', currentSelectionIds);
+    
+    const currentPage = penpot.currentPage;
+    if (!currentPage) {
+      console.log('No current page found');
+      return [];
+    }
+    
+    const shapes: Shape[] = [];
+    for (const id of currentSelectionIds) {
+      try {
+        const shape = currentPage.getShapeById(id);
+        if (shape) {
+          console.log(`Found shape ${id}:`, shape.name || shape.id);
+          shapes.push(shape);
+        } else {
+          console.log(`Shape ${id} not found on page`);
+        }
+      } catch (error) {
+        console.warn(`Could not find shape with ID ${id}:`, error);
       }
-    } catch (error) {
-      console.warn(`Could not find shape with ID ${id}:`, error);
+    }
+    
+    if (shapes.length > 0) {
+      console.log(`Returning ${shapes.length} shapes from tracked IDs`);
+      return shapes;
     }
   }
   
-  return shapes;
-}
-
-// Recursive helper to find a shape by ID in the page hierarchy
-function findShapeById(container: any, targetId: string): Shape | null {
-  // Check if this container has the shape directly
-  if (container.children) {
-    for (const child of container.children) {
-      if (child.id === targetId) {
-        return child;
-      }
-      // Recursively search in children
-      const found = findShapeById(child, targetId);
-      if (found) {
-        return found;
-      }
+  // Fallback: try to get selection directly (safely)
+  try {
+    console.log('Trying fallback selection method');
+    const directSelection = (penpot as any).selection;
+    if (directSelection && Array.isArray(directSelection) && directSelection.length > 0) {
+      console.log(`Found ${directSelection.length} shapes via direct selection`);
+      return directSelection;
     }
+  } catch (error) {
+    console.warn('Direct selection access failed:', error);
   }
-  return null;
+  
+  console.log('No selection found');
+  return [];
 }
 
 export function handleGetUserData(): PluginResponseMessage {

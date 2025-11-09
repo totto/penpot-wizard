@@ -22,6 +22,25 @@ penpot.on('selectionchange', (selectedIds: string[]) => {
   updateCurrentSelection(selectedIds);
 });
 
+// Capture initial selection on plugin load (safe way)
+try {
+  // Use a timeout to ensure Penpot is fully loaded
+  setTimeout(() => {
+    try {
+      const initialSelection = (penpot as any).selection;
+      if (initialSelection && Array.isArray(initialSelection) && initialSelection.length > 0) {
+        const initialIds = initialSelection.map((shape: any) => shape.id).filter((id: any) => id);
+        updateCurrentSelection(initialIds);
+        console.log('Captured initial selection:', initialIds);
+      }
+    } catch (error) {
+      console.warn('Could not capture initial selection:', error);
+    }
+  }, 100);
+} catch (error) {
+  console.warn('Error setting up initial selection capture:', error);
+}
+
 // Open the plugin UI with current theme
 penpot.ui.open("AI Penpot Wizard", `?theme=${penpot.theme}`, {
   width: 500,
