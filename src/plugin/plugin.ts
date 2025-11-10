@@ -43,7 +43,7 @@ penpot.on('selectionchange', (selectedIds: string[]) => {
 // Initial selection will be captured by the selectionchange listener when user makes selections
 console.log('Plugin loaded - selection tracking active');
 
-// Try to capture initial selection on plugin load (safe way with timeout)
+// Try to capture initial selection on plugin load (more aggressive approach)
 setTimeout(() => {
   try {
     console.log('🔍 Checking for initial selection...');
@@ -62,7 +62,37 @@ setTimeout(() => {
   } catch (error) {
     console.warn('⚠️ Could not capture initial selection:', error);
   }
-}, 500); // Longer timeout to ensure Penpot is fully ready
+}, 100); // Shorter timeout for more responsive initial capture
+
+// Also check periodically for selection changes (belt and suspenders approach)
+// Temporarily disabled to debug plugin loading issues
+/*
+setInterval(() => {
+  try {
+    const directSel = (penpot as any).selection;
+    if (directSel && Array.isArray(directSel) && directSel.length > 0) {
+      const currentIds = directSel
+        .map((shape: unknown) => (shape as { id?: string })?.id)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0);
+
+      // Only update if the selection has actually changed
+      const sortedCurrent = currentIds.sort();
+      const sortedTracked = (currentSelectionIds || []).sort();
+      if (JSON.stringify(sortedCurrent) !== JSON.stringify(sortedTracked)) {
+        console.log('🔄 Selection changed (detected via polling):', currentIds);
+        updateCurrentSelection(currentIds);
+      }
+    } else if (currentSelectionIds && currentSelectionIds.length > 0) {
+      // Selection was cleared
+      console.log('🔄 Selection cleared (detected via polling)');
+      updateCurrentSelection([]);
+    }
+  } catch (error) {
+    // Silently ignore polling errors
+    console.warn('Polling error (ignoring):', error);
+  }
+}, 1000); // Check every second (less frequent to avoid issues)
+*/
 
 // Open the plugin UI with current theme
 penpot.ui.open("AI Penpot Wizard", `?theme=${penpot.theme}`, {

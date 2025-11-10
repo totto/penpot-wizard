@@ -59,6 +59,9 @@ export function updateCurrentSelection(ids: string[]) {
   console.log('Selection updated to:', ids);
 }
 
+// Export currentSelectionIds for access from plugin.ts
+export { currentSelectionIds };
+
 // Function to add undo information to the stack
 export function addToUndoStack(undoInfo: UndoInfo) {
   undoStack.push(undoInfo);
@@ -72,18 +75,42 @@ export function addToUndoStack(undoInfo: UndoInfo) {
 // Helper function to get current selection shapes safely
 function getCurrentSelectionShapes(): Shape[] {
   console.log('🔍 getCurrentSelectionShapes called, currentSelectionIds:', currentSelectionIds);
-  
-  // Only use tracked selection IDs - direct selection access causes crashes
+
+  // First, always try to get fresh selection data to ensure we don't miss anything
+  let freshSelection: Shape[] = [];
+  try {
+    const directSel = (penpot as any).selection;
+    if (directSel && Array.isArray(directSel) && directSel.length > 0) {
+      console.log(`✅ Found ${directSel.length} shapes via direct selection`);
+      freshSelection = directSel;
+      // Update our tracked selection for future use
+      const ids = directSel.map((shape: any) => shape?.id).filter((id: any) => id && typeof id === 'string');
+      if (ids.length > 0) {
+        console.log('📝 Updating tracked selection from fresh data:', ids);
+        currentSelectionIds = ids;
+      }
+    }
+  } catch (directError) {
+    console.warn('❌ Direct selection access failed:', directError);
+  }
+
+  // If we got fresh selection, use it
+  if (freshSelection.length > 0) {
+    console.log(`✅ Returning ${freshSelection.length} shapes from fresh selection`);
+    return freshSelection;
+  }
+
+  // Fallback: use tracked selection IDs if fresh selection failed
   if (currentSelectionIds && currentSelectionIds.length > 0) {
-    console.log('✅ Using tracked selection IDs:', currentSelectionIds);
-    
+    console.log('⚠️ Using tracked selection IDs as fallback:', currentSelectionIds);
+
     try {
       const currentPage = penpot.currentPage;
       if (!currentPage) {
         console.log('❌ No current page found');
         return [];
       }
-      
+
       const shapes: Shape[] = [];
       for (const id of currentSelectionIds) {
         try {
@@ -98,7 +125,7 @@ function getCurrentSelectionShapes(): Shape[] {
           console.warn(`❌ Could not find shape with ID ${id}:`, error);
         }
       }
-      
+
       if (shapes.length > 0) {
         console.log(`✅ Returning ${shapes.length} shapes from tracked IDs`);
         return shapes;
@@ -107,27 +134,8 @@ function getCurrentSelectionShapes(): Shape[] {
       console.warn('❌ Error accessing current page:', pageError);
     }
   }
-  
-  // Fallback: try to get current selection directly (only if tracked IDs are empty)
-  // This is safer than the previous approach since we only use it as a last resort
-  console.log('⚠️ No tracked selection, trying direct access as fallback');
-  try {
-    const directSel = (penpot as any).selection;
-    if (directSel && Array.isArray(directSel) && directSel.length > 0) {
-      console.log(`✅ Found ${directSel.length} shapes via direct selection fallback`);
-      // Update our tracked selection for future use
-      const ids = directSel.map((shape: any) => shape?.id).filter((id: any) => id && typeof id === 'string');
-      if (ids.length > 0) {
-        console.log('📝 Updating tracked selection from fallback:', ids);
-        currentSelectionIds = ids;
-      }
-      return directSel;
-    }
-  } catch (error) {
-    console.warn('❌ Direct selection fallback failed:', error);
-  }
-  
-  console.log('❌ No selection found');
+
+  console.log('❌ No selection found via any method');
   return [];
 }
 
@@ -1150,21 +1158,32 @@ export async function applyRadialGradientTool(payload: ApplyRadialGradientQueryP
     for (const shape of sel) {
       try {
         // Apply gradient fill using the correct Penpot Fill API
-        shape.fills = [{
-          fillColorGradient: {
-            type: 'radial',
-            startX: _startX ?? 0.5,
-            startY: _startY ?? 0.5,
-            endX: _endX ?? 0.5,
-            endY: _endY ?? 0.5,
-            width: 0.5, // Radius for radial gradients
-            stops: [
-              { color: hexColors[0], opacity: 1, offset: 0 },
-              { color: hexColors[1], opacity: 1, offset: 1 }
-            ]
-          }
-        }];
-        console.log(`Applied radial gradient (${hexColors.join('→')}) to shape ${shape.id}`);
+        console.log(`Applying radial gradient to shape ${shape.id} with colors: ${hexColors.join(' → ')}`);
+        try {
+          shape.fills = [{
+            fillColorGradient: {
+              type: 'radial',
+              startX: 0.5,  // Center X coordinate (0.5 = center of shape)
+              startY: 0.5,  // Center Y coordinate (0.5 = center of shape)
+              endX: 1.0,    // End at full width (defines radius)
+              endY: 1.0,    // End at full height (defines radius)
+              width: 1.0,
+              stops: [
+                { color: hexColors[0], opacity: 1, offset: 0 },
+                { color: hexColors[1], opacity: 1, offset: 1 }
+              ]
+            }
+          }];
+          console.log(`✅ Successfully applied radial gradient to shape ${shape.id}`);
+        } catch (gradientError) {
+          console.warn(`❌ Radial gradient failed, trying solid color fallback:`, gradientError);
+          // Fallback to solid color if gradient fails
+          shape.fills = [{
+            fillColor: hexColors[0],
+            fillOpacity: 1
+          }];
+          console.log(`✅ Applied solid color fallback (${hexColors[0]}) to shape ${shape.id}`);
+        }
         gradientShapes.push(shape.name || shape.id);
       } catch (shapeError) {
         console.warn(`Failed to apply gradient fill to shape ${shape.id}:`, shapeError);
@@ -1750,11 +1769,11 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             shape.fills = [{
               fillColorGradient: {
                 type: 'radial',
-                startX: 0.5,
-                startY: 0.5,
-                endX: 0.5,
-                endY: 0.5,
-                width: 0.5,
+                startX: 0.5,  // Center X coordinate (0.5 = center of shape)
+                startY: 0.5,  // Center Y coordinate (0.5 = center of shape)
+                endX: 1.0,    // End at full width (defines radius)
+                endY: 1.0,    // End at full height (defines radius)
+                width: 1.0,
                 stops: [
                   { color: gradientData.appliedColors[0], opacity: 1, offset: 0 },
                   { color: gradientData.appliedColors[1], opacity: 1, offset: 1 }
