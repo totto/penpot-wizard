@@ -195,6 +195,72 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.APPLY_FILL, fillProperties);
     return response;
   },
+},
+{
+  id: 'apply-linear-gradient',
+  name: 'ApplyLinearGradient',
+  description: `
+    Apply a linear gradient fill to selected shapes. Creates a smooth color transition along a straight line.
+    Perfect for creating depth, highlights, or directional color effects.
+    
+    This tool applies an intelligent gradient based on your shape's current fill color:
+    - If your shape has a color fill, it creates a gradient from that color to white
+    - If your shape is already white, it creates a gradient from white to black
+    - You can also specify custom colors if desired
+    
+    Linear gradient options:
+    - Colors: Optional array of hex colors or named colors (intelligent defaults based on current fill)
+    - Positioning: Optional start/end coordinates (0-1 scale)
+    - Angle: Optional angle in degrees for gradient direction
+    
+    If you don't specify colors, uses intelligent defaults based on your shape's current fill.
+    If you don't specify positions, defaults to left-to-right gradient.
+    If you don't specify angle, uses the start/end positions.
+  `,
+  inputSchema: z.object({
+    colors: z.array(z.string()).min(2).optional().default(['#3B82F6', '#FFFFFF']).describe("Array of color values (hex codes or named colors). If not specified, uses intelligent defaults based on your shape's current fill color."),
+    startX: z.number().optional().describe("Starting X position (0-1, optional, defaults to 0)"),
+    startY: z.number().optional().describe("Starting Y position (0-1, optional, defaults to 0)"),
+    endX: z.number().optional().describe("Ending X position (0-1, optional, defaults to 1)"),
+    endY: z.number().optional().describe("Ending Y position (0-1, optional, defaults to 1)"),
+    angle: z.number().optional().describe("Angle in degrees for the gradient direction (optional)"),
+  }),
+  function: async (gradientProperties) => {
+    const response = await sendMessageToPlugin(ClientQueryType.APPLY_LINEAR_GRADIENT, gradientProperties);
+    return response;
+  },
+},
+{
+  id: 'apply-radial-gradient',
+  name: 'ApplyRadialGradient',
+  description: `
+    Apply a radial gradient fill to selected shapes. Creates a smooth color transition from a center point outward.
+    Perfect for creating circular highlights, depth effects, or spotlight-like illumination.
+    
+    This tool applies an intelligent gradient based on your shape's current fill color:
+    - If your shape has a color fill, it creates a gradient from that color to white
+    - If your shape is already white, it creates a gradient from white to black
+    - You can also specify custom colors if desired
+    
+    Radial gradient options:
+    - Colors: Optional array of hex colors or named colors (intelligent defaults based on current fill)
+    - Center: Optional center position (0-1 scale, defaults to center)
+    - Outer edge: Optional outer edge position (0-1 scale, defaults to center)
+    
+    If you don't specify colors, uses intelligent defaults based on your shape's current fill.
+    If you don't specify positions, defaults to center-outward gradient.
+  `,
+  inputSchema: z.object({
+    colors: z.array(z.string()).min(2).optional().default(['#3B82F6', '#FFFFFF']).describe("Array of color values (hex codes or named colors). If not specified, uses intelligent defaults based on your shape's current fill color."),
+    startX: z.number().optional().describe("Center X position (0-1, optional, defaults to 0.5)"),
+    startY: z.number().optional().describe("Center Y position (0-1, optional, defaults to 0.5)"),
+    endX: z.number().optional().describe("Outer edge X position (0-1, optional, defaults to 0.5)"),
+    endY: z.number().optional().describe("Outer edge Y position (0-1, optional, defaults to 0.5)"),
+  }),
+  function: async (gradientProperties) => {
+    const response = await sendMessageToPlugin(ClientQueryType.APPLY_RADIAL_GRADIENT, gradientProperties);
+    return response;
+  },
 }
 
 ];

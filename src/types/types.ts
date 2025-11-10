@@ -34,6 +34,8 @@ export enum ClientQueryType {
   ADD_IMAGE_FROM_URL = 'ADD_IMAGE_FROM_URL',
   APPLY_BLUR = 'APPLY_BLUR',
   APPLY_FILL = 'APPLY_FILL',
+  APPLY_LINEAR_GRADIENT = 'APPLY_LINEAR_GRADIENT',
+  APPLY_RADIAL_GRADIENT = 'APPLY_RADIAL_GRADIENT',
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
 }
@@ -50,7 +52,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -78,6 +80,23 @@ export interface ApplyFillQueryPayload {
   fillOpacity?: number;
 }
 
+export interface ApplyLinearGradientQueryPayload {
+  colors: string[];
+  startX?: number;
+  startY?: number;
+  endX?: number;
+  endY?: number;
+  angle?: number;
+}
+
+export interface ApplyRadialGradientQueryPayload {
+  colors: string[];
+  startX?: number;
+  startY?: number;
+  endX?: number;
+  endY?: number;
+}
+
 export interface UndoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to undo, otherwise undo the last one
 }
@@ -86,7 +105,7 @@ export interface RedoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to redo, otherwise redo the last undone one
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -127,6 +146,18 @@ export interface ApplyFillResponsePayload {
   filledShapes: string[];
   fillColor: string;
   fillOpacity: number;
+  undoInfo?: UndoInfo;
+}
+
+export interface ApplyLinearGradientResponsePayload {
+  gradientShapes: string[];
+  colors: string[];
+  undoInfo?: UndoInfo;
+}
+
+export interface ApplyRadialGradientResponsePayload {
+  gradientShapes: string[];
+  colors: string[];
   undoInfo?: UndoInfo;
 }
 
@@ -218,6 +249,15 @@ export interface CreateLibraryColorResponse {
   color: string;
 }
 
+export interface CreateLibraryColorErrorResponse {
+  duplicate: boolean;
+  existing: {
+    id?: string;
+    name: string;
+    color: string;
+  };
+}
+
 // Payload for creating a library font/typography
 export interface CreateLibraryFontPayload {
   name: string;
@@ -277,12 +317,15 @@ export type PluginResponsePayload =
   | GetFileVersionsPayload
   | GetCurrentSelectionPayload
   | CreateLibraryColorResponse
+  | CreateLibraryColorErrorResponse
   | CreateLibraryFontResponse
   | CreateLibraryComponentResponse
   | DrawShapeResponsePayload
   | AddImagePayload
   | ApplyBlurResponsePayload
   | ApplyFillResponsePayload
+  | ApplyLinearGradientResponsePayload
+  | ApplyRadialGradientResponsePayload
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload;
 

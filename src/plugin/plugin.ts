@@ -6,6 +6,8 @@ import {
   AddImageFromUrlQueryPayload,
   ApplyBlurQueryPayload,
   ApplyFillQueryPayload,
+  ApplyLinearGradientQueryPayload,
+  ApplyRadialGradientQueryPayload,
   DrawShapeQueryPayload,
   PluginResponseMessage,
   CreateLibraryFontPayload,
@@ -15,13 +17,25 @@ import {
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
-import { handleGetProjectData, handleGetUserData, handleAddImageFromUrl, applyBlurTool, applyFillTool, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, /* getCurrentSelection, */ createLibraryColor, createLibraryFont, createLibraryComponent, updateCurrentSelection, undoLastAction, redoLastAction } from './mainHandlers';
+import { handleGetProjectData, handleGetUserData, handleAddImageFromUrl, applyBlurTool, applyFillTool, applyLinearGradientTool, applyRadialGradientTool, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, /* getCurrentSelection, */ createLibraryColor, createLibraryFont, createLibraryComponent, updateCurrentSelection, undoLastAction, redoLastAction } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
 // Listen for selection changes
 penpot.on('selectionchange', (selectedIds: string[]) => {
-  updateCurrentSelection(selectedIds);
+  try {
+    // Defensive check: ensure selectedIds is an array of strings
+    if (Array.isArray(selectedIds)) {
+      const validIds = selectedIds.filter(id => typeof id === 'string' && id.length > 0);
+      updateCurrentSelection(validIds);
+    } else {
+      console.warn('Selection change event received invalid data:', selectedIds);
+      updateCurrentSelection([]);
+    }
+  } catch (error) {
+    console.warn('Error handling selection change:', error);
+    updateCurrentSelection([]);
+  }
 });
 
 // Capture initial selection on plugin load (safe way)
@@ -31,7 +45,9 @@ try {
     try {
       const initialSelection = (penpot as any).selection;
       if (initialSelection && Array.isArray(initialSelection) && initialSelection.length > 0) {
-        const initialIds = initialSelection.map((shape: any) => shape.id).filter((id: any) => id);
+        const initialIds = initialSelection
+          .map((shape: unknown) => (shape as { id?: string })?.id)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0);
         updateCurrentSelection(initialIds);
         console.log('Captured initial selection:', initialIds);
       }
@@ -90,6 +106,14 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.APPLY_FILL:
       responseMessage = await applyFillTool(payload as unknown as ApplyFillQueryPayload);
+      break;
+
+    case ClientQueryType.APPLY_LINEAR_GRADIENT:
+      responseMessage = await applyLinearGradientTool(payload as unknown as ApplyLinearGradientQueryPayload);
+      break;
+
+    case ClientQueryType.APPLY_RADIAL_GRADIENT:
+      responseMessage = await applyRadialGradientTool(payload as unknown as ApplyRadialGradientQueryPayload);
       break;
 
     case ClientQueryType.GET_USER_DATA:

@@ -71,6 +71,6 @@ When the user wants to redo a recently undone action:
 - Always confirm what was redone in your response to the user
 </undo_operations>
     `,
-    toolIds: ['get-user-data', 'get-current-page', 'get-selection', 'rectangle-maker', 'ellipse-maker', 'path-maker', 'text-maker', 'board-maker', 'create-library-color', 'create-library-font', 'create-component-from-selection', 'add-image-from-url', 'apply-blur-tool', 'apply-fill-tool', 'undo-last-action', 'redo-last-action'],    specializedAgentIds: ['mobile-projects-coordinator'],
+    toolIds: ['get-user-data', 'get-current-page', 'rectangle-maker', 'ellipse-maker', 'path-maker', 'text-maker', 'board-maker', 'create-library-color', 'create-library-font', 'create-component-from-selection', 'add-image-from-url', 'apply-blur-tool', 'apply-fill-tool', 'apply-linear-gradient', 'apply-radial-gradient', 'undo-last-action', 'redo-last-action'],    specializedAgentIds: ['mobile-projects-coordinator'],
   },
 ];
