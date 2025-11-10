@@ -1460,6 +1460,41 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.APPLY_LINEAR_GRADIENT:
+      case ClientQueryType.APPLY_RADIAL_GRADIENT: {
+        // Restore previous fill values (same logic as APPLY_FILL)
+        const gradientData = lastAction.undoData as {
+          shapeIds: string[];
+          previousFills: Array<{ fillColor?: string; fillOpacity?: number } | undefined>;
+        };
+
+        for (let i = 0; i < gradientData.shapeIds.length; i++) {
+          const shapeId = gradientData.shapeIds[i];
+          const previousFill = gradientData.previousFills[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore the previous fill
+            if (previousFill) {
+              shape.fills = [previousFill];
+            } else {
+              // If there was no previous fill, remove fills
+              shape.fills = [];
+            }
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore gradient for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
       default:
         return {
           ...pluginResponse,
@@ -1652,6 +1687,84 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to redo blur for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.APPLY_LINEAR_GRADIENT: {
+        // Reapply the linear gradient
+        const gradientData = lastAction.undoData as {
+          shapeIds: string[];
+          appliedColors: string[];
+        };
+
+        for (const shapeId of gradientData.shapeIds) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Reapply the linear gradient
+            shape.fills = [{
+              fillColorGradient: {
+                type: 'linear',
+                startX: 0,
+                startY: 0,
+                endX: 1,
+                endY: 1,
+                width: 1,
+                stops: [
+                  { color: gradientData.appliedColors[0], opacity: 1, offset: 0 },
+                  { color: gradientData.appliedColors[1], opacity: 1, offset: 1 }
+                ]
+              }
+            }];
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo linear gradient for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.APPLY_RADIAL_GRADIENT: {
+        // Reapply the radial gradient
+        const gradientData = lastAction.undoData as {
+          shapeIds: string[];
+          appliedColors: string[];
+        };
+
+        for (const shapeId of gradientData.shapeIds) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Reapply the radial gradient
+            shape.fills = [{
+              fillColorGradient: {
+                type: 'radial',
+                startX: 0.5,
+                startY: 0.5,
+                endX: 0.5,
+                endY: 0.5,
+                width: 0.5,
+                stops: [
+                  { color: gradientData.appliedColors[0], opacity: 1, offset: 0 },
+                  { color: gradientData.appliedColors[1], opacity: 1, offset: 1 }
+                ]
+              }
+            }];
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo radial gradient for shape ${shapeId}:`, error);
           }
         }
         break;
