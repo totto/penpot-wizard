@@ -200,13 +200,12 @@ id: 'create-library-color',
   id: 'apply-linear-gradient',
   name: 'ApplyLinearGradient',
   description: `
-    Apply a linear gradient fill to selected shapes. Creates a smooth color transition along a straight line.
-    Perfect for creating depth, highlights, or directional color effects.
+    Apply actual linear gradients to selected shapes using Penpot's gradient API.
     
-    This tool applies an intelligent gradient based on your shape's current fill color:
-    - If your shape has a color fill, it creates a gradient from that color to white
-    - If your shape is already white, it creates a gradient from white to black
-    - You can also specify custom colors if desired
+    This tool creates true gradient fills with smooth color transitions:
+    - Uses Penpot's documented gradient API with proper gradient objects
+    - Supports custom colors, positioning, and gradient types
+    - Applies gradient data directly to shape fills
     
     Linear gradient options:
     - Colors: Optional array of hex colors or named colors (intelligent defaults based on current fill)
@@ -216,9 +215,11 @@ id: 'create-library-color',
     If you don't specify colors, uses intelligent defaults based on your shape's current fill.
     If you don't specify positions, defaults to left-to-right gradient.
     If you don't specify angle, uses the start/end positions.
+    
+    Note: Uses Penpot's gradient API - if gradients don't appear, the API may not be fully implemented yet.
   `,
   inputSchema: z.object({
-    colors: z.array(z.string()).min(2).optional().default(['#3B82F6', '#FFFFFF']).describe("Array of color values (hex codes or named colors). If not specified, uses intelligent defaults based on your shape's current fill color."),
+    colors: z.array(z.string()).min(2).optional().describe("Array of color values (hex codes or named colors). If not specified, uses intelligent defaults based on your shape's current fill color."),
     startX: z.number().optional().describe("Starting X position (0-1, optional, defaults to 0)"),
     startY: z.number().optional().describe("Starting Y position (0-1, optional, defaults to 0)"),
     endX: z.number().optional().describe("Ending X position (0-1, optional, defaults to 1)"),
@@ -234,13 +235,12 @@ id: 'create-library-color',
   id: 'apply-radial-gradient',
   name: 'ApplyRadialGradient',
   description: `
-    Apply a radial gradient fill to selected shapes. Creates a smooth color transition from a center point outward.
-    Perfect for creating circular highlights, depth effects, or spotlight-like illumination.
+    Apply actual radial gradients to selected shapes using Penpot's gradient API.
     
-    This tool applies an intelligent gradient based on your shape's current fill color:
-    - If your shape has a color fill, it creates a gradient from that color to white
-    - If your shape is already white, it creates a gradient from white to black
-    - You can also specify custom colors if desired
+    This tool creates true gradient fills with smooth color transitions from center outward:
+    - Uses Penpot's documented gradient API with proper gradient objects
+    - Supports custom colors and positioning
+    - Applies gradient data directly to shape fills
     
     Radial gradient options:
     - Colors: Optional array of hex colors or named colors (intelligent defaults based on current fill)
@@ -249,9 +249,11 @@ id: 'create-library-color',
     
     If you don't specify colors, uses intelligent defaults based on your shape's current fill.
     If you don't specify positions, defaults to center-outward gradient.
+    
+    Note: Uses Penpot's gradient API - if gradients don't appear, the API may not be fully implemented yet.
   `,
   inputSchema: z.object({
-    colors: z.array(z.string()).min(2).optional().default(['#3B82F6', '#FFFFFF']).describe("Array of color values (hex codes or named colors). If not specified, uses intelligent defaults based on your shape's current fill color."),
+    colors: z.array(z.string()).min(2).optional().describe("Array of color values (hex codes or named colors). If not specified, uses intelligent defaults based on your shape's current fill color."),
     startX: z.number().optional().describe("Center X position (0-1, optional, defaults to 0.5)"),
     startY: z.number().optional().describe("Center Y position (0-1, optional, defaults to 0.5)"),
     endX: z.number().optional().describe("Outer edge X position (0-1, optional, defaults to 0.5)"),

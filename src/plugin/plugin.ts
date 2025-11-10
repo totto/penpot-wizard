@@ -17,47 +17,52 @@ import {
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
-import { handleGetProjectData, handleGetUserData, handleAddImageFromUrl, applyBlurTool, applyFillTool, applyLinearGradientTool, applyRadialGradientTool, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, /* getCurrentSelection, */ createLibraryColor, createLibraryFont, createLibraryComponent, updateCurrentSelection, undoLastAction, redoLastAction } from './mainHandlers';
+import { handleGetProjectData, handleGetUserData, handleAddImageFromUrl, applyBlurTool, applyFillTool, applyLinearGradientTool, applyRadialGradientTool, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, createLibraryColor, createLibraryFont, createLibraryComponent, updateCurrentSelection, undoLastAction, redoLastAction } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
 // Listen for selection changes
 penpot.on('selectionchange', (selectedIds: string[]) => {
+  console.log('🔍 Selection change event fired with IDs:', selectedIds);
   try {
     // Defensive check: ensure selectedIds is an array of strings
     if (Array.isArray(selectedIds)) {
       const validIds = selectedIds.filter(id => typeof id === 'string' && id.length > 0);
+      console.log('✅ Filtered valid IDs:', validIds);
       updateCurrentSelection(validIds);
     } else {
-      console.warn('Selection change event received invalid data:', selectedIds);
+      console.warn('❌ Selection change event received invalid data:', selectedIds);
       updateCurrentSelection([]);
     }
   } catch (error) {
-    console.warn('Error handling selection change:', error);
+    console.warn('❌ Error in selection change handler:', error);
     updateCurrentSelection([]);
   }
 });
 
-// Capture initial selection on plugin load (safe way)
-try {
-  // Use a timeout to ensure Penpot is fully loaded
-  setTimeout(() => {
-    try {
-      const initialSelection = (penpot as any).selection;
-      if (initialSelection && Array.isArray(initialSelection) && initialSelection.length > 0) {
-        const initialIds = initialSelection
-          .map((shape: unknown) => (shape as { id?: string })?.id)
-          .filter((id): id is string => typeof id === 'string' && id.length > 0);
+// Initial selection will be captured by the selectionchange listener when user makes selections
+console.log('Plugin loaded - selection tracking active');
+
+// Try to capture initial selection on plugin load (safe way with timeout)
+setTimeout(() => {
+  try {
+    console.log('🔍 Checking for initial selection...');
+    const directSel = (penpot as any).selection;
+    if (directSel && Array.isArray(directSel) && directSel.length > 0) {
+      const initialIds = directSel
+        .map((shape: unknown) => (shape as { id?: string })?.id)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0);
+      if (initialIds.length > 0) {
+        console.log('📝 Capturing initial selection:', initialIds);
         updateCurrentSelection(initialIds);
-        console.log('Captured initial selection:', initialIds);
       }
-    } catch (error) {
-      console.warn('Could not capture initial selection:', error);
+    } else {
+      console.log('ℹ️ No initial selection found');
     }
-  }, 100);
-} catch (error) {
-  console.warn('Error setting up initial selection capture:', error);
-}
+  } catch (error) {
+    console.warn('⚠️ Could not capture initial selection:', error);
+  }
+}, 500); // Longer timeout to ensure Penpot is fully ready
 
 // Open the plugin UI with current theme
 penpot.ui.open("AI Penpot Wizard", `?theme=${penpot.theme}`, {

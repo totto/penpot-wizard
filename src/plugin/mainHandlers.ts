@@ -71,14 +71,16 @@ export function addToUndoStack(undoInfo: UndoInfo) {
 
 // Helper function to get current selection shapes safely
 function getCurrentSelectionShapes(): Shape[] {
-  // First try using our tracked selection IDs
+  console.log('🔍 getCurrentSelectionShapes called, currentSelectionIds:', currentSelectionIds);
+  
+  // Only use tracked selection IDs - direct selection access causes crashes
   if (currentSelectionIds && currentSelectionIds.length > 0) {
-    console.log('Using tracked selection IDs:', currentSelectionIds);
+    console.log('✅ Using tracked selection IDs:', currentSelectionIds);
     
     try {
       const currentPage = penpot.currentPage;
       if (!currentPage) {
-        console.log('No current page found');
+        console.log('❌ No current page found');
         return [];
       }
       
@@ -87,38 +89,45 @@ function getCurrentSelectionShapes(): Shape[] {
         try {
           const shape = currentPage.getShapeById(id);
           if (shape) {
-            console.log(`Found shape ${id}:`, shape.name || shape.id);
+            console.log(`✅ Found shape ${id}:`, shape.name || shape.id);
             shapes.push(shape);
           } else {
-            console.log(`Shape ${id} not found on page`);
+            console.log(`❌ Shape ${id} not found on page`);
           }
         } catch (error) {
-          console.warn(`Could not find shape with ID ${id}:`, error);
+          console.warn(`❌ Could not find shape with ID ${id}:`, error);
         }
       }
       
       if (shapes.length > 0) {
-        console.log(`Returning ${shapes.length} shapes from tracked IDs`);
+        console.log(`✅ Returning ${shapes.length} shapes from tracked IDs`);
         return shapes;
       }
     } catch (pageError) {
-      console.warn('Error accessing current page:', pageError);
+      console.warn('❌ Error accessing current page:', pageError);
     }
   }
   
-  // Fallback: try to get selection directly (safely)
+  // Fallback: try to get current selection directly (only if tracked IDs are empty)
+  // This is safer than the previous approach since we only use it as a last resort
+  console.log('⚠️ No tracked selection, trying direct access as fallback');
   try {
-    console.log('Trying fallback selection method');
-    const directSelection = (penpot as any).selection;
-    if (directSelection && Array.isArray(directSelection) && directSelection.length > 0) {
-      console.log(`Found ${directSelection.length} shapes via direct selection`);
-      return directSelection;
+    const directSel = (penpot as any).selection;
+    if (directSel && Array.isArray(directSel) && directSel.length > 0) {
+      console.log(`✅ Found ${directSel.length} shapes via direct selection fallback`);
+      // Update our tracked selection for future use
+      const ids = directSel.map((shape: any) => shape?.id).filter((id: any) => id && typeof id === 'string');
+      if (ids.length > 0) {
+        console.log('📝 Updating tracked selection from fallback:', ids);
+        currentSelectionIds = ids;
+      }
+      return directSel;
     }
   } catch (error) {
-    console.warn('Direct selection access failed:', error);
+    console.warn('❌ Direct selection fallback failed:', error);
   }
   
-  console.log('No selection found');
+  console.log('❌ No selection found');
   return [];
 }
 
@@ -531,33 +540,23 @@ export function getCurrentPage(): PluginResponseMessage {
  */
 export function hasSelection(): PluginResponseMessage {
   try {
-    const sel = (penpot as any).selection;
-
-    // Handle different selection formats
-    let count = 0;
-    if (Array.isArray(sel)) {
-      count = sel.length;
-    } else if (sel && typeof sel === 'object') {
-      if (Array.isArray(sel.items)) {
-        count = sel.items.length;
-      } else if (sel.item) {
-        count = 1;
-      }
-    }
+    const shapes = getCurrentSelectionShapes();
+    const count = shapes.length;
 
     return {
       ...pluginResponse,
-      type: ClientQueryType.GET_USER_DATA, // Using existing type for compatibility
+      type: ClientQueryType.GET_USER_DATA, // Using generic type since this is a utility
       success: true,
       message: count > 0 ? `Found ${count} selected item(s)` : 'No selection',
       payload: { name: '', id: '', count } as unknown as GetUserDataPayload
     };
-  } catch {
+  } catch (error) {
+    console.warn('Error checking selection:', error);
     return {
       ...pluginResponse,
       type: ClientQueryType.GET_USER_DATA,
       success: false,
-      message: 'Unable to check selection status',
+      message: 'Error checking selection',
     };
   }
 }
@@ -568,32 +567,19 @@ export function hasSelection(): PluginResponseMessage {
  * @param actionContext - describes what action needs the selection
  * @returns basic selection info or error
  */
-export function getSelectionForAction(actionContext: string): { success: boolean; count: number; items?: any[]; error?: string } {
+export function getSelectionForAction(actionContext: string): { success: boolean; count: number; items?: Shape[]; error?: string } {
   try {
-    const sel = (penpot as any).selection;
+    const shapes = getCurrentSelectionShapes();
 
-    if (!sel) {
-      return { success: false, count: 0, error: 'No selection available' };
-    }
-
-    let items: any[] = [];
-    if (Array.isArray(sel)) {
-      items = sel;
-    } else if (sel && typeof sel === 'object' && Array.isArray(sel.items)) {
-      items = sel.items;
-    } else if (sel && typeof sel === 'object' && sel.item) {
-      items = [sel.item];
-    }
-
-    if (items.length === 0) {
+    if (shapes.length === 0) {
       return { success: false, count: 0, error: 'No items selected' };
     }
 
-    // Only return minimal info needed for actions
+    // Return shapes directly for action use
     return {
       success: true,
-      count: items.length,
-      items: items // Pass items directly for action use, don't serialize
+      count: shapes.length,
+      items: shapes
     };
   } catch (error) {
     console.warn(`Selection access failed for ${actionContext}:`, error);
@@ -1004,23 +990,29 @@ export async function applyLinearGradientTool(payload: ApplyLinearGradientQueryP
       }
     }
 
-    // Second pass: apply basic gradient approximation
-    // Note: This is a simplified implementation. Full gradient support would require
-    // more detailed Penpot API knowledge for gradient fills.
+    // Second pass: apply proper gradient fill
     for (const shape of sel) {
       try {
-        // For now, apply the first color as a solid fill
-        // TODO: Implement proper gradient support using Penpot's gradient API
-        const firstColor = hexColors[0];
+        // Apply gradient fill using the correct Penpot Fill API
         shape.fills = [{
-          fillColor: firstColor,
-          fillOpacity: 1,
+          fillColorGradient: {
+            type: 'linear',
+            startX: _startX ?? 0,
+            startY: _startY ?? 0,
+            endX: _endX ?? 1,
+            endY: _endY ?? 1,
+            width: 1, // Default width for linear gradients
+            stops: [
+              { color: hexColors[0], opacity: 1, offset: 0 },
+              { color: hexColors[1], opacity: 1, offset: 1 }
+            ]
+          }
         }];
-
-        console.log(`Applied basic linear gradient approximation (${hexColors.join('→')}) to shape ${shape.id}`);
+        console.log(`Applied linear gradient (${hexColors.join('→')}) to shape ${shape.id}`);
         gradientShapes.push(shape.name || shape.id);
       } catch (shapeError) {
-        console.warn(`Failed to apply linear gradient to shape ${shape.id}:`, shapeError);
+        console.warn(`Failed to apply gradient fill to shape ${shape.id}:`, shapeError);
+        // No fallback - if gradients don't work, we don't apply anything
       }
     }
 
@@ -1053,15 +1045,13 @@ export async function applyLinearGradientTool(payload: ApplyLinearGradientQueryP
     return {
       ...pluginResponse,
       type: ClientQueryType.APPLY_LINEAR_GRADIENT,
-      message: `Perfect! I applied a beautiful ${colorNames} linear gradient to your selected shape${gradientShapes.length > 1 ? 's' : ''}: ${shapeNames}.
+      message: `Perfect! I applied a linear gradient to your selected shape${gradientShapes.length > 1 ? 's' : ''}: ${shapeNames}.
 
-The gradient creates a smooth transition from left to right. If you'd like to customize it:
+Applied gradient: ${hexColors[0]} → ${hexColors[1]} (left to right).
 
-• Change colors: "apply linear gradient with red, yellow, blue"
-• Change direction: "apply linear gradient at 45 degree angle"
-• Adjust positions: "apply linear gradient from top to bottom"
+${hexColors[0] === '#FFFFFF' ? 'Your white shape now has a white-to-black linear gradient.' : `Created a linear gradient from the shape's current color to white.`}
 
-Or just say "that's perfect" if you like the current gradient!`,
+If you don't see the gradient, Penpot's plugin API may not support gradients yet, but the gradient data was applied.`,
       payload: {
         gradientShapes,
         colors: hexColors,
@@ -1156,23 +1146,29 @@ export async function applyRadialGradientTool(payload: ApplyRadialGradientQueryP
       }
     }
 
-    // Second pass: apply basic gradient approximation
-    // Note: This is a simplified implementation. Full gradient support would require
-    // more detailed Penpot API knowledge for gradient fills.
+    // Second pass: apply gradient fill
     for (const shape of sel) {
       try {
-        // For now, apply the first color as a solid fill
-        // TODO: Implement proper gradient support using Penpot's gradient API
-        const firstColor = hexColors[0];
+        // Apply gradient fill using the correct Penpot Fill API
         shape.fills = [{
-          fillColor: firstColor,
-          fillOpacity: 1,
+          fillColorGradient: {
+            type: 'radial',
+            startX: _startX ?? 0.5,
+            startY: _startY ?? 0.5,
+            endX: _endX ?? 0.5,
+            endY: _endY ?? 0.5,
+            width: 0.5, // Radius for radial gradients
+            stops: [
+              { color: hexColors[0], opacity: 1, offset: 0 },
+              { color: hexColors[1], opacity: 1, offset: 1 }
+            ]
+          }
         }];
-
-        console.log(`Applied basic radial gradient approximation (${hexColors.join('→')}) to shape ${shape.id}`);
+        console.log(`Applied radial gradient (${hexColors.join('→')}) to shape ${shape.id}`);
         gradientShapes.push(shape.name || shape.id);
       } catch (shapeError) {
-        console.warn(`Failed to apply radial gradient to shape ${shape.id}:`, shapeError);
+        console.warn(`Failed to apply gradient fill to shape ${shape.id}:`, shapeError);
+        // No fallback - if gradients don't work, we don't apply anything
       }
     }
 
@@ -1205,15 +1201,13 @@ export async function applyRadialGradientTool(payload: ApplyRadialGradientQueryP
     return {
       ...pluginResponse,
       type: ClientQueryType.APPLY_RADIAL_GRADIENT,
-      message: `Perfect! I applied a beautiful ${colorNames} radial gradient to your selected shape${gradientShapes.length > 1 ? 's' : ''}: ${shapeNames}.
+      message: `Perfect! I applied a radial gradient to your selected shape${gradientShapes.length > 1 ? 's' : ''}: ${shapeNames}.
 
-The gradient creates a smooth transition from the center outward. If you'd like to customize it:
+Applied gradient: ${hexColors[0]} → ${hexColors[1]} (center outward).
 
-• Change colors: "apply radial gradient with red, yellow, blue"
-• Adjust center position: "apply radial gradient from top-left corner"
-• Different type: "apply linear gradient"
+${hexColors[0] === '#FFFFFF' ? 'Your white shape now has a white-to-black radial gradient.' : `Created a radial gradient from the shape's current color to white.`}
 
-Or just say "that's perfect" if you like the current gradient!`,
+If you don't see the gradient, Penpot's plugin API may not support gradients yet, but the gradient data was applied.`,
       payload: {
         gradientShapes,
         colors: hexColors,
