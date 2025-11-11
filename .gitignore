@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
+# Personal/IDE files
 codealike.json
 
 

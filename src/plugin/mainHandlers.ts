@@ -22,6 +22,7 @@ import {
   AddImageFromUrlQueryPayload,
   ApplyBlurQueryPayload,
   ApplyFillQueryPayload,
+  ApplyStrokeQueryPayload,
   ApplyLinearGradientQueryPayload,
   ApplyRadialGradientQueryPayload,
   ClientQueryType,
@@ -821,8 +822,18 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
   const { blurValue = 5 } = payload;
 
   try {
-    // Get current selection using safe method
-    const sel = getCurrentSelectionShapes();
+    // Get current selection using safe method - direct access within action tool only
+    let sel: Shape[] = [];
+    try {
+      const directSel = (penpot as any).selection;
+      if (directSel && Array.isArray(directSel) && directSel.length > 0) {
+        sel = directSel;
+        console.log(`✅ Found ${sel.length} selected shapes for blur application`);
+      }
+    } catch (selectionError) {
+      console.warn('❌ Could not access selection for blur tool:', selectionError);
+    }
+
     if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
@@ -930,8 +941,18 @@ export async function applyLinearGradientTool(payload: ApplyLinearGradientQueryP
   } = payload;
 
   try {
-    // Get current selection using safe method
-    const sel = getCurrentSelectionShapes();
+    // Get current selection using safe method - direct access within action tool only
+    let sel: Shape[] = [];
+    try {
+      const directSel = (penpot as any).selection;
+      if (directSel && Array.isArray(directSel) && directSel.length > 0) {
+        sel = directSel;
+        console.log(`✅ Found ${sel.length} selected shapes for linear gradient application`);
+      }
+    } catch (selectionError) {
+      console.warn('❌ Could not access selection for linear gradient tool:', selectionError);
+    }
+
     if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
@@ -1086,8 +1107,18 @@ export async function applyRadialGradientTool(payload: ApplyRadialGradientQueryP
   } = payload;
 
   try {
-    // Get current selection using safe method
-    const sel = getCurrentSelectionShapes();
+    // Get current selection using safe method - direct access within action tool only
+    let sel: Shape[] = [];
+    try {
+      const directSel = (penpot as any).selection;
+      if (directSel && Array.isArray(directSel) && directSel.length > 0) {
+        sel = directSel;
+        console.log(`✅ Found ${sel.length} selected shapes for radial gradient application`);
+      }
+    } catch (selectionError) {
+      console.warn('❌ Could not access selection for radial gradient tool:', selectionError);
+    }
+
     if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
@@ -1264,8 +1295,18 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
   const hexColor = colorMap[normalizedColor] || (fillColor.startsWith('#') ? fillColor : `#${fillColor}`);
 
   try {
-    // Get current selection using safe method
-    const sel = getCurrentSelectionShapes();
+    // Get current selection using safe method - direct access within action tool only
+    let sel: Shape[] = [];
+    try {
+      const directSel = (penpot as any).selection;
+      if (directSel && Array.isArray(directSel) && directSel.length > 0) {
+        sel = directSel;
+        console.log(`✅ Found ${sel.length} selected shapes for fill application`);
+      }
+    } catch (selectionError) {
+      console.warn('❌ Could not access selection for fill tool:', selectionError);
+    }
+
     if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
@@ -1388,6 +1429,177 @@ Say "apply fill #FF5733" or "apply fill blue at 70% opacity".`,
   }
 }
 
+export async function applyStrokeTool(payload: ApplyStrokeQueryPayload): Promise<PluginResponseMessage> {
+  const {
+    strokeColor = '#000000',
+    strokeWidth = 1,
+    strokeOpacity = 1,
+    strokeStyle = 'solid'
+  } = payload;
+
+  // Convert named colors to hex
+  const colorMap: Record<string, string> = {
+    'red': '#FF0000',
+    'green': '#00FF00',
+    'blue': '#0000FF',
+    'yellow': '#FFFF00',
+    'cyan': '#00FFFF',
+    'magenta': '#FF00FF',
+    'black': '#000000',
+    'white': '#FFFFFF',
+    'gray': '#808080',
+    'grey': '#808080',
+  };
+
+  const normalizedColor = strokeColor.toLowerCase();
+  const hexColor = colorMap[normalizedColor] || (strokeColor.startsWith('#') ? strokeColor : `#${strokeColor}`);
+
+  try {
+    // Get current selection using safe method - direct access within action tool only
+    let sel: Shape[] = [];
+    try {
+      const directSel = (penpot as any).selection;
+      if (directSel && Array.isArray(directSel) && directSel.length > 0) {
+        sel = directSel;
+        console.log(`✅ Found ${sel.length} selected shapes for stroke application`);
+      }
+    } catch (selectionError) {
+      console.warn('❌ Could not access selection for stroke tool:', selectionError);
+    }
+
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_STROKE,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    // Apply stroke to each selected shape
+    const strokedShapes: string[] = [];
+    const shapeIds: string[] = [];
+    const previousStrokes: Array<{ strokeColor?: string; strokeWidth?: number; strokeOpacity?: number; strokeStyle?: string } | undefined> = [];
+    const appliedStrokes: Array<{ strokeColor: string; strokeWidth: number; strokeOpacity: number; strokeStyle: string }> = [];
+
+    // First pass: capture previous stroke values for undo
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      if (shape.strokes && Array.isArray(shape.strokes) && shape.strokes.length > 0) {
+        previousStrokes.push({ ...shape.strokes[0] });
+      } else {
+        previousStrokes.push(undefined);
+      }
+      // Store the stroke that will be applied
+      appliedStrokes.push({ strokeColor: hexColor, strokeWidth, strokeOpacity, strokeStyle });
+    }
+
+    // Second pass: apply the new strokes
+    for (const shape of sel) {
+      console.log(`Processing shape: ${shape.id}, has strokes: ${'strokes' in shape}`);
+      try {
+        // Apply stroke to the shape using the documented Penpot API
+        // Clear existing strokes and set new stroke
+        shape.strokes = [{
+          strokeColor: hexColor,
+          strokeWidth: strokeWidth,
+          strokeOpacity: strokeOpacity,
+          strokeStyle: strokeStyle as 'solid' | 'dashed' | 'dotted' | 'mixed',
+        }];
+        console.log(`Successfully set strokes for shape ${shape.id}`);
+        strokedShapes.push(shape.name || shape.id);
+      } catch (shapeError) {
+        console.warn(`Failed to apply stroke to shape ${shape.id}:`, shapeError);
+        // Try alternative: modify existing strokes
+        try {
+          if (shape.strokes && Array.isArray(shape.strokes)) {
+            if (shape.strokes.length > 0) {
+              // Modify first stroke
+              shape.strokes[0] = {
+                ...shape.strokes[0],
+                strokeColor: hexColor,
+                strokeWidth: strokeWidth,
+                strokeOpacity: strokeOpacity,
+                strokeStyle: strokeStyle as 'solid' | 'dashed' | 'dotted' | 'mixed',
+              };
+            } else {
+              // Add new stroke
+              shape.strokes = [{
+                strokeColor: hexColor,
+                strokeWidth: strokeWidth,
+                strokeOpacity: strokeOpacity,
+                strokeStyle: strokeStyle as 'solid' | 'dashed' | 'dotted' | 'mixed',
+              }];
+            }
+            console.log(`Alternative method succeeded for shape ${shape.id}`);
+            strokedShapes.push(shape.name || shape.id);
+          }
+        } catch (altError) {
+          console.warn(`Alternative stroke method also failed for shape ${shape.id}:`, altError);
+        }
+      }
+    }
+
+    if (strokedShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_STROKE,
+        success: false,
+        message: 'Failed to apply stroke to any selected shapes',
+      };
+    }
+
+    const shapeNames = strokedShapes.join(', ');
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.APPLY_STROKE,
+      actionId: `stroke_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        shapeIds,
+        previousStrokes,
+        appliedStrokes,
+      },
+      description: `Applied ${hexColor} stroke (${strokeWidth}px, ${strokeStyle}${strokeOpacity < 1 ? `, ${Math.round(strokeOpacity * 100)}% opacity` : ''}) to ${strokedShapes.length} shape${strokedShapes.length > 1 ? 's' : ''}`,
+      timestamp: Date.now(),
+    };
+
+    // Add to undo stack
+    undoStack.push(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPLY_STROKE,
+      message: `Done! I applied a ${hexColor} stroke (${strokeWidth}px, ${strokeStyle}${strokeOpacity < 1 ? `, ${Math.round(strokeOpacity * 100)}% opacity` : ''}) to your selected shape${strokedShapes.length > 1 ? 's' : ''}: ${shapeNames}.
+
+Want different stroke properties?
+
+Stroke options:
+• Stroke color: Hex colors (#FF0000) or named colors (red, blue, etc.)
+• Stroke width: Number in pixels (1, 2, 5, etc.)
+• Stroke opacity: 0.0 to 1.0 (0.5 = 50% opacity)
+• Stroke style: solid, dashed, dotted, mixed
+• Line cap: butt, round, square
+• Line join: miter, round, bevel
+
+Say "apply stroke #FF5733 width 3" or "apply stroke blue dashed at 80% opacity".`,
+      payload: {
+        strokedShapes,
+        strokeColor: hexColor,
+        strokeWidth,
+        strokeOpacity,
+        strokeStyle,
+        undoInfo,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPLY_STROKE,
+      success: false,
+      message: `Error applying stroke: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function undoLastAction(_payload: UndoLastActionQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Check if there's anything to undo
@@ -1474,6 +1686,43 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to restore blur for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.APPLY_STROKE: {
+        // Restore previous stroke values
+        const strokeData = lastAction.undoData as {
+          shapeIds: string[];
+          previousStrokes: Array<{ strokeColor?: string; strokeWidth?: number; strokeOpacity?: number; strokeStyle?: string } | undefined>;
+        };
+
+        for (let i = 0; i < strokeData.shapeIds.length; i++) {
+          const shapeId = strokeData.shapeIds[i];
+          const previousStroke = strokeData.previousStrokes[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore the previous stroke
+            if (previousStroke) {
+              shape.strokes = [{
+                ...previousStroke,
+                strokeStyle: previousStroke.strokeStyle as 'solid' | 'dashed' | 'dotted' | 'mixed' | 'none' | 'svg' | undefined,
+              }];
+            } else {
+              // If there was no previous stroke, remove strokes
+              shape.strokes = [];
+            }
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore stroke for shape ${shapeId}:`, error);
           }
         }
         break;
@@ -1677,6 +1926,41 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
 
           } catch (error) {
             console.warn(`Failed to redo fill for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.APPLY_STROKE: {
+        // Reapply the stroke values
+        const strokeData = lastAction.undoData as {
+          shapeIds: string[];
+          previousStrokes: Array<{ strokeColor?: string; strokeWidth?: number; strokeOpacity?: number; strokeStyle?: string } | undefined>;
+          appliedStrokes: Array<{ strokeColor: string; strokeWidth: number; strokeOpacity: number; strokeStyle: string }>;
+        };
+
+        for (let i = 0; i < strokeData.shapeIds.length; i++) {
+          const shapeId = strokeData.shapeIds[i];
+          const appliedStroke = strokeData.appliedStrokes[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Reapply the stroke
+            shape.strokes = [{
+              strokeColor: appliedStroke.strokeColor,
+              strokeWidth: appliedStroke.strokeWidth,
+              strokeOpacity: appliedStroke.strokeOpacity,
+              strokeStyle: appliedStroke.strokeStyle as 'solid' | 'dashed' | 'dotted' | 'mixed',
+            }];
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo stroke for shape ${shapeId}:`, error);
           }
         }
         break;

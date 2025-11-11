@@ -6,6 +6,7 @@ import {
   AddImageFromUrlQueryPayload,
   ApplyBlurQueryPayload,
   ApplyFillQueryPayload,
+  ApplyStrokeQueryPayload,
   ApplyLinearGradientQueryPayload,
   ApplyRadialGradientQueryPayload,
   DrawShapeQueryPayload,
@@ -17,7 +18,7 @@ import {
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
-import { handleGetProjectData, handleGetUserData, handleAddImageFromUrl, applyBlurTool, applyFillTool, applyLinearGradientTool, applyRadialGradientTool, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, createLibraryColor, createLibraryFont, createLibraryComponent, updateCurrentSelection, undoLastAction, redoLastAction } from './mainHandlers';
+import { handleGetProjectData, handleGetUserData, handleAddImageFromUrl, applyBlurTool, applyFillTool, applyStrokeTool, applyLinearGradientTool, applyRadialGradientTool, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, createLibraryColor, createLibraryFont, createLibraryComponent, updateCurrentSelection, undoLastAction, redoLastAction } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
@@ -141,6 +142,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.APPLY_FILL:
       responseMessage = await applyFillTool(payload as unknown as ApplyFillQueryPayload);
+      break;
+
+    case ClientQueryType.APPLY_STROKE:
+      responseMessage = await applyStrokeTool(payload as unknown as ApplyStrokeQueryPayload);
       break;
 
     case ClientQueryType.APPLY_LINEAR_GRADIENT:
