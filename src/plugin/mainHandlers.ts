@@ -51,7 +51,7 @@ let currentSelectionIds: string[] = [];
 // Global undo stack - stores undo information for reversible actions
 let undoStack: UndoInfo[] = [];
 // Global redo stack - stores undone actions that can be redone
-let redoStack: UndoInfo[] = [];
+const redoStack: UndoInfo[] = [];
 const MAX_UNDO_STACK_SIZE = 10; // Keep last 10 undoable actions
 
 // Function to update selection IDs from plugin.ts
@@ -71,73 +71,6 @@ export function addToUndoStack(undoInfo: UndoInfo) {
     undoStack = undoStack.slice(-MAX_UNDO_STACK_SIZE);
   }
   console.log('Added to undo stack:', undoInfo.description);
-}
-
-// Helper function to get current selection shapes safely
-function getCurrentSelectionShapes(): Shape[] {
-  console.log('🔍 getCurrentSelectionShapes called, currentSelectionIds:', currentSelectionIds);
-
-  // First, always try to get fresh selection data to ensure we don't miss anything
-  let freshSelection: Shape[] = [];
-  try {
-    const directSel = (penpot as any).selection;
-    if (directSel && Array.isArray(directSel) && directSel.length > 0) {
-      console.log(`✅ Found ${directSel.length} shapes via direct selection`);
-      freshSelection = directSel;
-      // Update our tracked selection for future use
-      const ids = directSel.map((shape: any) => shape?.id).filter((id: any) => id && typeof id === 'string');
-      if (ids.length > 0) {
-        console.log('📝 Updating tracked selection from fresh data:', ids);
-        currentSelectionIds = ids;
-      }
-    }
-  } catch (directError) {
-    console.warn('❌ Direct selection access failed:', directError);
-  }
-
-  // If we got fresh selection, use it
-  if (freshSelection.length > 0) {
-    console.log(`✅ Returning ${freshSelection.length} shapes from fresh selection`);
-    return freshSelection;
-  }
-
-  // Fallback: use tracked selection IDs if fresh selection failed
-  if (currentSelectionIds && currentSelectionIds.length > 0) {
-    console.log('⚠️ Using tracked selection IDs as fallback:', currentSelectionIds);
-
-    try {
-      const currentPage = penpot.currentPage;
-      if (!currentPage) {
-        console.log('❌ No current page found');
-        return [];
-      }
-
-      const shapes: Shape[] = [];
-      for (const id of currentSelectionIds) {
-        try {
-          const shape = currentPage.getShapeById(id);
-          if (shape) {
-            console.log(`✅ Found shape ${id}:`, shape.name || shape.id);
-            shapes.push(shape);
-          } else {
-            console.log(`❌ Shape ${id} not found on page`);
-          }
-        } catch (error) {
-          console.warn(`❌ Could not find shape with ID ${id}:`, error);
-        }
-      }
-
-      if (shapes.length > 0) {
-        console.log(`✅ Returning ${shapes.length} shapes from tracked IDs`);
-        return shapes;
-      }
-    } catch (pageError) {
-      console.warn('❌ Error accessing current page:', pageError);
-    }
-  }
-
-  console.log('❌ No selection found via any method');
-  return [];
 }
 
 export function handleGetUserData(): PluginResponseMessage {
@@ -348,46 +281,17 @@ export async function createLibraryComponent(payload: CreateLibraryComponentPayl
     let componentShapes: Shape[] = [];
 
     if (useSelection) {
-      // Get currently selected shapes using the same logic as getCurrentSelection - DISABLED to prevent crashes
-      // try {
-      //   const sel: any = (penpot as any).selection;
-
-      //   if (!sel) {
-      //     return {
-      //       ...pluginResponse,
-      //       type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
-      //       success: false,
-      //       message: 'NO_SELECTION',
-      //     };
-      //   }
-
-      //   let selectedItems: any[] = [];
-      //   if (Array.isArray(sel)) {
-      //     selectedItems = sel;
-      //   } else if (sel && typeof sel === 'object' && Array.isArray(sel.items)) {
-      //     selectedItems = sel.items;
-      //   } else if (sel && typeof sel === 'object' && sel.item) {
-      //     selectedItems = [sel.item];
-      //   }
-
-      //   if (selectedItems.length === 0) {
-      //     return {
-      //       ...pluginResponse,
-      //       type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
-      //       success: false,
-      //       message: 'NO_SELECTION',
-      //     };
-      //   }
-
-      //   componentShapes = selectedItems as Shape[];
-      // } catch {
+      // Use shared selection system for safe selection access
+      const selectedShapes = getSelectionForAction();
+      if (!selectedShapes || selectedShapes.length === 0) {
         return {
           ...pluginResponse,
           type: ClientQueryType.CREATE_LIBRARY_COMPONENT,
           success: false,
           message: 'NO_SELECTION',
         };
-      // }
+      }
+      componentShapes = selectedShapes;
     } else if (shapes && Array.isArray(shapes)) {
       componentShapes = shapes;
     } else {
@@ -544,59 +448,47 @@ export function getCurrentPage(): PluginResponseMessage {
 // 4. Never serialize or deeply inspect selection objects for general consumption
 
 /**
- * Safely checks if there are selected shapes available
- * @returns PluginResponseMessage indicating selection status
+ * SHARED SELECTION SYSTEM
+ * =======================
+ *
+ * Provides safe selection access for all tools that need to work with selected shapes.
+ * This system prevents JavaFX crashes by following the safety pattern:
+ * - Access selection directly within action-performing functions only
+ * - Never create general-purpose selection querying tools
+ * - Handle errors gracefully with try/catch blocks
  */
-export function hasSelection(): PluginResponseMessage {
-  try {
-    const shapes = getCurrentSelectionShapes();
-    const count = shapes.length;
 
-    return {
-      ...pluginResponse,
-      type: ClientQueryType.GET_USER_DATA, // Using generic type since this is a utility
-      success: true,
-      message: count > 0 ? `Found ${count} selected item(s)` : 'No selection',
-      payload: { name: '', id: '', count } as unknown as GetUserDataPayload
-    };
+// SAFE SELECTION ACCESS PATTERN
+// =============================
+// This function should ONLY be called by tools when they are actually
+// performing an action, not for general selection querying.
+// Never use this for AI consumption or serialization.
+export function getSelectionForAction(): Shape[] {
+  console.log('🔍 getSelectionForAction called - safe for action-performing tools only');
+
+  try {
+    // Only access selection when actually performing an action
+    const directSel = (penpot as unknown as { selection: Shape[] }).selection;
+    if (directSel && Array.isArray(directSel) && directSel.length > 0) {
+      console.log(`✅ Found ${directSel.length} shapes for action`);
+      return directSel;
+    }
   } catch (error) {
-    console.warn('Error checking selection:', error);
-    return {
-      ...pluginResponse,
-      type: ClientQueryType.GET_USER_DATA,
-      success: false,
-      message: 'Error checking selection',
-    };
+    console.warn('❌ Selection access failed:', error);
   }
+
+  console.log('❌ No selection available for action');
+  return [];
 }
 
-/**
- * Safely gets basic selection info for action tools
- * Only returns minimal data needed for the specific action
- * @param actionContext - describes what action needs the selection
- * @returns basic selection info or error
- */
-export function getSelectionForAction(actionContext: string): { success: boolean; count: number; items?: Shape[]; error?: string } {
+// Check if selection exists (safe utility)
+export function hasValidSelection(): boolean {
   try {
-    const shapes = getCurrentSelectionShapes();
-
-    if (shapes.length === 0) {
-      return { success: false, count: 0, error: 'No items selected' };
-    }
-
-    // Return shapes directly for action use
-    return {
-      success: true,
-      count: shapes.length,
-      items: shapes
-    };
+    const selection = (penpot as unknown as { selection: Shape[] }).selection;
+    return selection && Array.isArray(selection) && selection.length > 0;
   } catch (error) {
-    console.warn(`Selection access failed for ${actionContext}:`, error);
-    return {
-      success: false,
-      count: 0,
-      error: `Selection access failed: ${error instanceof Error ? error.message : String(error)}`
-    };
+    console.warn('❌ Error checking selection validity:', error);
+    return false;
   }
 }
 
@@ -822,18 +714,8 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
   const { blurValue = 5 } = payload;
 
   try {
-    // Get current selection using safe method - direct access within action tool only
-    let sel: Shape[] = [];
-    try {
-      const directSel = (penpot as any).selection;
-      if (directSel && Array.isArray(directSel) && directSel.length > 0) {
-        sel = directSel;
-        console.log(`✅ Found ${sel.length} selected shapes for blur application`);
-      }
-    } catch (selectionError) {
-      console.warn('❌ Could not access selection for blur tool:', selectionError);
-    }
-
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
     if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
@@ -941,18 +823,8 @@ export async function applyLinearGradientTool(payload: ApplyLinearGradientQueryP
   } = payload;
 
   try {
-    // Get current selection using safe method - direct access within action tool only
-    let sel: Shape[] = [];
-    try {
-      const directSel = (penpot as any).selection;
-      if (directSel && Array.isArray(directSel) && directSel.length > 0) {
-        sel = directSel;
-        console.log(`✅ Found ${sel.length} selected shapes for linear gradient application`);
-      }
-    } catch (selectionError) {
-      console.warn('❌ Could not access selection for linear gradient tool:', selectionError);
-    }
-
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
     if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
@@ -1107,18 +979,8 @@ export async function applyRadialGradientTool(payload: ApplyRadialGradientQueryP
   } = payload;
 
   try {
-    // Get current selection using safe method - direct access within action tool only
-    let sel: Shape[] = [];
-    try {
-      const directSel = (penpot as any).selection;
-      if (directSel && Array.isArray(directSel) && directSel.length > 0) {
-        sel = directSel;
-        console.log(`✅ Found ${sel.length} selected shapes for radial gradient application`);
-      }
-    } catch (selectionError) {
-      console.warn('❌ Could not access selection for radial gradient tool:', selectionError);
-    }
-
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
     if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
@@ -1295,18 +1157,8 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
   const hexColor = colorMap[normalizedColor] || (fillColor.startsWith('#') ? fillColor : `#${fillColor}`);
 
   try {
-    // Get current selection using safe method - direct access within action tool only
-    let sel: Shape[] = [];
-    try {
-      const directSel = (penpot as any).selection;
-      if (directSel && Array.isArray(directSel) && directSel.length > 0) {
-        sel = directSel;
-        console.log(`✅ Found ${sel.length} selected shapes for fill application`);
-      }
-    } catch (selectionError) {
-      console.warn('❌ Could not access selection for fill tool:', selectionError);
-    }
-
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
     if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
@@ -1455,18 +1307,8 @@ export async function applyStrokeTool(payload: ApplyStrokeQueryPayload): Promise
   const hexColor = colorMap[normalizedColor] || (strokeColor.startsWith('#') ? strokeColor : `#${strokeColor}`);
 
   try {
-    // Get current selection using safe method - direct access within action tool only
-    let sel: Shape[] = [];
-    try {
-      const directSel = (penpot as any).selection;
-      if (directSel && Array.isArray(directSel) && directSel.length > 0) {
-        sel = directSel;
-        console.log(`✅ Found ${sel.length} selected shapes for stroke application`);
-      }
-    } catch (selectionError) {
-      console.warn('❌ Could not access selection for stroke tool:', selectionError);
-    }
-
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
     if (!sel || sel.length === 0) {
       return {
         ...pluginResponse,
