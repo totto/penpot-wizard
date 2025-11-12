@@ -30,6 +30,7 @@ import {
   AlignVerticalQueryPayload,
   CenterAlignmentQueryPayload,
   DistributeHorizontalQueryPayload,
+  DistributeVerticalQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -2135,6 +2136,84 @@ You can undo this action anytime with "undo last action".`,
   }
 }
 
+export async function distributeVerticalTool(_payload: DistributeVerticalQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length < 3) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.DISTRIBUTE_VERTICAL,
+        success: false,
+        message: sel && sel.length === 2 
+          ? 'NEED_MORE_SHAPES' 
+          : 'NO_SELECTION',
+      };
+    }
+
+    // Store previous positions for undo (both X and Y coordinates)
+    const shapeIds: string[] = [];
+    const previousPositions: Array<{ x: number; y: number }> = [];
+
+    // First pass: capture previous positions
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      previousPositions.push({ x: shape.x, y: shape.y });
+    }
+
+    // Apply vertical distribution using Penpot's distributeVertical method
+    try {
+      // Call Penpot's distributeVertical method on the selection
+      penpot.distributeVertical(sel);
+    } catch (distributeError) {
+      console.warn(`Penpot distributeVertical failed:`, distributeError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.DISTRIBUTE_VERTICAL,
+        success: false,
+        message: `Failed to distribute shapes vertically. Penpot's distribution API may not be available or the shapes may not be distributable.`,
+      };
+    }
+
+    const shapeNames = sel.map(s => s.name || s.id).join(', ');
+
+    // Add to undo stack with position data
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.DISTRIBUTE_VERTICAL,
+      actionId: `distribute_vertical_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        shapeIds,
+        previousPositions,
+      },
+      description: `Distributed ${sel.length} shapes vertically`,
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.DISTRIBUTE_VERTICAL,
+      message: `Perfect! I distributed ${sel.length} shapes evenly across the vertical space.
+
+Distributed shapes: ${shapeNames}
+
+The shapes are now spaced evenly between the topmost and bottommost positions.
+You can undo this action anytime with "undo last action".`,
+      payload: {
+        undoInfo,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.DISTRIBUTE_VERTICAL,
+      success: false,
+      message: `Error distributing shapes vertically: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function undoLastAction(_payload: UndoLastActionQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Check if there's anything to undo
@@ -2386,6 +2465,35 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
       }
 
       case ClientQueryType.DISTRIBUTE_HORIZONTAL: {
+        // Restore previous positions (same as alignment operations)
+        const distributeData = lastAction.undoData as {
+          shapeIds: string[];
+          previousPositions: Array<{ x: number; y: number }>;
+        };
+
+        for (let i = 0; i < distributeData.shapeIds.length; i++) {
+          const shapeId = distributeData.shapeIds[i];
+          const previousPosition = distributeData.previousPositions[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore the previous position
+            shape.x = previousPosition.x;
+            shape.y = previousPosition.y;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore position for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.DISTRIBUTE_VERTICAL: {
         // Restore previous positions (same as alignment operations)
         const distributeData = lastAction.undoData as {
           shapeIds: string[];
@@ -2723,6 +2831,76 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             restoredShapes.push(shape.name || shape.id);
           } catch (singleAlignError) {
             console.warn(`Failed to redo single shape vertical alignment:`, singleAlignError);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.DISTRIBUTE_HORIZONTAL: {
+        // Reapply the horizontal distribution
+        const distributeData = lastAction.undoData as {
+          shapeIds: string[];
+          previousPositions: Array<{ x: number; y: number }>;
+        };
+
+        // Get the shapes and reapply distribution
+        const shapesToDistribute: Shape[] = [];
+        for (const shapeId of distributeData.shapeIds) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (shape) {
+              shapesToDistribute.push(shape);
+            }
+          } catch (error) {
+            console.warn(`Failed to find shape ${shapeId} for redo distribution:`, error);
+          }
+        }
+
+        // Reapply the distribution if we have enough shapes
+        if (shapesToDistribute.length >= 3) {
+          try {
+            penpot.distributeHorizontal(shapesToDistribute);
+            restoredShapes.push(...shapesToDistribute.map(s => s.name || s.id));
+          } catch (distributeError) {
+            console.warn(`Failed to redo horizontal distribution:`, distributeError);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.DISTRIBUTE_VERTICAL: {
+        // Reapply the vertical distribution
+        const distributeData = lastAction.undoData as {
+          shapeIds: string[];
+          previousPositions: Array<{ x: number; y: number }>;
+        };
+
+        // Get the shapes and reapply distribution
+        const shapesToDistribute: Shape[] = [];
+        for (const shapeId of distributeData.shapeIds) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (shape) {
+              shapesToDistribute.push(shape);
+            }
+          } catch (error) {
+            console.warn(`Failed to find shape ${shapeId} for redo distribution:`, error);
+          }
+        }
+
+        // Reapply the distribution if we have enough shapes
+        if (shapesToDistribute.length >= 3) {
+          try {
+            penpot.distributeVertical(shapesToDistribute);
+            restoredShapes.push(...shapesToDistribute.map(s => s.name || s.id));
+          } catch (distributeError) {
+            console.warn(`Failed to redo vertical distribution:`, distributeError);
           }
         }
         break;

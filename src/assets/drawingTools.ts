@@ -428,6 +428,25 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.DISTRIBUTE_HORIZONTAL, {});
     return response;
   },
+},
+{
+  id: 'distribute-vertical-tool',
+  name: 'DistributeVerticalTool',
+  description: `
+    Distribute selected shapes evenly across the vertical space.
+    
+    This tool spaces shapes evenly between the topmost and bottommost shapes in your selection.
+    Perfect for creating uniform vertical spacing in layouts and designs.
+    
+    Works with 3+ selected shapes for meaningful distribution.
+    Uses Penpot's native distribution API for consistent behavior.
+    Full undo/redo support included.
+  `,
+  inputSchema: z.object({}),
+  function: async () => {
+    const response = await sendMessageToPlugin(ClientQueryType.DISTRIBUTE_VERTICAL, {});
+    return response;
+  },
 }
 
 ];
