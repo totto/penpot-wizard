@@ -91,6 +91,7 @@ When the user wants to redo a recently undone action:
       'undo-last-action', 
       'redo-last-action',
       'apply-stroke-tool',
+      'apply-shadow-tool',
     
     ],    
     

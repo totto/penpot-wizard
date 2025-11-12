@@ -299,6 +299,46 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.APPLY_RADIAL_GRADIENT, gradientProperties);
     return response;
   },
+},
+{
+  id: 'apply-shadow-tool',
+  name: 'ApplyShadowTool',
+  description: `
+    Apply shadow effects to the currently selected shapes on the canvas.
+    The user must first select the shapes they want to add shadows to before using this tool.
+    Use this to add drop shadows or inner shadows to shapes for depth and visual interest.
+
+    Shadow options:
+    - Shadow style: drop-shadow (outside the shape) or inner-shadow (inside the shape)
+    - Shadow color: Hex colors (#FF0000) or named colors (red, blue, etc.)
+    - Shadow offset: X and Y offset in pixels (positive/negative values)
+    - Shadow blur: Blur radius in pixels (0 = sharp, higher = more blurred)
+    - Shadow spread: Spread radius in pixels (optional, extends/contracts shadow)
+
+    If you don't specify a shadow style, drop-shadow will be used.
+    If you don't specify a shadow color, black (#000000) will be used.
+    If you don't specify offset, 4px right and 4px down will be used.
+    If you don't specify blur, 8px will be used.
+    If you don't specify spread, 0px will be used.
+
+    ⚠️ IMPORTANT: This tool will ALWAYS apply the shadow changes you request.
+    If shapes already have shadows, the tool will ask for confirmation before overriding.
+    To override existing shadows without being asked, set overrideExisting to true.
+    Never suggest overrideExisting: false - this would prevent the shadow from being applied!
+  `,
+  inputSchema: z.object({
+    shadowStyle: z.enum(['drop-shadow', 'inner-shadow']).optional().default('drop-shadow').describe('The shadow style. drop-shadow appears outside the shape, inner-shadow appears inside. Defaults to drop-shadow if not specified.'),
+    shadowColor: z.string().optional().default('#000000').describe('The shadow color as a hex string (e.g., #FF5733) or named color. Defaults to black if not specified.'),
+    shadowOffsetX: z.number().optional().default(4).describe('Horizontal shadow offset in pixels. Positive values move shadow right, negative left. Defaults to 4 if not specified.'),
+    shadowOffsetY: z.number().optional().default(4).describe('Vertical shadow offset in pixels. Positive values move shadow down, negative up. Defaults to 4 if not specified.'),
+    shadowBlur: z.number().min(0).optional().default(8).describe('Shadow blur radius in pixels. 0 = sharp shadow, higher values = more blurred. Defaults to 8 if not specified.'),
+    shadowSpread: z.number().optional().default(0).describe('Shadow spread radius in pixels. Positive values expand shadow, negative contract it. Defaults to 0 if not specified.'),
+    overrideExisting: z.boolean().optional().default(false).describe('Whether to override existing shadows without asking. Set to true when you want to apply shadow changes. Defaults to false for safety - the tool will ask for confirmation.'),
+  }),
+  function: async (shadowProperties) => {
+    const response = await sendMessageToPlugin(ClientQueryType.APPLY_SHADOW, shadowProperties);
+    return response;
+  },
 }
 
 ];

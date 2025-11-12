@@ -25,6 +25,7 @@ import {
   ApplyStrokeQueryPayload,
   ApplyLinearGradientQueryPayload,
   ApplyRadialGradientQueryPayload,
+  ApplyShadowQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -1441,6 +1442,182 @@ Say "apply stroke #FF5733 width 3" or "apply stroke blue dashed at 80% opacity".
   }
 }
 
+export async function applyShadowTool(payload: ApplyShadowQueryPayload): Promise<PluginResponseMessage> {
+  const {
+    shadowStyle = 'drop-shadow',
+    shadowColor = '#000000',
+    shadowOffsetX = 4,
+    shadowOffsetY = 4,
+    shadowBlur = 8,
+    shadowSpread = 0,
+    overrideExisting = false
+  } = payload;
+
+  // Convert named colors to hex
+  const colorMap: Record<string, string> = {
+    'red': '#FF0000',
+    'green': '#00FF00',
+    'blue': '#0000FF',
+    'yellow': '#FFFF00',
+    'cyan': '#00FFFF',
+    'magenta': '#FF00FF',
+    'black': '#000000',
+    'white': '#FFFFFF',
+    'gray': '#808080',
+    'grey': '#808080',
+  };
+
+  const normalizedColor = shadowColor.toLowerCase();
+  const hexColor = colorMap[normalizedColor] || (shadowColor.startsWith('#') ? shadowColor : `#${shadowColor}`);
+
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_SHADOW,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    // Check if any shapes already have shadows and user hasn't opted to override
+    if (!overrideExisting) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const shapesWithShadows = sel.filter((shape: any) =>
+        shape.shadows && Array.isArray(shape.shadows) && shape.shadows.length > 0
+      );
+
+      if (shapesWithShadows.length > 0) {
+        const shapeNames = shapesWithShadows.map(s => s.name || s.id).join(', ');
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.APPLY_SHADOW,
+          success: false,
+          message: `I found that ${shapesWithShadows.length} of your selected shape${shapesWithShadows.length > 1 ? 's' : ''} already ${shapesWithShadows.length > 1 ? 'have' : 'has'} shadow${shapesWithShadows.length > 1 ? 's' : ''} applied: ${shapeNames}.
+
+Do you want to override the existing shadow${shapesWithShadows.length > 1 ? 's' : ''} with the new one (${shadowStyle}, ${hexColor}, ${shadowOffsetX}px ${shadowOffsetY}px offset, ${shadowBlur}px blur${shadowSpread !== 0 ? `, ${shadowSpread}px spread` : ''})?
+
+Say "apply shadow with override" or "apply shadow override existing" to proceed with overriding.`,
+          payload: {
+            shapesWithExistingShadows: shapesWithShadows.map(s => ({ id: s.id, name: s.name })),
+            requestedShadow: { shadowStyle, shadowColor: hexColor, shadowOffsetX, shadowOffsetY, shadowBlur, shadowSpread }
+          }
+        };
+      }
+    }
+
+    // Apply shadow to each selected shape
+    const shadowedShapes: string[] = [];
+    const shapeIds: string[] = [];
+    const previousShadows: Array<{ style?: string; color?: string; offsetX?: number; offsetY?: number; blur?: number; spread?: number } | undefined> = [];
+    const appliedShadows: Array<{ style: string; color: string; offsetX: number; offsetY: number; blur: number; spread: number }> = [];
+
+    // First pass: capture previous shadow values for undo
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      if (shape.shadows && Array.isArray(shape.shadows) && shape.shadows.length > 0) {
+        // Convert Color object to string for storage
+        const shadow = shape.shadows[0];
+        previousShadows.push({
+          style: shadow.style,
+          color: typeof shadow.color === 'string' ? shadow.color : '#000000', // fallback if Color object
+          offsetX: shadow.offsetX,
+          offsetY: shadow.offsetY,
+          blur: shadow.blur,
+          spread: shadow.spread
+        });
+      } else {
+        previousShadows.push(undefined);
+      }
+      // Store the shadow that will be applied
+      appliedShadows.push({ style: shadowStyle, color: hexColor, offsetX: shadowOffsetX, offsetY: shadowOffsetY, blur: shadowBlur, spread: shadowSpread });
+    }
+
+    // Second pass: apply the new shadows
+    for (const shape of sel) {
+      console.log(`Processing shape: ${shape.id}, has shadows: ${'shadows' in shape}`);
+      try {
+        // Apply shadow to the shape using the same approach as fills/strokes
+        // Always replace the entire shadows array to ensure all properties are set correctly
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (shape as any).shadows = [{
+          style: shadowStyle,
+          color: hexColor, // Penpot accepts hex strings for shadow color
+          offsetX: shadowOffsetX,
+          offsetY: shadowOffsetY,
+          blur: shadowBlur,
+          spread: shadowSpread,
+        }];
+        console.log(`Successfully applied shadow to shape ${shape.id}`);
+        shadowedShapes.push(shape.name || shape.id);
+      } catch (shapeError) {
+        console.warn(`Failed to apply shadow to shape ${shape.id}:`, shapeError);
+      }
+    }
+
+    if (shadowedShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_SHADOW,
+        success: false,
+        message: 'Failed to apply shadow to any selected shapes',
+      };
+    }
+
+    const shapeNames = shadowedShapes.join(', ');
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.APPLY_SHADOW,
+      actionId: `shadow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        shapeIds,
+        previousShadows,
+        appliedShadows,
+      },
+      description: `Applied ${shadowStyle} shadow (${hexColor}, ${shadowOffsetX}px ${shadowOffsetY}px offset, ${shadowBlur}px blur${shadowSpread !== 0 ? `, ${shadowSpread}px spread` : ''}) to ${shadowedShapes.length} shape${shadowedShapes.length > 1 ? 's' : ''}`,
+      timestamp: Date.now(),
+    };
+
+    // Add to undo stack
+    undoStack.push(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPLY_SHADOW,
+      message: `Done! I applied a ${shadowStyle} shadow (${hexColor}, ${shadowOffsetX}px ${shadowOffsetY}px offset, ${shadowBlur}px blur${shadowSpread !== 0 ? `, ${shadowSpread}px spread` : ''}) to your selected shape${shadowedShapes.length > 1 ? 's' : ''}: ${shapeNames}.
+
+Want different shadow properties?
+
+Shadow options:
+• Shadow style: drop-shadow (outside) or inner-shadow (inside)
+• Shadow color: Hex colors (#FF0000) or named colors (red, blue, etc.)
+• Shadow offset: X,Y values in pixels (e.g., 2,4 for 2px right, 4px down)
+• Shadow blur: Blur radius in pixels (0-50, higher = more blurred)
+• Shadow spread: Spread radius in pixels (optional, extends/contracts shadow)
+
+Say "apply shadow drop-shadow #333333 offset 0,8 blur 12" or "apply shadow inner-shadow red offset 2,-2 blur 4".`,
+      payload: {
+        shadowedShapes,
+        shadowStyle,
+        shadowColor: hexColor,
+        shadowOffsetX,
+        shadowOffsetY,
+        shadowBlur,
+        shadowSpread,
+        undoInfo,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPLY_SHADOW,
+      success: false,
+      message: `Error applying shadow: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function undoLastAction(_payload: UndoLastActionQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Check if there's anything to undo
@@ -1564,6 +1741,41 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to restore stroke for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.APPLY_SHADOW: {
+        // Restore previous shadow values
+        const shadowData = lastAction.undoData as {
+          shapeIds: string[];
+          previousShadows: Array<{ style?: string; color?: string; offsetX?: number; offsetY?: number; blur?: number; spread?: number } | undefined>;
+        };
+
+        for (let i = 0; i < shadowData.shapeIds.length; i++) {
+          const shapeId = shadowData.shapeIds[i];
+          const previousShadow = shadowData.previousShadows[i];
+
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const shape = (penpot as any).currentPage?.findShape(shapeId) as any;
+            if (shape) {
+              // Restore the previous shadow
+              if (previousShadow) {
+                shape.shadows = [{
+                  ...previousShadow,
+                  style: previousShadow.style as 'drop-shadow' | 'inner-shadow' | undefined,
+                }];
+              } else {
+                // If there was no previous shadow, remove shadows
+                shape.shadows = [];
+              }
+
+              restoredShapes.push(shape.name || shape.id);
+            }
+          } catch (error) {
+            console.warn(`Failed to restore shadow for shape ${shapeId}:`, error);
           }
         }
         break;
@@ -1802,6 +2014,45 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to redo stroke for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.APPLY_SHADOW: {
+        // Reapply the shadow values
+        const shadowData = lastAction.undoData as {
+          shapeIds: string[];
+          previousShadows: Array<{ style?: string; color?: string; offsetX?: number; offsetY?: number; blur?: number; spread?: number } | undefined>;
+          appliedShadows: Array<{ style: string; color: string; offsetX: number; offsetY: number; blur: number; spread: number }>;
+        };
+
+        for (let i = 0; i < shadowData.shapeIds.length; i++) {
+          const shapeId = shadowData.shapeIds[i];
+          const appliedShadow = shadowData.appliedShadows[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const shape = (currentPage as any).getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Reapply the shadow
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (shape as any).shadows = [{
+              style: appliedShadow.style,
+              color: appliedShadow.color,
+              offsetX: appliedShadow.offsetX,
+              offsetY: appliedShadow.offsetY,
+              blur: appliedShadow.blur,
+              spread: appliedShadow.spread,
+            }];
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo shadow for shape ${shapeId}:`, error);
           }
         }
         break;
