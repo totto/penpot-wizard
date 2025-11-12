@@ -19,7 +19,28 @@ import {
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
-import { handleGetProjectData, handleGetUserData, handleAddImageFromUrl, applyBlurTool, applyFillTool, applyStrokeTool, applyShadowTool, applyLinearGradientTool, applyRadialGradientTool, getCurrentPage, getAvailableFonts, getCurrentTheme, getActiveUsers, getFileVersions, createLibraryColor, createLibraryFont, createLibraryComponent, updateCurrentSelection, undoLastAction, redoLastAction } from './mainHandlers';
+import { 
+  handleGetProjectData, 
+  handleGetUserData, 
+  handleAddImageFromUrl, 
+  applyBlurTool, 
+  applyFillTool, 
+  applyStrokeTool, 
+  applyShadowTool, 
+  applyLinearGradientTool, 
+  applyRadialGradientTool, 
+  getCurrentPage, 
+  getAvailableFonts, 
+  getCurrentTheme, 
+  getActiveUsers, 
+  getFileVersions, 
+  createLibraryColor, 
+  createLibraryFont, 
+  createLibraryComponent, 
+  updateCurrentSelection, 
+  undoLastAction, 
+  redoLastAction 
+} from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
@@ -66,35 +87,6 @@ setTimeout(() => {
   }
 }, 100); // Shorter timeout for more responsive initial capture
 
-// Also check periodically for selection changes (belt and suspenders approach)
-// Temporarily disabled to debug plugin loading issues
-/*
-setInterval(() => {
-  try {
-    const directSel = (penpot as any).selection;
-    if (directSel && Array.isArray(directSel) && directSel.length > 0) {
-      const currentIds = directSel
-        .map((shape: unknown) => (shape as { id?: string })?.id)
-        .filter((id): id is string => typeof id === 'string' && id.length > 0);
-
-      // Only update if the selection has actually changed
-      const sortedCurrent = currentIds.sort();
-      const sortedTracked = (currentSelectionIds || []).sort();
-      if (JSON.stringify(sortedCurrent) !== JSON.stringify(sortedTracked)) {
-        console.log('🔄 Selection changed (detected via polling):', currentIds);
-        updateCurrentSelection(currentIds);
-      }
-    } else if (currentSelectionIds && currentSelectionIds.length > 0) {
-      // Selection was cleared
-      console.log('🔄 Selection cleared (detected via polling)');
-      updateCurrentSelection([]);
-    }
-  } catch (error) {
-    // Silently ignore polling errors
-    console.warn('Polling error (ignoring):', error);
-  }
-}, 1000); // Check every second (less frequent to avoid issues)
-*/
 
 // Open the plugin UI with current theme
 penpot.ui.open("AI Penpot Wizard", `?theme=${penpot.theme}`, {
@@ -190,9 +182,6 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       responseMessage = await getFileVersions();
       break;
 
-    // case ClientQueryType.GET_CURRENT_SELECTION:
-    //   responseMessage = getCurrentSelection();
-    //   break;
     
     case ClientQueryType.CREATE_LIBRARY_COLOR:
       responseMessage = await createLibraryColor(payload);
