@@ -43,7 +43,7 @@ import {
   UndoLastActionQueryPayload,
   RedoLastActionQueryPayload,
 } from "../types/types";
-import type { Shape, Group } from '@penpot/plugin-types';
+import type { Shape, Group, Fill, Stroke } from '@penpot/plugin-types';
 
 const pluginResponse: PluginResponseMessage = {
   source: MessageSourceName.Plugin,
@@ -2962,6 +2962,69 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.COMBINE_SHAPES: {
+        // Restore original shapes by deleting the combined shape and recreating originals
+        const combineData = lastAction.undoData as {
+          combinedShapeId: string;
+          originalShapes: Array<{
+            id: string;
+            name: string;
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            fills?: unknown;
+            strokes?: unknown;
+          }>;
+        };
+
+        try {
+          const currentPage = penpot.currentPage;
+          if (!currentPage) {
+            throw new Error('No current page available');
+          }
+
+          // Delete the combined shape
+          const combinedShape = currentPage.getShapeById(combineData.combinedShapeId);
+          if (combinedShape) {
+            combinedShape.remove();
+          }
+
+          // Recreate the original shapes as rectangles (since we don't know the exact types)
+          for (const originalShape of combineData.originalShapes) {
+            try {
+              // Create a rectangle with the original dimensions and position
+              const newShape = penpot.createRectangle();
+              newShape.x = originalShape.x;
+              newShape.y = originalShape.y;
+              newShape.resize(originalShape.width, originalShape.height);
+              newShape.name = originalShape.name;
+
+              // Restore fills and strokes if they exist
+              if (originalShape.fills) {
+                newShape.fills = originalShape.fills as Fill[];
+              }
+              if (originalShape.strokes) {
+                newShape.strokes = originalShape.strokes as Stroke[];
+              }
+
+              restoredShapes.push(originalShape.name);
+            } catch (shapeError) {
+              console.warn(`Failed to recreate shape ${originalShape.name}:`, shapeError);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to undo combine shapes:', error);
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.UNDO_LAST_ACTION,
+            success: false,
+            message: `Failed to undo combine shapes: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+        break;
+      }
+
       default:
         return {
           ...pluginResponse,
@@ -3498,6 +3561,52 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
           } catch (error) {
             console.warn(`Failed to redo radial gradient for shape ${shapeId}:`, error);
           }
+        }
+        break;
+      }
+
+      case ClientQueryType.COMBINE_SHAPES: {
+        // Reapply the combine operation - find original shapes and combine them
+        const combineData = lastAction.undoData as {
+          combinedShapeId: string;
+          originalShapes: Array<{
+            id: string;
+            name: string;
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            fills?: unknown;
+            strokes?: unknown;
+          }>;
+        };
+
+        try {
+          // Find the original shapes that should be combined
+          const shapesToCombine: Shape[] = [];
+          for (const originalShape of combineData.originalShapes) {
+            const shape = penpot.currentPage?.getShapeById(originalShape.id);
+            if (shape) {
+              shapesToCombine.push(shape);
+            }
+          }
+
+          if (shapesToCombine.length >= 2) {
+            // Reapply the combine operation
+            const combinedShape = penpot.createBoolean("union", shapesToCombine);
+            if (combinedShape) {
+              undoStack.push(lastAction);
+              restoredShapes.push(combinedShape.name || combinedShape.id);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to redo combine shapes:', error);
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.REDO_LAST_ACTION,
+            success: false,
+            message: `Failed to redo combine shapes: ${error instanceof Error ? error.message : String(error)}`,
+          };
         }
         break;
       }
