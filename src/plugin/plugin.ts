@@ -78,7 +78,7 @@ console.log('Plugin loaded - selection tracking active');
 setTimeout(() => {
   try {
     console.log('🔍 Checking for initial selection...');
-    const directSel = (penpot as any).selection;
+    const directSel = penpot.selection;
     if (directSel && Array.isArray(directSel) && directSel.length > 0) {
       const initialIds = directSel
         .map((shape: unknown) => (shape as { id?: string })?.id)
