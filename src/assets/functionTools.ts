@@ -90,24 +90,11 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
-  // {
-  //   id: "get-current-selection",
-  //   name: "getCurrentSelection",
-  //   description: `
-  //     Read-only: returns basic information about the current selection on the canvas.
-  //     Each item includes id, name, type and bounding values (x,y,width,height) when available.
-  //   `,
-  //   inputSchema: z.object({}),
-  //   function: async () => {
-  //     const response = await sendMessageToPlugin(ClientQueryType.GET_CURRENT_SELECTION, undefined);
-  //     return response;
-  //   },
-  // },
-  // NOTE: This tool should be automatically included on every agent because it is a vital tool
-  // for user safety and error recovery. Without undo functionality, users cannot easily recover
-  // from accidental or unwanted changes made by AI tools.
-  {
-    id: "undo-last-action",
+
+  // NOTE: undo-last-action should be automatically included on every agent because it is a vital tool
+  // for user safety and error recovery. Without redo functionality, users cannot easily restore
+  // changes they just undid, creating a frustrating user experience.
+  { id: "undo-last-action",
     name: "undoLastAction",
     description: `
       Undo the most recent action performed by the AI assistant.
@@ -120,7 +107,7 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
-  // NOTE: This tool should be automatically included on every agent because it is a vital tool
+  // NOTE: redo-last-action should be automatically included on every agent because it is a vital tool
   // for user safety and error recovery. Without redo functionality, users cannot easily restore
   // changes they just undid, creating a frustrating user experience.
   {
