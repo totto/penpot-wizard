@@ -99,6 +99,7 @@ When the user wants to redo a recently undone action:
       'group-tool',
       'ungroup-tool',
       'combine-shapes-tool',
+      'intersect-shapes-tool',
     ],
     
     specializedAgentIds: ['mobile-projects-coordinator'],

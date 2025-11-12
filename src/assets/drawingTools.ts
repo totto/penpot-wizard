@@ -511,6 +511,32 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.COMBINE_SHAPES, {});
     return response;
   },
+},
+{
+  id: 'intersect-shapes-tool',
+  name: 'IntersectShapesTool',
+  description: `
+    Intersect multiple selected shapes to create a new shape from their overlapping areas.
+    
+    This tool creates a new shape from the intersection (overlap) of 2+ selected shapes.
+    Uses Penpot's boolean intersection operation to keep only the overlapping parts.
+    
+    ⚠️ IMPORTANT: Boolean operations are DESTRUCTIVE and cannot be perfectly undone.
+    The AI will attempt to recreate your original shapes during undo, but some visual properties 
+    (gradients, effects, complex styling) may be lost. This is an approximation, not perfect restoration.
+    
+    Works with 2+ selected shapes.
+    Uses Penpot's native boolean operations API for professional shape manipulation.
+    Limited undo support - recreates approximations of original shapes.
+    
+    Perfect for creating precise cutouts, masks, or extracting overlapping areas from shapes.
+    Consider saving your work before using this tool.
+  `,
+  inputSchema: z.object({}),
+  function: async () => {
+    const response = await sendMessageToPlugin(ClientQueryType.INTERSECT_SHAPES, {});
+    return response;
+  },
 }
 
 ];

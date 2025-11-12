@@ -2526,6 +2526,118 @@ Undo will attempt to recreate approximations of your original shapes, but some v
   }
 }
 
+export async function intersectShapesTool(_payload: IntersectShapesQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length < 2) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.INTERSECT_SHAPES,
+        success: false,
+        message: sel && sel.length === 1
+          ? 'NEED_MORE_SHAPES'
+          : 'NO_SELECTION',
+      };
+    }
+
+    // Store information about the shapes being intersected for undo
+    const shapeIds: string[] = [];
+    const shapePositions: Array<{ x: number; y: number }> = [];
+    const shapeProperties: Array<{
+      id: string;
+      name: string;
+      type: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      fills?: unknown;
+      strokes?: unknown;
+    }> = [];
+
+    // First pass: capture shape information
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      shapePositions.push({ x: shape.x, y: shape.y });
+      shapeProperties.push({
+        id: shape.id,
+        name: shape.name || shape.id,
+        type: shape.type,
+        x: shape.x,
+        y: shape.y,
+        width: shape.width || 0,
+        height: shape.height || 0,
+        fills: (shape as Shape).fills,
+        strokes: (shape as Shape).strokes,
+      });
+    }
+
+    // Create the intersected shape using Penpot's createBoolean method with "intersection"
+    try {
+      const intersectedShape = penpot.createBoolean("intersection", sel);
+      if (!intersectedShape) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.INTERSECT_SHAPES,
+          success: false,
+          message: `Failed to intersect shapes. Penpot's boolean operation API may not be available or the shapes may not be intersectable.`,
+        };
+      }
+
+      const shapeNames = sel.map(s => s.name || s.id).join(', ');
+
+      // Add to undo stack with shape restoration information
+      const undoInfo: UndoInfo = {
+        actionType: ClientQueryType.INTERSECT_SHAPES,
+        actionId: `intersect_shapes_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        undoData: {
+          intersectedShapeId: intersectedShape.id,
+          originalShapes: shapeProperties,
+        },
+        description: `Intersected ${sel.length} shapes into "${intersectedShape.name || intersectedShape.id}"`,
+        timestamp: Date.now(),
+      };
+
+      undoStack.push(undoInfo);
+
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.INTERSECT_SHAPES,
+        message: `✅ Shapes intersected successfully!
+
+Intersected shapes: ${shapeNames}
+Result: ${intersectedShape.name || intersectedShape.id}
+
+The shapes have been intersected to show only their overlapping area. You can move, rotate, and scale the result as a single unit.
+
+⚠️ Note: Boolean operations are destructive and cannot be perfectly undone. 
+Undo will attempt to recreate approximations of your original shapes, but some visual properties may be lost.`,
+        payload: {
+          intersectedShapeId: intersectedShape.id,
+          intersectedShapes: sel.map(s => ({ id: s.id, name: s.name })),
+          undoInfo,
+        },
+      };
+    } catch (intersectError) {
+      console.warn(`Penpot createBoolean intersection failed:`, intersectError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.INTERSECT_SHAPES,
+        success: false,
+        message: `Failed to intersect shapes. Penpot's boolean operation API may not be available or the shapes may not be intersectable.`,
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.INTERSECT_SHAPES,
+      success: false,
+      message: `Error intersecting shapes: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function undoLastAction(_payload: UndoLastActionQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Check if there's anything to undo
@@ -3053,6 +3165,93 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.INTERSECT_SHAPES: {
+        // Restore original shapes by deleting the intersected shape and recreating originals
+        const intersectData = lastAction.undoData as {
+          intersectedShapeId: string;
+          originalShapes: Array<{
+            id: string;
+            name: string;
+            type: string;
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            fills?: unknown;
+            strokes?: unknown;
+          }>;
+        };
+
+        try {
+          const currentPage = penpot.currentPage;
+          if (!currentPage) {
+            throw new Error('No current page available');
+          }
+
+          // Delete the intersected shape
+          const intersectedShape = currentPage.getShapeById(intersectData.intersectedShapeId);
+          if (intersectedShape) {
+            intersectedShape.remove();
+          }
+
+          // Recreate the original shapes as rectangles (since we don't know the exact types)
+          const newShapeIds: string[] = [];
+          for (const originalShape of intersectData.originalShapes) {
+            try {
+              // Create a shape of the correct type
+              let newShape: Shape;
+              switch (originalShape.type) {
+                case 'ellipse':
+                  newShape = penpot.createEllipse();
+                  break;
+                case 'path':
+                  newShape = penpot.createPath();
+                  break;
+                case 'rectangle':
+                default:
+                  newShape = penpot.createRectangle();
+                  break;
+              }
+
+              newShape.x = originalShape.x;
+              newShape.y = originalShape.y;
+              newShape.resize(originalShape.width, originalShape.height);
+              newShape.name = originalShape.name;
+
+              // Restore fills and strokes if they exist
+              if (originalShape.fills) {
+                newShape.fills = originalShape.fills as Fill[];
+              }
+              if (originalShape.strokes) {
+                newShape.strokes = originalShape.strokes as Stroke[];
+              }
+
+              newShapeIds.push(newShape.id);
+              restoredShapes.push(originalShape.name);
+            } catch (shapeError) {
+              console.warn(`Failed to recreate shape ${originalShape.name}:`, shapeError);
+            }
+          }
+
+          // Update selection to the newly created shapes after a brief delay
+          // to avoid conflicts with automatic selection change events
+          if (newShapeIds.length > 0) {
+            setTimeout(() => {
+              updateCurrentSelection(newShapeIds);
+            }, 10);
+          }
+        } catch (error) {
+          console.warn('Failed to undo intersect shapes:', error);
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.UNDO_LAST_ACTION,
+            success: false,
+            message: `Failed to undo intersect shapes: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+        break;
+      }
+
       default:
         return {
           ...pluginResponse,
@@ -3063,12 +3262,14 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
     }
 
     const isCombineShapes = lastAction.actionType === ClientQueryType.COMBINE_SHAPES;
+    const isIntersectShapes = lastAction.actionType === ClientQueryType.INTERSECT_SHAPES;
+    const isBooleanOperation = isCombineShapes || isIntersectShapes;
     
     return {
       ...pluginResponse,
       type: ClientQueryType.UNDO_LAST_ACTION,
       success: true,
-      message: isCombineShapes 
+      message: isBooleanOperation 
         ? `🔄 Undo: Recreated approximations of original shapes
 
 ⚠️ Boolean operations cannot be perfectly reversed. The AI has recreated approximations of your original shapes. Some visual properties like gradients, effects, or complex styling may have been lost.`
@@ -3646,6 +3847,58 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             type: ClientQueryType.REDO_LAST_ACTION,
             success: false,
             message: `Failed to redo combine shapes: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+        break;
+      }
+
+      case ClientQueryType.INTERSECT_SHAPES: {
+        // Reapply the intersect operation - find original shapes and intersect them
+        const intersectData = lastAction.undoData as {
+          intersectedShapeId: string;
+          originalShapes: Array<{
+            id: string;
+            name: string;
+            type: string;
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            fills?: unknown;
+            strokes?: unknown;
+          }>;
+        };
+
+        try {
+          // Find the original shapes that should be intersected
+          const shapesToIntersect: Shape[] = [];
+          for (const originalShape of intersectData.originalShapes) {
+            const shape = penpot.currentPage?.getShapeById(originalShape.id);
+            if (shape) {
+              shapesToIntersect.push(shape);
+            }
+          }
+
+          if (shapesToIntersect.length >= 2) {
+            // Reapply the intersect operation
+            const intersectedShape = penpot.createBoolean("intersection", shapesToIntersect);
+            if (intersectedShape) {
+              undoStack.push(lastAction);
+              restoredShapes.push(intersectedShape.name || intersectedShape.id);
+              
+              // Update selection to the newly intersected shape after a brief delay
+              setTimeout(() => {
+                updateCurrentSelection([intersectedShape.id]);
+              }, 10);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to redo intersect shapes:', error);
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.REDO_LAST_ACTION,
+            success: false,
+            message: `Failed to redo intersect shapes: ${error instanceof Error ? error.message : String(error)}`,
           };
         }
         break;
