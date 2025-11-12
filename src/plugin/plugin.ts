@@ -8,6 +8,7 @@ import {
   ApplyFillQueryPayload,
   ApplyStrokeQueryPayload,
   ApplyShadowQueryPayload,
+  AlignHorizontalQueryPayload,
   ApplyLinearGradientQueryPayload,
   ApplyRadialGradientQueryPayload,
   DrawShapeQueryPayload,
@@ -26,7 +27,8 @@ import {
   applyBlurTool, 
   applyFillTool, 
   applyStrokeTool, 
-  applyShadowTool, 
+  applyShadowTool,
+  alignHorizontalTool,
   applyLinearGradientTool, 
   applyRadialGradientTool, 
   getCurrentPage, 
@@ -143,6 +145,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.APPLY_SHADOW:
       responseMessage = await applyShadowTool(payload as unknown as ApplyShadowQueryPayload);
+      break;
+
+    case ClientQueryType.ALIGN_HORIZONTAL:
+      responseMessage = await alignHorizontalTool(payload as unknown as AlignHorizontalQueryPayload);
       break;
 
     case ClientQueryType.APPLY_LINEAR_GRADIENT:

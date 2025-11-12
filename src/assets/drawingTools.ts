@@ -339,6 +339,29 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.APPLY_SHADOW, shadowProperties);
     return response;
   },
+},
+{
+  id: 'align-horizontal-tool',
+  name: 'AlignHorizontalTool',
+  description: `
+    Align multiple selected shapes horizontally using Penpot's alignment system.
+    You must select at least 2 shapes before using this tool.
+
+    Horizontal alignment options:
+    - left: Align all shapes to the leftmost shape's left edge
+    - center: Center all shapes horizontally around the middle point
+    - right: Align all shapes to the rightmost shape's right edge
+
+    This tool uses Penpot's native alignHorizontal() method for precise alignment.
+    The alignment is reversible with the undo functionality.
+  `,
+  inputSchema: z.object({
+    alignment: z.enum(['left', 'center', 'right']).describe('The horizontal alignment type. left aligns to left edges, center aligns centers, right aligns to right edges.'),
+  }),
+  function: async (alignmentProperties) => {
+    const response = await sendMessageToPlugin(ClientQueryType.ALIGN_HORIZONTAL, alignmentProperties);
+    return response;
+  },
 }
 
 ];

@@ -38,6 +38,7 @@ export enum ClientQueryType {
   APPLY_LINEAR_GRADIENT = 'APPLY_LINEAR_GRADIENT',
   APPLY_RADIAL_GRADIENT = 'APPLY_RADIAL_GRADIENT',
   APPLY_SHADOW = 'APPLY_SHADOW',
+  ALIGN_HORIZONTAL = 'ALIGN_HORIZONTAL',
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
 }
@@ -54,7 +55,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -117,6 +118,10 @@ export interface ApplyShadowQueryPayload {
   overrideExisting?: boolean; // Whether to override existing shadows without asking
 }
 
+export interface AlignHorizontalQueryPayload {
+  alignment: 'left' | 'center' | 'right';
+}
+
 export interface UndoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to undo, otherwise undo the last one
 }
@@ -125,7 +130,7 @@ export interface RedoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to redo, otherwise redo the last undone one
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -198,23 +203,20 @@ export interface ApplyRadialGradientResponsePayload {
 }
 
 export interface ApplyShadowResponsePayload {
-  shadowedShapes?: string[];
-  shadowStyle?: 'drop-shadow' | 'inner-shadow';
-  shadowColor?: string;
-  shadowOffsetX?: number;
-  shadowOffsetY?: number;
-  shadowBlur?: number;
-  shadowSpread?: number;
+  shadowedShapes: string[];
+  shadowStyle: string;
+  shadowColor: string;
+  shadowOffsetX: number;
+  shadowOffsetY: number;
+  shadowBlur: number;
+  shadowSpread: number;
   undoInfo?: UndoInfo;
-  shapesWithExistingShadows?: Array<{ id: string; name?: string }>;
-  requestedShadow?: {
-    shadowStyle: string;
-    shadowColor: string;
-    shadowOffsetX: number;
-    shadowOffsetY: number;
-    shadowBlur: number;
-    shadowSpread?: number;
-  };
+}
+
+export interface AlignHorizontalResponsePayload {
+  alignedShapes: Array<{ id: string; name?: string }>;
+  alignment: 'left' | 'center' | 'right';
+  undoInfo?: UndoInfo;
 }
 
 export interface UndoLastActionResponsePayload {
@@ -384,6 +386,7 @@ export type PluginResponsePayload =
   | ApplyLinearGradientResponsePayload
   | ApplyRadialGradientResponsePayload
   | ApplyShadowResponsePayload
+  | AlignHorizontalResponsePayload
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload;
 

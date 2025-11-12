@@ -26,6 +26,7 @@ import {
   ApplyLinearGradientQueryPayload,
   ApplyRadialGradientQueryPayload,
   ApplyShadowQueryPayload,
+  AlignHorizontalQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -1617,6 +1618,100 @@ Say "apply shadow drop-shadow #333333 offset 0,8 blur 12" or "apply shadow inner
   }
 }
 
+export async function alignHorizontalTool(payload: AlignHorizontalQueryPayload): Promise<PluginResponseMessage> {
+  const { alignment } = payload;
+
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.ALIGN_HORIZONTAL,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    if (sel.length < 2) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.ALIGN_HORIZONTAL,
+        success: false,
+        message: 'You need to select at least 2 shapes to align them horizontally. Please select multiple shapes and try again.',
+      };
+    }
+
+    // Store previous positions for undo
+    const shapeIds: string[] = [];
+    const previousPositions: Array<{ x: number; y: number }> = [];
+
+    // First pass: capture previous positions
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      previousPositions.push({ x: shape.x, y: shape.y });
+    }
+
+    // Apply horizontal alignment using Penpot's alignHorizontal method
+    try {
+      // Call Penpot's alignHorizontal method on the selection
+      penpot.alignHorizontal(sel, alignment);
+    } catch (alignError) {
+      console.warn(`Penpot alignHorizontal failed:`, alignError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.ALIGN_HORIZONTAL,
+        success: false,
+        message: `Failed to align shapes horizontally. Penpot's alignment API may not be available or the shapes may not be alignable.`,
+      };
+    }
+
+    const shapeNames = sel.map(s => s.name || s.id).join(', ');
+
+    // Add to undo stack
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.ALIGN_HORIZONTAL,
+      actionId: `align_horizontal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        shapeIds,
+        previousPositions,
+        alignment,
+      },
+      description: `Aligned ${sel.length} shapes horizontally (${alignment})`,
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.ALIGN_HORIZONTAL,
+      message: `Perfect! I aligned ${sel.length} shapes horizontally to the **${alignment}**.
+
+Aligned shapes: ${shapeNames}
+
+Horizontal alignment options:
+• **left**: Align all shapes to the leftmost shape's left edge
+• **center**: Center all shapes horizontally around the middle point
+• **right**: Align all shapes to the rightmost shape's right edge
+
+You can undo this action anytime with "undo last action".`,
+      payload: {
+        alignedShapes: sel.map(s => ({ id: s.id, name: s.name })),
+        alignment,
+        undoInfo,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.ALIGN_HORIZONTAL,
+      success: false,
+      message: `Error aligning shapes horizontally: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function undoLastAction(_payload: UndoLastActionQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Check if there's anything to undo
@@ -1775,6 +1870,33 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             }
           } catch (error) {
             console.warn(`Failed to restore shadow for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.ALIGN_HORIZONTAL: {
+        // Restore previous positions
+        const alignData = lastAction.undoData as {
+          shapeIds: string[];
+          previousPositions: Array<{ x: number; y: number }>;
+        };
+
+        for (let i = 0; i < alignData.shapeIds.length; i++) {
+          const shapeId = alignData.shapeIds[i];
+          const previousPosition = alignData.previousPositions[i];
+
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const shape = (penpot as any).currentPage?.findShape(shapeId) as any;
+            if (shape) {
+              // Restore the previous position
+              shape.x = previousPosition.x;
+              shape.y = previousPosition.y;
+              restoredShapes.push(shape.name || shape.id);
+            }
+          } catch (error) {
+            console.warn(`Failed to restore position for shape ${shapeId}:`, error);
           }
         }
         break;
@@ -1966,6 +2088,43 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to redo shadow for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.ALIGN_HORIZONTAL: {
+        // Reapply the horizontal alignment
+        const alignData = lastAction.undoData as {
+          shapeIds: string[];
+          previousPositions: Array<{ x: number; y: number }>;
+          alignment: 'left' | 'center' | 'right';
+        };
+
+        // Get the shapes and reapply alignment
+        const shapesToAlign: any[] = [];
+        for (const shapeId of alignData.shapeIds) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const shape = (currentPage as any).getShapeById(shapeId);
+            if (shape) {
+              shapesToAlign.push(shape);
+            }
+          } catch (error) {
+            console.warn(`Failed to find shape ${shapeId} for redo alignment:`, error);
+          }
+        }
+
+        // Reapply the alignment if we have shapes
+        if (shapesToAlign.length >= 2) {
+          try {
+            penpot.alignHorizontal(shapesToAlign, alignData.alignment);
+            restoredShapes.push(...shapesToAlign.map(s => s.name || s.id));
+          } catch (alignError) {
+            console.warn(`Failed to redo horizontal alignment:`, alignError);
           }
         }
         break;
