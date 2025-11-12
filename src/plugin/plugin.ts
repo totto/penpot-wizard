@@ -10,6 +10,7 @@ import {
   ApplyShadowQueryPayload,
   AlignHorizontalQueryPayload,
   AlignVerticalQueryPayload,
+  CenterAlignmentQueryPayload,
   ApplyLinearGradientQueryPayload,
   ApplyRadialGradientQueryPayload,
   DrawShapeQueryPayload,
@@ -31,6 +32,7 @@ import {
   applyShadowTool,
   alignHorizontalTool,
   alignVerticalTool,
+  centerAlignmentTool,
   applyLinearGradientTool, 
   applyRadialGradientTool, 
   getCurrentPage, 
@@ -155,6 +157,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.ALIGN_VERTICAL:
       responseMessage = await alignVerticalTool(payload as unknown as AlignVerticalQueryPayload);
+      break;
+
+    case ClientQueryType.CENTER_ALIGNMENT:
+      responseMessage = await centerAlignmentTool(payload as unknown as CenterAlignmentQueryPayload);
       break;
 
     case ClientQueryType.APPLY_LINEAR_GRADIENT:

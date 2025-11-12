@@ -28,6 +28,7 @@ import {
   ApplyShadowQueryPayload,
   AlignHorizontalQueryPayload,
   AlignVerticalQueryPayload,
+  CenterAlignmentQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -1971,6 +1972,86 @@ You can undo this action anytime with "undo last action".`,
       type: ClientQueryType.ALIGN_VERTICAL,
       success: false,
       message: `Error aligning shapes vertically: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function centerAlignmentTool(_payload: CenterAlignmentQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CENTER_ALIGNMENT,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    // Store previous positions for undo (both X and Y coordinates)
+    const shapeIds: string[] = [];
+    const previousPositions: Array<{ x: number; y: number }> = [];
+
+    // First pass: capture previous positions
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      previousPositions.push({ x: shape.x, y: shape.y });
+    }
+
+    // Apply both horizontal and vertical centering
+    try {
+      // Center horizontally first
+      penpot.alignHorizontal(sel, 'center');
+
+      // Then center vertically
+      penpot.alignVertical(sel, 'center');
+    } catch (alignError) {
+      console.warn(`Center alignment failed:`, alignError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CENTER_ALIGNMENT,
+        success: false,
+        message: `Failed to center shapes. Penpot's alignment API may not be available or the shapes may not be alignable.`,
+      };
+    }
+
+    const shapeNames = sel.map(s => s.name || s.id).join(', ');
+
+    // Add to undo stack with both X and Y position data
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.CENTER_ALIGNMENT,
+      actionId: `center_alignment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        shapeIds,
+        previousPositions,
+      },
+      description: `Centered ${sel.length} shapes both horizontally and vertically`,
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CENTER_ALIGNMENT,
+      message: `Perfect! I centered ${sel.length} shapes both horizontally AND vertically on the canvas.
+
+Centered shapes: ${shapeNames}
+
+This places your shapes in the exact center of their container/screen.
+You can undo this action anytime with "undo last action".`,
+      payload: {
+        alignedShapes: sel.map(s => ({ id: s.id, name: s.name })),
+        undoInfo,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CENTER_ALIGNMENT,
+      success: false,
+      message: `Error centering shapes: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

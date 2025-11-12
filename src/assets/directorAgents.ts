@@ -94,6 +94,7 @@ When the user wants to redo a recently undone action:
       'apply-shadow-tool',
       'align-horizontal-tool',
       'align-vertical-tool',
+      'center-alignment-tool',
     
     ],    
     

@@ -388,6 +388,27 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.ALIGN_VERTICAL, alignmentProperties);
     return response;
   },
+},
+{
+  id: 'center-alignment-tool',
+  name: 'CenterAlignmentTool',
+  description: `
+    Center shapes both horizontally AND vertically on the canvas/screen in one operation.
+    
+    This tool performs complete centering by aligning shapes to the center of their container both ways:
+    - Horizontal centering: Aligns shapes to the horizontal center
+    - Vertical centering: Aligns shapes to the vertical center
+    
+    Perfect for placing shapes in the exact middle of the screen, board, or container.
+    Works with single or multiple selected shapes.
+    Single shapes center within their parent bounds, multiple shapes center relative to each other.
+    Full undo/redo support - one undo reverses both alignments.
+  `,
+  inputSchema: z.object({}),
+  function: async () => {
+    const response = await sendMessageToPlugin(ClientQueryType.CENTER_ALIGNMENT, {});
+    return response;
+  },
 }
 
 ];
