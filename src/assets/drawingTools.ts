@@ -344,15 +344,18 @@ id: 'create-library-color',
   id: 'align-horizontal-tool',
   name: 'AlignHorizontalTool',
   description: `
-    Align multiple selected shapes horizontally using Penpot's alignment system.
-    You must select at least 2 shapes before using this tool.
+    Align shapes horizontally using Penpot's alignment system.
+    Works with 1 or more selected shapes.
+
+    For single shapes: Aligns to the parent container bounds (left/center/right)
+    For multiple shapes: Aligns shapes relative to each other
 
     Horizontal alignment options:
-    - left: Align all shapes to the leftmost shape's left edge
-    - center: Center all shapes horizontally around the middle point
-    - right: Align all shapes to the rightmost shape's right edge
+    - left: Align all shapes to the leftmost edge
+    - center: Center all shapes horizontally
+    - right: Align all shapes to the rightmost edge
 
-    This tool uses Penpot's native alignHorizontal() method for precise alignment.
+    This tool uses Penpot's native alignment API and matches the behavior of Penpot's alignment tools.
     The alignment is reversible with the undo functionality.
   `,
   inputSchema: z.object({

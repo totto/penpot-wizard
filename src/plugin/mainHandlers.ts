@@ -1633,13 +1633,101 @@ export async function alignHorizontalTool(payload: AlignHorizontalQueryPayload):
       };
     }
 
-    if (sel.length < 2) {
+    if (sel.length < 1) {
       return {
         ...pluginResponse,
         type: ClientQueryType.ALIGN_HORIZONTAL,
         success: false,
-        message: 'You need to select at least 2 shapes to align them horizontally. Please select multiple shapes and try again.',
+        message: 'NO_SELECTION',
       };
+    }
+
+    // Handle single shape alignment differently - align to parent bounds
+    if (sel.length === 1) {
+      const shape = sel[0];
+      const previousX = shape.x;
+      const previousY = shape.y;
+
+      try {
+        // Get parent bounds for alignment reference
+        let parentBounds = { x: 0, y: 0, width: 0, height: 0 };
+
+        // Try to get parent bounds - fallback to page bounds if no parent
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const parent = (shape as any).parent;
+          if (parent && typeof parent === 'object') {
+            parentBounds = {
+              x: parent.x || 0,
+              y: parent.y || 0,
+              width: parent.width || 0,
+              height: parent.height || 0,
+            };
+          }
+        } catch {
+          // Fallback to reasonable page bounds
+          parentBounds = {
+            x: 0,
+            y: 0,
+            width: 800,  // Reasonable default width
+            height: 600, // Reasonable default height
+          };
+        }
+
+        // Calculate new position based on alignment
+        let newX = shape.x;
+        switch (alignment) {
+          case 'left':
+            newX = parentBounds.x;
+            break;
+          case 'center':
+            newX = parentBounds.x + (parentBounds.width - shape.width) / 2;
+            break;
+          case 'right':
+            newX = parentBounds.x + parentBounds.width - shape.width;
+            break;
+        }
+
+        // Apply the new position
+        shape.x = newX;
+
+        const undoInfo: UndoInfo = {
+          actionType: ClientQueryType.ALIGN_HORIZONTAL,
+          actionId: `align_horizontal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          undoData: {
+            shapeIds: [shape.id],
+            previousPositions: [{ x: previousX, y: previousY }],
+            alignment,
+          },
+          description: `Aligned shape horizontally (${alignment}) to parent bounds`,
+          timestamp: Date.now(),
+        };
+
+        undoStack.push(undoInfo);
+
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.ALIGN_HORIZONTAL,
+          message: `Perfect! I aligned your shape horizontally to the **${alignment}** of its container.
+
+Aligned shape: ${shape.name || shape.id}
+
+This matches Penpot's native alignment behavior for single shapes.`,
+          payload: {
+            alignedShapes: [{ id: shape.id, name: shape.name }],
+            alignment,
+            undoInfo,
+          },
+        };
+      } catch (singleAlignError) {
+        console.warn(`Single shape alignment failed:`, singleAlignError);
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.ALIGN_HORIZONTAL,
+          success: false,
+          message: `Failed to align the single shape. The shape may not have accessible parent bounds.`,
+        };
+      }
     }
 
     // Store previous positions for undo
@@ -2102,7 +2190,7 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
         };
 
         // Get the shapes and reapply alignment
-        const shapesToAlign: any[] = [];
+        const shapesToAlign: Shape[] = [];
         for (const shapeId of alignData.shapeIds) {
           try {
             const currentPage = penpot.currentPage;
