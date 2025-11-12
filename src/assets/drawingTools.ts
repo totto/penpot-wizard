@@ -466,6 +466,25 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.GROUP, {});
     return response;
   },
+},
+{
+  id: 'ungroup-tool',
+  name: 'UngroupTool',
+  description: `
+    Ungroup selected group containers into individual shapes.
+    
+    This tool releases shapes from their group containers, allowing you to manipulate them individually.
+    Perfect for breaking apart grouped elements when you need to edit specific parts.
+    
+    Works with selected groups.
+    Uses Penpot's native ungrouping API for consistent behavior.
+    Full undo/redo support included - regrouping restores the original groups.
+  `,
+  inputSchema: z.object({}),
+  function: async () => {
+    const response = await sendMessageToPlugin(ClientQueryType.UNGROUP, {});
+    return response;
+  },
 }
 
 ];

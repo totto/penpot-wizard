@@ -44,6 +44,7 @@ export enum ClientQueryType {
   DISTRIBUTE_HORIZONTAL = 'DISTRIBUTE_HORIZONTAL',
   DISTRIBUTE_VERTICAL = 'DISTRIBUTE_VERTICAL',
   GROUP = 'GROUP',
+  UNGROUP = 'UNGROUP',
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
 }
@@ -139,6 +140,8 @@ export type DistributeVerticalQueryPayload = Record<string, never>;
 
 export type GroupQueryPayload = Record<string, never>;
 
+export type UngroupQueryPayload = Record<string, never>;
+
 export interface UndoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to undo, otherwise undo the last one
 }
@@ -147,7 +150,7 @@ export interface RedoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to redo, otherwise redo the last undone one
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {

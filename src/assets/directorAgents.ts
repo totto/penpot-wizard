@@ -98,6 +98,7 @@ When the user wants to redo a recently undone action:
       'distribute-horizontal-tool',
       'distribute-vertical-tool',
       'group-tool',
+      'ungroup-tool',
     
     ],    
     

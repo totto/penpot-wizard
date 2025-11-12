@@ -32,6 +32,7 @@ import {
   DistributeHorizontalQueryPayload,
   DistributeVerticalQueryPayload,
   GroupQueryPayload,
+  UngroupQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -2304,6 +2305,114 @@ You can undo this action anytime with "undo last action".`,
   }
 }
 
+export async function ungroupTool(_payload: UngroupQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.UNGROUP,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    // Filter to only groups using Penpot's isGroup utility
+    const groupsToUngroup = sel.filter(shape => penpot.utils.types.isGroup(shape));
+    
+    if (groupsToUngroup.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.UNGROUP,
+        success: false,
+        message: 'NO_GROUPS_SELECTED',
+      };
+    }
+
+    // Store information about the groups being ungrouped for undo
+    const ungroupedGroups: Array<{
+      groupId: string;
+      groupName: string;
+      shapeIds: string[];
+      shapePositions: Array<{ x: number; y: number }>;
+    }> = [];
+
+    // First pass: capture group and child information
+    for (const group of groupsToUngroup) {
+      const groupShape = group as Group;
+      const shapeIds: string[] = [];
+      const shapePositions: Array<{ x: number; y: number }> = [];
+
+      // Store information about each child shape
+      for (const child of groupShape.children) {
+        shapeIds.push(child.id);
+        shapePositions.push({ x: child.x, y: child.y });
+      }
+
+      ungroupedGroups.push({
+        groupId: groupShape.id,
+        groupName: groupShape.name || groupShape.id,
+        shapeIds,
+        shapePositions,
+      });
+    }
+
+    // Ungroup the selected groups using Penpot's ungroup method
+    try {
+      // Call ungroup for each group individually
+      for (const group of groupsToUngroup) {
+        penpot.ungroup(group as Group);
+      }
+    } catch (ungroupError) {
+      console.warn(`Penpot ungroup failed:`, ungroupError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.UNGROUP,
+        success: false,
+        message: `Failed to ungroup shapes. Penpot's ungrouping API may not be available or the groups may not be ungroupable.`,
+      };
+    }
+
+    const groupNames = ungroupedGroups.map(g => g.groupName).join(', ');
+
+    // Add to undo stack with group restoration information
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.UNGROUP,
+      actionId: `ungroup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        ungroupedGroups,
+      },
+      description: `Ungrouped ${ungroupedGroups.length} group${ungroupedGroups.length > 1 ? 's' : ''}`,
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.UNGROUP,
+      message: `Perfect! I ungrouped ${ungroupedGroups.length} group${ungroupedGroups.length > 1 ? 's' : ''}.
+
+Ungrouped groups: ${groupNames}
+
+The shapes are now released from their group containers and can be manipulated individually.
+You can undo this action anytime with "undo last action".`,
+      payload: {
+        ungroupedGroups: ungroupedGroups.map(g => ({ id: g.groupId, name: g.groupName })),
+        undoInfo,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.UNGROUP,
+      success: false,
+      message: `Error ungrouping shapes: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function undoLastAction(_payload: UndoLastActionQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Check if there's anything to undo
@@ -2655,6 +2764,56 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
           }
         } catch (error) {
           console.warn(`Failed to ungroup shapes:`, error);
+        }
+        break;
+      }
+
+      case ClientQueryType.UNGROUP: {
+        // Regroup the shapes by recreating the group containers
+        const ungroupData = lastAction.undoData as {
+          ungroupedGroups: Array<{
+            groupId: string;
+            groupName: string;
+            shapeIds: string[];
+            shapePositions: Array<{ x: number; y: number }>;
+          }>;
+        };
+
+        try {
+          const currentPage = penpot.currentPage;
+          if (!currentPage) {
+            console.warn('No current page available for regrouping');
+            break;
+          }
+
+          // Regroup each ungrouped set of shapes
+          for (const groupInfo of ungroupData.ungroupedGroups) {
+            const shapesToGroup: Shape[] = [];
+
+            // Find all the shapes that were in this group
+            for (const shapeId of groupInfo.shapeIds) {
+              const shape = currentPage.getShapeById(shapeId);
+              if (shape) {
+                shapesToGroup.push(shape);
+              }
+            }
+
+            // Regroup the shapes if we found them all
+            if (shapesToGroup.length === groupInfo.shapeIds.length) {
+              try {
+                const newGroup = penpot.group(shapesToGroup);
+                if (newGroup) {
+                  // Restore the original group name if possible
+                  newGroup.name = groupInfo.groupName;
+                  restoredShapes.push(newGroup.name || newGroup.id);
+                }
+              } catch (groupError) {
+                console.warn(`Failed to regroup shapes for ${groupInfo.groupName}:`, groupError);
+              }
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to regroup shapes:`, error);
         }
         break;
       }
@@ -3076,6 +3235,52 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             }
           } catch (groupError) {
             console.warn(`Failed to redo grouping:`, groupError);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.UNGROUP: {
+        // Re-ungroup the shapes
+        const ungroupData = lastAction.undoData as {
+          ungroupedGroups: Array<{
+            groupId: string;
+            groupName: string;
+            shapeIds: string[];
+            shapePositions: Array<{ x: number; y: number }>;
+          }>;
+        };
+
+        // Find and ungroup the groups that were created during the undo
+        for (const groupInfo of ungroupData.ungroupedGroups) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            // Try to find the group by looking for groups containing the expected shapes
+            const allShapes = currentPage.findShapes({});
+            const groups = allShapes.filter(shape => penpot.utils.types.isGroup(shape));
+
+            for (const group of groups) {
+              const groupShape = group as Group;
+              const childIds = groupShape.children.map(child => child.id);
+
+              // Check if this group contains the expected shapes
+              const hasAllShapes = groupInfo.shapeIds.every(id => childIds.includes(id));
+              const hasCorrectCount = childIds.length === groupInfo.shapeIds.length;
+
+              if (hasAllShapes && hasCorrectCount) {
+                try {
+                  penpot.ungroup(groupShape);
+                  restoredShapes.push(...groupShape.children.map(s => s.name || s.id));
+                  break; // Found and ungrouped the correct group
+                } catch (ungroupError) {
+                  console.warn(`Failed to redo ungrouping for group ${groupShape.id}:`, ungroupError);
+                }
+              }
+            }
+          } catch (error) {
+            console.warn(`Failed to find group for redo ungrouping:`, error);
           }
         }
         break;
