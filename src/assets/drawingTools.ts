@@ -495,11 +495,16 @@ id: 'create-library-color',
     This tool merges 2+ selected shapes into one compound shape that can be manipulated as a single unit.
     Uses Penpot's boolean union operation to create complex shapes from overlapping elements.
     
+    ⚠️ IMPORTANT: Boolean operations are DESTRUCTIVE and cannot be perfectly undone.
+    The AI will attempt to recreate your original shapes during undo, but some visual properties 
+    (gradients, effects, complex styling) may be lost. This is an approximation, not perfect restoration.
+    
     Works with 2+ selected shapes.
     Uses Penpot's native boolean operations API for professional shape manipulation.
-    Full undo/redo support included - uncombining restores original individual shapes.
+    Limited undo support - recreates approximations of original shapes.
     
     Perfect for creating complex logos, icons, or custom shapes from multiple overlapping elements.
+    Consider saving your work before using this tool.
   `,
   inputSchema: z.object({}),
   function: async () => {

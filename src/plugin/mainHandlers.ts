@@ -2492,13 +2492,15 @@ export async function combineShapesTool(_payload: CombineShapesQueryPayload): Pr
       return {
         ...pluginResponse,
         type: ClientQueryType.COMBINE_SHAPES,
-        message: `Perfect! I combined ${sel.length} shapes into a single shape using union operation.
+        message: `✅ Shapes combined successfully using union operation!
 
 Combined shapes: ${shapeNames}
 Result: ${combinedShape.name || combinedShape.id}
 
 The shapes have been merged into one compound shape. You can move, rotate, and scale it as a single unit.
-You can undo this action anytime with "undo last action".`,
+
+⚠️ Note: Boolean operations are destructive and cannot be perfectly undone. 
+Undo will attempt to recreate approximations of your original shapes, but some visual properties may be lost.`,
         payload: {
           combinedShapeId: combinedShape.id,
           combinedShapes: sel.map(s => ({ id: s.id, name: s.name })),
@@ -3060,11 +3062,17 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         };
     }
 
+    const isCombineShapes = lastAction.actionType === ClientQueryType.COMBINE_SHAPES;
+    
     return {
       ...pluginResponse,
       type: ClientQueryType.UNDO_LAST_ACTION,
       success: true,
-      message: `Undid: ${lastAction.description}`,
+      message: isCombineShapes 
+        ? `🔄 Undo: Recreated approximations of original shapes
+
+⚠️ Boolean operations cannot be perfectly reversed. The AI has recreated approximations of your original shapes. Some visual properties like gradients, effects, or complex styling may have been lost.`
+        : `Undid: ${lastAction.description}`,
       payload: {
         undoneAction: lastAction.description,
         restoredShapes,

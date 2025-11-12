@@ -248,6 +248,12 @@ export interface AlignVerticalResponsePayload {
   undoInfo?: UndoInfo;
 }
 
+export interface CombineShapesResponsePayload {
+  combinedShapeId: string;
+  combinedShapes: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
 export interface UndoLastActionResponsePayload {
   undoneAction: string; // Description of what was undone
   restoredShapes?: string[]; // Names of shapes that were restored
@@ -417,6 +423,7 @@ export type PluginResponsePayload =
   | ApplyShadowResponsePayload
   | AlignHorizontalResponsePayload
   | AlignVerticalResponsePayload
+  | CombineShapesResponsePayload
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload;
 
