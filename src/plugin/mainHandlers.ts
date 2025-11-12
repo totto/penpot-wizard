@@ -2435,6 +2435,7 @@ export async function combineShapesTool(_payload: CombineShapesQueryPayload): Pr
     const shapeProperties: Array<{
       id: string;
       name: string;
+      type: string;
       x: number;
       y: number;
       width: number;
@@ -2450,12 +2451,13 @@ export async function combineShapesTool(_payload: CombineShapesQueryPayload): Pr
       shapeProperties.push({
         id: shape.id,
         name: shape.name || shape.id,
+        type: shape.type,
         x: shape.x,
         y: shape.y,
         width: shape.width || 0,
         height: shape.height || 0,
-        fills: (shape as any).fills,
-        strokes: (shape as any).strokes,
+        fills: (shape as Shape).fills,
+        strokes: (shape as Shape).strokes,
       });
     }
 
@@ -2969,6 +2971,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
           originalShapes: Array<{
             id: string;
             name: string;
+            type: string;
             x: number;
             y: number;
             width: number;
@@ -2994,8 +2997,21 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
           const newShapeIds: string[] = [];
           for (const originalShape of combineData.originalShapes) {
             try {
-              // Create a rectangle with the original dimensions and position
-              const newShape = penpot.createRectangle();
+              // Create a shape of the correct type
+              let newShape: Shape;
+              switch (originalShape.type) {
+                case 'ellipse':
+                  newShape = penpot.createEllipse();
+                  break;
+                case 'path':
+                  newShape = penpot.createPath();
+                  break;
+                case 'rectangle':
+                default:
+                  newShape = penpot.createRectangle();
+                  break;
+              }
+
               newShape.x = originalShape.x;
               newShape.y = originalShape.y;
               newShape.resize(originalShape.width, originalShape.height);
@@ -3582,6 +3598,7 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
           originalShapes: Array<{
             id: string;
             name: string;
+            type: string;
             x: number;
             y: number;
             width: number;
