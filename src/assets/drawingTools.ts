@@ -220,6 +220,7 @@ id: 'create-library-color',
     strokeWidth: z.number().min(0).optional().default(1).describe('The stroke width in pixels. Defaults to 1 if not specified.'),
     strokeOpacity: z.number().min(0).max(1).optional().default(1).describe('The stroke opacity from 0.0 (transparent) to 1.0 (opaque). Defaults to 1.0 if not specified.'),
     strokeStyle: z.enum(['solid', 'dashed', 'dotted', 'mixed']).optional().default('solid').describe('The stroke style. Defaults to solid if not specified.'),
+    overrideExisting: z.boolean().optional().default(false).describe('Whether to override existing strokes without asking. Defaults to false for safety.'),
   }),
   function: async (strokeProperties) => {
     const response = await sendMessageToPlugin(ClientQueryType.APPLY_STROKE, strokeProperties);

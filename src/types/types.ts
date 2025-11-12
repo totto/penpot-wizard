@@ -86,6 +86,7 @@ export interface ApplyStrokeQueryPayload {
   strokeWidth?: number;
   strokeOpacity?: number;
   strokeStyle?: 'solid' | 'dashed' | 'dotted' | 'mixed';
+  overrideExisting?: boolean; // Whether to override existing strokes without asking
 }
 
 export interface ApplyLinearGradientQueryPayload {
@@ -158,12 +159,19 @@ export interface ApplyFillResponsePayload {
 }
 
 export interface ApplyStrokeResponsePayload {
-  strokedShapes: string[];
-  strokeColor: string;
-  strokeWidth: number;
-  strokeOpacity: number;
-  strokeStyle: 'solid' | 'dashed' | 'dotted' | 'mixed';
+  strokedShapes?: string[];
+  strokeColor?: string;
+  strokeWidth?: number;
+  strokeOpacity?: number;
+  strokeStyle?: 'solid' | 'dashed' | 'dotted' | 'mixed';
   undoInfo?: UndoInfo;
+  shapesWithExistingStrokes?: Array<{ id: string; name?: string }>;
+  requestedStroke?: {
+    strokeColor: string;
+    strokeWidth: number;
+    strokeOpacity: number;
+    strokeStyle: string;
+  };
 }
 
 export interface ApplyLinearGradientResponsePayload {

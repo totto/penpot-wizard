@@ -1286,7 +1286,8 @@ export async function applyStrokeTool(payload: ApplyStrokeQueryPayload): Promise
     strokeColor = '#000000',
     strokeWidth = 1,
     strokeOpacity = 1,
-    strokeStyle = 'solid'
+    strokeStyle = 'solid',
+    overrideExisting = false
   } = payload;
 
   // Convert named colors to hex
@@ -1318,6 +1319,31 @@ export async function applyStrokeTool(payload: ApplyStrokeQueryPayload): Promise
       };
     }
 
+    // Check if any shapes already have strokes and user hasn't opted to override
+    if (!overrideExisting) {
+      const shapesWithStrokes = sel.filter(shape =>
+        shape.strokes && Array.isArray(shape.strokes) && shape.strokes.length > 0
+      );
+
+      if (shapesWithStrokes.length > 0) {
+        const shapeNames = shapesWithStrokes.map(s => s.name || s.id).join(', ');
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.APPLY_STROKE,
+          success: false,
+          message: `I found that ${shapesWithStrokes.length} of your selected shape${shapesWithStrokes.length > 1 ? 's' : ''} already ${shapesWithStrokes.length > 1 ? 'have' : 'has'} stroke${shapesWithStrokes.length > 1 ? 's' : ''} applied: ${shapeNames}.
+
+Do you want to override the existing stroke${shapesWithStrokes.length > 1 ? 's' : ''} with the new one (${hexColor}, ${strokeWidth}px, ${strokeStyle}${strokeOpacity < 1 ? `, ${Math.round(strokeOpacity * 100)}% opacity` : ''})?
+
+Say "apply stroke with override" or "apply stroke override existing" to proceed with overriding.`,
+          payload: {
+            shapesWithExistingStrokes: shapesWithStrokes.map(s => ({ id: s.id, name: s.name })),
+            requestedStroke: { strokeColor: hexColor, strokeWidth, strokeOpacity, strokeStyle }
+          }
+        };
+      }
+    }
+
     // Apply stroke to each selected shape
     const strokedShapes: string[] = [];
     const shapeIds: string[] = [];
@@ -1340,45 +1366,30 @@ export async function applyStrokeTool(payload: ApplyStrokeQueryPayload): Promise
     for (const shape of sel) {
       console.log(`Processing shape: ${shape.id}, has strokes: ${'strokes' in shape}`);
       try {
-        // Apply stroke to the shape using the documented Penpot API
-        // Clear existing strokes and set new stroke
-        shape.strokes = [{
-          strokeColor: hexColor,
-          strokeWidth: strokeWidth,
-          strokeOpacity: strokeOpacity,
-          strokeStyle: strokeStyle as 'solid' | 'dashed' | 'dotted' | 'mixed',
-        }];
-        console.log(`Successfully set strokes for shape ${shape.id}`);
+        // Apply stroke to the shape using a safer approach
+        // First try to modify existing strokes, then create new ones
+        if (shape.strokes && Array.isArray(shape.strokes) && shape.strokes.length > 0) {
+          // Modify existing stroke
+          shape.strokes[0] = {
+            ...shape.strokes[0],
+            strokeColor: hexColor,
+            strokeWidth: strokeWidth,
+            strokeOpacity: strokeOpacity,
+            // Remove strokeStyle for now to avoid read-only property issues
+          };
+          console.log(`Successfully modified existing stroke for shape ${shape.id}`);
+        } else {
+          // Create new stroke - use minimal properties to avoid issues
+          shape.strokes = [{
+            strokeColor: hexColor,
+            strokeWidth: strokeWidth,
+            strokeOpacity: strokeOpacity,
+          }];
+          console.log(`Successfully created new stroke for shape ${shape.id}`);
+        }
         strokedShapes.push(shape.name || shape.id);
       } catch (shapeError) {
         console.warn(`Failed to apply stroke to shape ${shape.id}:`, shapeError);
-        // Try alternative: modify existing strokes
-        try {
-          if (shape.strokes && Array.isArray(shape.strokes)) {
-            if (shape.strokes.length > 0) {
-              // Modify first stroke
-              shape.strokes[0] = {
-                ...shape.strokes[0],
-                strokeColor: hexColor,
-                strokeWidth: strokeWidth,
-                strokeOpacity: strokeOpacity,
-                strokeStyle: strokeStyle as 'solid' | 'dashed' | 'dotted' | 'mixed',
-              };
-            } else {
-              // Add new stroke
-              shape.strokes = [{
-                strokeColor: hexColor,
-                strokeWidth: strokeWidth,
-                strokeOpacity: strokeOpacity,
-                strokeStyle: strokeStyle as 'solid' | 'dashed' | 'dotted' | 'mixed',
-              }];
-            }
-            console.log(`Alternative method succeeded for shape ${shape.id}`);
-            strokedShapes.push(shape.name || shape.id);
-          }
-        } catch (altError) {
-          console.warn(`Alternative stroke method also failed for shape ${shape.id}:`, altError);
-        }
       }
     }
 
