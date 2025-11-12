@@ -47,6 +47,7 @@ export enum ClientQueryType {
   UNGROUP = 'UNGROUP',
   COMBINE_SHAPES = 'COMBINE_SHAPES',
   INTERSECT_SHAPES = 'INTERSECT_SHAPES',
+  SUBTRACT_SHAPES = 'SUBTRACT_SHAPES',
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
 }
@@ -63,7 +64,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CombineShapesQueryPayload | IntersectShapesQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CombineShapesQueryPayload | IntersectShapesQueryPayload | SubtractShapesQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -147,6 +148,8 @@ export type UngroupQueryPayload = Record<string, never>;
 export type CombineShapesQueryPayload = Record<string, never>;
 
 export type IntersectShapesQueryPayload = Record<string, never>;
+
+export type SubtractShapesQueryPayload = Record<string, never>;
 
 export interface UndoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to undo, otherwise undo the last one
@@ -260,6 +263,12 @@ export interface CombineShapesResponsePayload {
 export interface IntersectShapesResponsePayload {
   intersectedShapeId: string;
   intersectedShapes: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface SubtractShapesResponsePayload {
+  subtractedShapeId: string;
+  subtractedShapes: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
 }
 
@@ -434,6 +443,7 @@ export type PluginResponsePayload =
   | AlignVerticalResponsePayload
   | CombineShapesResponsePayload
   | IntersectShapesResponsePayload
+  | SubtractShapesResponsePayload
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload;
 

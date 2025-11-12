@@ -537,6 +537,32 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.INTERSECT_SHAPES, {});
     return response;
   },
+},
+{
+  id: 'subtract-shapes-tool',
+  name: 'SubtractShapesTool',
+  description: `
+    Subtract shapes to create cutouts and holes in other shapes.
+    
+    This tool subtracts overlapping shapes from the base shape, creating cutouts or holes.
+    Uses Penpot's boolean difference operation to remove overlapping areas.
+    
+    ⚠️ IMPORTANT: Boolean operations are DESTRUCTIVE and cannot be perfectly undone.
+    The AI will attempt to recreate your original shapes during undo, but some visual properties 
+    (gradients, effects, complex styling) may be lost. This is an approximation, not perfect restoration.
+    
+    Works with 2+ selected shapes.
+    Uses Penpot's native boolean operations API for professional shape manipulation.
+    Limited undo support - recreates approximations of original shapes.
+    
+    Perfect for creating cutouts, holes, negative space, or complex shapes with voids.
+    Consider saving your work before using this tool.
+  `,
+  inputSchema: z.object({}),
+  function: async () => {
+    const response = await sendMessageToPlugin(ClientQueryType.SUBTRACT_SHAPES, {});
+    return response;
+  },
 }
 
 ];

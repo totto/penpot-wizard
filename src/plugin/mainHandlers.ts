@@ -34,6 +34,8 @@ import {
   GroupQueryPayload,
   UngroupQueryPayload,
   CombineShapesQueryPayload,
+  IntersectShapesQueryPayload,
+  SubtractShapesQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -2638,6 +2640,114 @@ Undo will attempt to recreate approximations of your original shapes, but some v
   }
 }
 
+export async function subtractShapesTool(_payload: SubtractShapesQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length < 2) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SUBTRACT_SHAPES,
+        success: false,
+        message: `Please select at least 2 shapes to subtract. You currently have ${sel?.length || 0} shape${(sel?.length || 0) !== 1 ? 's' : ''} selected.`,
+      };
+    }
+
+    // Store information about the shapes being subtracted for undo
+    const shapeIds: string[] = [];
+    const shapePositions: Array<{ x: number; y: number }> = [];
+    const shapeProperties: Array<{
+      id: string;
+      name: string;
+      type: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      fills?: unknown;
+      strokes?: unknown;
+    }> = [];
+
+    // First pass: capture shape information
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      shapePositions.push({ x: shape.x, y: shape.y });
+      shapeProperties.push({
+        id: shape.id,
+        name: shape.name || `Shape ${shape.id.slice(-4)}`,
+        type: shape.type || 'rectangle',
+        x: shape.x,
+        y: shape.y,
+        width: shape.width || 100,
+        height: shape.height || 100,
+        fills: shape.fills,
+        strokes: shape.strokes,
+      });
+    }
+
+    // Create the subtracted shape using Penpot's createBoolean method with "difference"
+    try {
+      const subtractedShape = penpot.createBoolean("difference", sel);
+      if (!subtractedShape) {
+        throw new Error('createBoolean returned null - operation may not be supported');
+      }
+
+      // Add to undo stack
+      const undoInfo: UndoInfo = {
+        actionType: ClientQueryType.SUBTRACT_SHAPES,
+        actionId: `subtract_shapes_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        undoData: {
+          subtractedShapeId: subtractedShape.id,
+          originalShapes: shapeProperties,
+        },
+        description: `Subtracted ${sel.length} shapes`,
+        timestamp: Date.now(),
+      };
+
+      undoStack.push(undoInfo);
+
+      const shapeNames = shapeProperties.map(s => s.name).join(', ');
+
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SUBTRACT_SHAPES,
+        success: true,
+        message: `Perfect! I subtracted ${sel.length} shapes to create a new compound shape.
+
+⚠️ **IMPORTANT**: Boolean operations are DESTRUCTIVE and cannot be perfectly undone.
+The original shapes have been removed and replaced with the subtracted result.
+You can undo this action, but it will recreate approximations of your original shapes.
+Some visual properties like gradients, effects, or complex styling may be lost.
+
+Subtracted shapes: ${shapeNames}
+Result: ${subtractedShape.name || subtractedShape.id}
+
+Consider saving your work before using boolean operations.`,
+        payload: {
+          subtractedShapeId: subtractedShape.id,
+          subtractedShapes: shapeProperties.map(s => ({ id: s.id, name: s.name })),
+          undoInfo,
+        },
+      };
+    } catch (subtractError) {
+      console.warn(`Penpot createBoolean difference failed:`, subtractError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SUBTRACT_SHAPES,
+        success: false,
+        message: `Failed to subtract shapes. Penpot's boolean operation API may not be available or the shapes may not be subtractable.`,
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SUBTRACT_SHAPES,
+      success: false,
+      message: `Error subtracting shapes: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function undoLastAction(_payload: UndoLastActionQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Check if there's anything to undo
@@ -3252,6 +3362,93 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.SUBTRACT_SHAPES: {
+        // Restore original shapes by deleting the subtracted shape and recreating originals
+        const subtractData = lastAction.undoData as {
+          subtractedShapeId: string;
+          originalShapes: Array<{
+            id: string;
+            name: string;
+            type: string;
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            fills?: unknown;
+            strokes?: unknown;
+          }>;
+        };
+
+        try {
+          const currentPage = penpot.currentPage;
+          if (!currentPage) {
+            throw new Error('No current page available');
+          }
+
+          // Delete the subtracted shape
+          const subtractedShape = currentPage.getShapeById(subtractData.subtractedShapeId);
+          if (subtractedShape) {
+            subtractedShape.remove();
+          }
+
+          // Recreate the original shapes as rectangles (since we don't know the exact types)
+          const newShapeIds: string[] = [];
+          for (const originalShape of subtractData.originalShapes) {
+            try {
+              // Create a shape of the correct type
+              let newShape: Shape;
+              switch (originalShape.type) {
+                case 'ellipse':
+                  newShape = penpot.createEllipse();
+                  break;
+                case 'path':
+                  newShape = penpot.createPath();
+                  break;
+                case 'rectangle':
+                default:
+                  newShape = penpot.createRectangle();
+                  break;
+              }
+
+              newShape.x = originalShape.x;
+              newShape.y = originalShape.y;
+              newShape.resize(originalShape.width, originalShape.height);
+              newShape.name = originalShape.name;
+
+              // Restore fills and strokes if they exist
+              if (originalShape.fills) {
+                newShape.fills = originalShape.fills as Fill[];
+              }
+              if (originalShape.strokes) {
+                newShape.strokes = originalShape.strokes as Stroke[];
+              }
+
+              newShapeIds.push(newShape.id);
+              restoredShapes.push(originalShape.name);
+            } catch (shapeError) {
+              console.warn(`Failed to recreate shape ${originalShape.name}:`, shapeError);
+            }
+          }
+
+          // Update selection to the newly created shapes after a brief delay
+          // to avoid conflicts with automatic selection change events
+          if (newShapeIds.length > 0) {
+            setTimeout(() => {
+              updateCurrentSelection(newShapeIds);
+            }, 10);
+          }
+        } catch (error) {
+          console.warn('Failed to undo subtract shapes:', error);
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.UNDO_LAST_ACTION,
+            success: false,
+            message: `Failed to undo subtract shapes: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+        break;
+      }
+
       default:
         return {
           ...pluginResponse,
@@ -3263,7 +3460,8 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
 
     const isCombineShapes = lastAction.actionType === ClientQueryType.COMBINE_SHAPES;
     const isIntersectShapes = lastAction.actionType === ClientQueryType.INTERSECT_SHAPES;
-    const isBooleanOperation = isCombineShapes || isIntersectShapes;
+    const isSubtractShapes = lastAction.actionType === ClientQueryType.SUBTRACT_SHAPES;
+    const isBooleanOperation = isCombineShapes || isIntersectShapes || isSubtractShapes;
     
     return {
       ...pluginResponse,
@@ -3899,6 +4097,58 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             type: ClientQueryType.REDO_LAST_ACTION,
             success: false,
             message: `Failed to redo intersect shapes: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+        break;
+      }
+
+      case ClientQueryType.SUBTRACT_SHAPES: {
+        // Reapply the subtract operation - find original shapes and subtract them
+        const subtractData = lastAction.undoData as {
+          subtractedShapeId: string;
+          originalShapes: Array<{
+            id: string;
+            name: string;
+            type: string;
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            fills?: unknown;
+            strokes?: unknown;
+          }>;
+        };
+
+        try {
+          // Find the original shapes that should be subtracted
+          const shapesToSubtract: Shape[] = [];
+          for (const originalShape of subtractData.originalShapes) {
+            const shape = penpot.currentPage?.getShapeById(originalShape.id);
+            if (shape) {
+              shapesToSubtract.push(shape);
+            }
+          }
+
+          if (shapesToSubtract.length >= 2) {
+            // Reapply the subtract operation
+            const subtractedShape = penpot.createBoolean("difference", shapesToSubtract);
+            if (subtractedShape) {
+              undoStack.push(lastAction);
+              restoredShapes.push(subtractedShape.name || subtractedShape.id);
+              
+              // Update selection to the newly subtracted shape after a brief delay
+              setTimeout(() => {
+                updateCurrentSelection([subtractedShape.id]);
+              }, 10);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to redo subtract shapes:', error);
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.REDO_LAST_ACTION,
+            success: false,
+            message: `Failed to redo subtract shapes: ${error instanceof Error ? error.message : String(error)}`,
           };
         }
         break;
