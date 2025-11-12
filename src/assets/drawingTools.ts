@@ -370,22 +370,19 @@ id: 'create-library-color',
   id: 'align-vertical-tool',
   name: 'AlignVerticalTool',
   description: `
-    Align shapes vertically using Penpot's alignment system.
-    Works with 1 or more selected shapes.
-
-    For single shapes: Aligns to the parent container bounds (top/center/bottom)
-    For multiple shapes: Aligns shapes relative to each other
-
-    Vertical alignment options:
-    - top: Align all shapes to the topmost shape's top edge
-    - center: Center all shapes vertically around the middle point
-    - bottom: Align all shapes to the bottommost shape's bottom edge
-
-    This tool uses Penpot's native alignment API and matches the behavior of Penpot's alignment tools.
-    The alignment is reversible with the undo functionality.
+    Vertically align shapes in Penpot - top, center/middle, or bottom alignment.
+    
+    Use this tool to align shapes vertically. Supports:
+    - Vertical alignment to top
+    - Vertical center/middle alignment  
+    - Vertical alignment to bottom
+    
+    Works with single or multiple selected shapes.
+    Single shapes align to parent container, multiple shapes align relative to each other.
+    Full undo/redo support using Penpot's native alignment API.
   `,
   inputSchema: z.object({
-    alignment: z.enum(['top', 'center', 'bottom']).describe('The vertical alignment type. top aligns to top edges, center aligns centers, bottom aligns to bottom edges.'),
+    alignment: z.enum(['top', 'center', 'bottom']).describe('The vertical alignment type. top aligns to top edges, center (middle) aligns centers vertically, bottom aligns to bottom edges.'),
   }),
   function: async (alignmentProperties) => {
     const response = await sendMessageToPlugin(ClientQueryType.ALIGN_VERTICAL, alignmentProperties);
