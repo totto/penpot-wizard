@@ -29,6 +29,7 @@ import {
   AlignHorizontalQueryPayload,
   AlignVerticalQueryPayload,
   CenterAlignmentQueryPayload,
+  DistributeHorizontalQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -2056,6 +2057,84 @@ You can undo this action anytime with "undo last action".`,
   }
 }
 
+export async function distributeHorizontalTool(_payload: DistributeHorizontalQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length < 3) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.DISTRIBUTE_HORIZONTAL,
+        success: false,
+        message: sel && sel.length === 2 
+          ? 'NEED_MORE_SHAPES' 
+          : 'NO_SELECTION',
+      };
+    }
+
+    // Store previous positions for undo (both X and Y coordinates)
+    const shapeIds: string[] = [];
+    const previousPositions: Array<{ x: number; y: number }> = [];
+
+    // First pass: capture previous positions
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      previousPositions.push({ x: shape.x, y: shape.y });
+    }
+
+    // Apply horizontal distribution using Penpot's distributeHorizontal method
+    try {
+      // Call Penpot's distributeHorizontal method on the selection
+      penpot.distributeHorizontal(sel);
+    } catch (distributeError) {
+      console.warn(`Penpot distributeHorizontal failed:`, distributeError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.DISTRIBUTE_HORIZONTAL,
+        success: false,
+        message: `Failed to distribute shapes horizontally. Penpot's distribution API may not be available or the shapes may not be distributable.`,
+      };
+    }
+
+    const shapeNames = sel.map(s => s.name || s.id).join(', ');
+
+    // Add to undo stack with position data
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.DISTRIBUTE_HORIZONTAL,
+      actionId: `distribute_horizontal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        shapeIds,
+        previousPositions,
+      },
+      description: `Distributed ${sel.length} shapes horizontally`,
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.DISTRIBUTE_HORIZONTAL,
+      message: `Perfect! I distributed ${sel.length} shapes evenly across the horizontal space.
+
+Distributed shapes: ${shapeNames}
+
+The shapes are now spaced evenly between the leftmost and rightmost positions.
+You can undo this action anytime with "undo last action".`,
+      payload: {
+        undoInfo,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.DISTRIBUTE_HORIZONTAL,
+      success: false,
+      message: `Error distributing shapes horizontally: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function undoLastAction(_payload: UndoLastActionQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Check if there's anything to undo
@@ -2287,6 +2366,35 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         for (let i = 0; i < centerData.shapeIds.length; i++) {
           const shapeId = centerData.shapeIds[i];
           const previousPosition = centerData.previousPositions[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore the previous position
+            shape.x = previousPosition.x;
+            shape.y = previousPosition.y;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore position for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.DISTRIBUTE_HORIZONTAL: {
+        // Restore previous positions (same as alignment operations)
+        const distributeData = lastAction.undoData as {
+          shapeIds: string[];
+          previousPositions: Array<{ x: number; y: number }>;
+        };
+
+        for (let i = 0; i < distributeData.shapeIds.length; i++) {
+          const shapeId = distributeData.shapeIds[i];
+          const previousPosition = distributeData.previousPositions[i];
 
           try {
             const currentPage = penpot.currentPage;

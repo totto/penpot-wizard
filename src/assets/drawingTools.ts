@@ -409,6 +409,25 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.CENTER_ALIGNMENT, {});
     return response;
   },
+},
+{
+  id: 'distribute-horizontal-tool',
+  name: 'DistributeHorizontalTool',
+  description: `
+    Distribute selected shapes evenly across the horizontal space.
+    
+    This tool spaces shapes evenly between the leftmost and rightmost shapes in your selection.
+    Perfect for creating uniform spacing in layouts and designs.
+    
+    Works with 3+ selected shapes for meaningful distribution.
+    Uses Penpot's native distribution API for consistent behavior.
+    Full undo/redo support included.
+  `,
+  inputSchema: z.object({}),
+  function: async () => {
+    const response = await sendMessageToPlugin(ClientQueryType.DISTRIBUTE_HORIZONTAL, {});
+    return response;
+  },
 }
 
 ];
