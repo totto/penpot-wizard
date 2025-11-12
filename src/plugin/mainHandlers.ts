@@ -1366,27 +1366,15 @@ Say "apply stroke with override" or "apply stroke override existing" to proceed 
     for (const shape of sel) {
       console.log(`Processing shape: ${shape.id}, has strokes: ${'strokes' in shape}`);
       try {
-        // Apply stroke to the shape using a safer approach
-        // First try to modify existing strokes, then create new ones
-        if (shape.strokes && Array.isArray(shape.strokes) && shape.strokes.length > 0) {
-          // Modify existing stroke
-          shape.strokes[0] = {
-            ...shape.strokes[0],
-            strokeColor: hexColor,
-            strokeWidth: strokeWidth,
-            strokeOpacity: strokeOpacity,
-            // Remove strokeStyle for now to avoid read-only property issues
-          };
-          console.log(`Successfully modified existing stroke for shape ${shape.id}`);
-        } else {
-          // Create new stroke - use minimal properties to avoid issues
-          shape.strokes = [{
-            strokeColor: hexColor,
-            strokeWidth: strokeWidth,
-            strokeOpacity: strokeOpacity,
-          }];
-          console.log(`Successfully created new stroke for shape ${shape.id}`);
-        }
+        // Apply stroke to the shape using the same approach as fills
+        // Always replace the entire strokes array to ensure all properties are set correctly
+        shape.strokes = [{
+          strokeColor: hexColor,
+          strokeWidth: strokeWidth,
+          strokeOpacity: strokeOpacity,
+          strokeStyle: strokeStyle,
+        }];
+        console.log(`Successfully applied stroke to shape ${shape.id}`);
         strokedShapes.push(shape.name || shape.id);
       } catch (shapeError) {
         console.warn(`Failed to apply stroke to shape ${shape.id}:`, shapeError);
