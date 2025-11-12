@@ -2277,6 +2277,35 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.CENTER_ALIGNMENT: {
+        // Restore previous positions (same as horizontal/vertical alignment)
+        const centerData = lastAction.undoData as {
+          shapeIds: string[];
+          previousPositions: Array<{ x: number; y: number }>;
+        };
+
+        for (let i = 0; i < centerData.shapeIds.length; i++) {
+          const shapeId = centerData.shapeIds[i];
+          const previousPosition = centerData.previousPositions[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore the previous position
+            shape.x = previousPosition.x;
+            shape.y = previousPosition.y;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore position for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
       case ClientQueryType.APPLY_LINEAR_GRADIENT:
       case ClientQueryType.APPLY_RADIAL_GRADIENT: {
         // Restore previous fill values (same logic as APPLY_FILL)
