@@ -447,6 +447,25 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.DISTRIBUTE_VERTICAL, {});
     return response;
   },
+},
+{
+  id: 'group-tool',
+  name: 'GroupTool',
+  description: `
+    Group selected shapes into a single container.
+    
+    This tool combines 2+ selected shapes into a group, allowing you to move, rotate, and scale them as a single unit.
+    Groups help organize complex designs and maintain relationships between elements.
+    
+    Works with 2+ selected shapes.
+    Uses Penpot's native grouping API for consistent behavior.
+    Full undo/redo support included - ungrouping restores original positions.
+  `,
+  inputSchema: z.object({}),
+  function: async () => {
+    const response = await sendMessageToPlugin(ClientQueryType.GROUP, {});
+    return response;
+  },
 }
 
 ];

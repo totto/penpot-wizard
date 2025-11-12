@@ -31,6 +31,7 @@ import {
   CenterAlignmentQueryPayload,
   DistributeHorizontalQueryPayload,
   DistributeVerticalQueryPayload,
+  GroupQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -40,7 +41,7 @@ import {
   UndoLastActionQueryPayload,
   RedoLastActionQueryPayload,
 } from "../types/types";
-import type { Shape } from '@penpot/plugin-types';
+import type { Shape, Group } from '@penpot/plugin-types';
 
 const pluginResponse: PluginResponseMessage = {
   source: MessageSourceName.Plugin,
@@ -2214,6 +2215,95 @@ You can undo this action anytime with "undo last action".`,
   }
 }
 
+export async function groupTool(_payload: GroupQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length < 2) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GROUP,
+        success: false,
+        message: sel && sel.length === 1
+          ? 'NEED_MORE_SHAPES'
+          : 'NO_SELECTION',
+      };
+    }
+
+    // Store information about the shapes being grouped for undo
+    const shapeIds: string[] = [];
+    const shapePositions: Array<{ x: number; y: number }> = [];
+
+    // First pass: capture shape information
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      shapePositions.push({ x: shape.x, y: shape.y });
+    }
+
+    // Create the group using Penpot's group method
+    try {
+      const newGroup = penpot.group(sel);
+      if (!newGroup) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.GROUP,
+          success: false,
+          message: `Failed to create group. Penpot's grouping API may not be available or the shapes may not be groupable.`,
+        };
+      }
+
+      const shapeNames = sel.map(s => s.name || s.id).join(', ');
+
+      // Add to undo stack with group information
+      const undoInfo: UndoInfo = {
+        actionType: ClientQueryType.GROUP,
+        actionId: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        undoData: {
+          groupId: newGroup.id,
+          shapeIds,
+          shapePositions,
+        },
+        description: `Grouped ${sel.length} shapes into "${newGroup.name || newGroup.id}"`,
+        timestamp: Date.now(),
+      };
+
+      undoStack.push(undoInfo);
+
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GROUP,
+        message: `Perfect! I grouped ${sel.length} shapes into a new group.
+
+Grouped shapes: ${shapeNames}
+Group name: ${newGroup.name || newGroup.id}
+
+The shapes are now contained within a group container. You can move, rotate, and scale them as a single unit.
+You can undo this action anytime with "undo last action".`,
+        payload: {
+          groupId: newGroup.id,
+          groupedShapes: sel.map(s => ({ id: s.id, name: s.name })),
+          undoInfo,
+        },
+      };
+    } catch (groupError) {
+      console.warn(`Penpot group failed:`, groupError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GROUP,
+        success: false,
+        message: `Failed to group shapes. Penpot's grouping API may not be available or the shapes may not be groupable.`,
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GROUP,
+      success: false,
+      message: `Error grouping shapes: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function undoLastAction(_payload: UndoLastActionQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Check if there's anything to undo
@@ -2518,6 +2608,53 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
           } catch (error) {
             console.warn(`Failed to restore position for shape ${shapeId}:`, error);
           }
+        }
+        break;
+      }
+
+      case ClientQueryType.GROUP: {
+        // Ungroup the shapes by removing the group container
+        const groupData = lastAction.undoData as {
+          groupId: string;
+          shapeIds: string[];
+          shapePositions: Array<{ x: number; y: number }>;
+        };
+
+        try {
+          const currentPage = penpot.currentPage;
+          if (!currentPage) {
+            console.warn('No current page available for ungrouping');
+            break;
+          }
+
+          const group = currentPage.getShapeById(groupData.groupId);
+          if (!group) {
+            console.warn(`Group ${groupData.groupId} not found for ungrouping`);
+            break;
+          }
+
+          // Ungroup the shapes using Penpot's ungroup method
+          penpot.ungroup(group as Group);
+
+          // Restore original positions of the individual shapes
+          for (let i = 0; i < groupData.shapeIds.length; i++) {
+            const shapeId = groupData.shapeIds[i];
+            const originalPosition = groupData.shapePositions[i];
+
+            try {
+              const shape = currentPage.getShapeById(shapeId);
+              if (shape) {
+                // Restore the original position
+                shape.x = originalPosition.x;
+                shape.y = originalPosition.y;
+                restoredShapes.push(shape.name || shape.id);
+              }
+            } catch (error) {
+              console.warn(`Failed to restore position for shape ${shapeId}:`, error);
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to ungroup shapes:`, error);
         }
         break;
       }
@@ -2901,6 +3038,44 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             restoredShapes.push(...shapesToDistribute.map(s => s.name || s.id));
           } catch (distributeError) {
             console.warn(`Failed to redo vertical distribution:`, distributeError);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.GROUP: {
+        // Regroup the shapes
+        const groupData = lastAction.undoData as {
+          groupId: string;
+          shapeIds: string[];
+          shapePositions: Array<{ x: number; y: number }>;
+        };
+
+        // Get the shapes and regroup them
+        const shapesToGroup: Shape[] = [];
+        for (const shapeId of groupData.shapeIds) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (shape) {
+              shapesToGroup.push(shape);
+            }
+          } catch (error) {
+            console.warn(`Failed to find shape ${shapeId} for redo grouping:`, error);
+          }
+        }
+
+        // Regroup the shapes if we have enough
+        if (shapesToGroup.length >= 2) {
+          try {
+            const newGroup = penpot.group(shapesToGroup);
+            if (newGroup) {
+              restoredShapes.push(...shapesToGroup.map(s => s.name || s.id));
+            }
+          } catch (groupError) {
+            console.warn(`Failed to redo grouping:`, groupError);
           }
         }
         break;

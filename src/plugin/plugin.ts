@@ -13,6 +13,7 @@ import {
   CenterAlignmentQueryPayload,
   DistributeHorizontalQueryPayload,
   DistributeVerticalQueryPayload,
+  GroupQueryPayload,
   ApplyLinearGradientQueryPayload,
   ApplyRadialGradientQueryPayload,
   DrawShapeQueryPayload,
@@ -37,6 +38,7 @@ import {
   centerAlignmentTool,
   distributeHorizontalTool,
   distributeVerticalTool,
+  groupTool,
   applyLinearGradientTool, 
   applyRadialGradientTool, 
   getCurrentPage, 
@@ -173,6 +175,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.DISTRIBUTE_VERTICAL:
       responseMessage = await distributeVerticalTool(payload as unknown as DistributeVerticalQueryPayload);
+      break;
+
+    case ClientQueryType.GROUP:
+      responseMessage = await groupTool(payload as unknown as GroupQueryPayload);
       break;
 
     case ClientQueryType.APPLY_LINEAR_GRADIENT:
