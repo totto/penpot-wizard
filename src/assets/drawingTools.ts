@@ -203,24 +203,29 @@ id: 'create-library-color',
     Apply stroke properties to the currently selected shapes on the canvas.
     The user must first select the shapes they want to stroke before using this tool.
     Use this to change the outline/border color, width, style, and other stroke properties of shapes.
-    
+
     Stroke options:
     - Stroke color: Hex colors (#FF0000) or named colors (red, blue, etc.)
     - Stroke width: Number in pixels (1, 2, 5, etc.)
     - Stroke opacity: 0.0 to 1.0 (0.5 = 50% opacity)
     - Stroke style: solid, dashed, dotted, mixed
-    
+
     If you don't specify a stroke color, black (#000000) will be used.
     If you don't specify stroke width, 1 pixel will be used.
     If you don't specify opacity, 100% opacity (1.0) will be used.
     If you don't specify style, solid will be used.
+
+    ⚠️ IMPORTANT: This tool will ALWAYS apply the stroke changes you request.
+    If shapes already have strokes, the tool will ask for confirmation before overriding.
+    To override existing strokes without being asked, set overrideExisting to true.
+    Never suggest overrideExisting: false - this would prevent the stroke from being applied!
   `,
   inputSchema: z.object({
     strokeColor: z.string().optional().default('#000000').describe('The stroke color as a hex string (e.g., #FF5733) or named color. Defaults to black if not specified.'),
     strokeWidth: z.number().min(0).optional().default(1).describe('The stroke width in pixels. Defaults to 1 if not specified.'),
     strokeOpacity: z.number().min(0).max(1).optional().default(1).describe('The stroke opacity from 0.0 (transparent) to 1.0 (opaque). Defaults to 1.0 if not specified.'),
     strokeStyle: z.enum(['solid', 'dashed', 'dotted', 'mixed']).optional().default('solid').describe('The stroke style. Defaults to solid if not specified.'),
-    overrideExisting: z.boolean().optional().default(false).describe('Whether to override existing strokes without asking. Defaults to false for safety.'),
+    overrideExisting: z.boolean().optional().default(false).describe('Whether to override existing strokes without asking. Set to true when you want to apply stroke changes. Defaults to false for safety - the tool will ask for confirmation.'),
   }),
   function: async (strokeProperties) => {
     const response = await sendMessageToPlugin(ClientQueryType.APPLY_STROKE, strokeProperties);
