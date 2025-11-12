@@ -2991,6 +2991,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
           }
 
           // Recreate the original shapes as rectangles (since we don't know the exact types)
+          const newShapeIds: string[] = [];
           for (const originalShape of combineData.originalShapes) {
             try {
               // Create a rectangle with the original dimensions and position
@@ -3008,10 +3009,19 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
                 newShape.strokes = originalShape.strokes as Stroke[];
               }
 
+              newShapeIds.push(newShape.id);
               restoredShapes.push(originalShape.name);
             } catch (shapeError) {
               console.warn(`Failed to recreate shape ${originalShape.name}:`, shapeError);
             }
+          }
+
+          // Update selection to the newly created shapes after a brief delay
+          // to avoid conflicts with automatic selection change events
+          if (newShapeIds.length > 0) {
+            setTimeout(() => {
+              updateCurrentSelection(newShapeIds);
+            }, 10);
           }
         } catch (error) {
           console.warn('Failed to undo combine shapes:', error);
@@ -3597,6 +3607,11 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             if (combinedShape) {
               undoStack.push(lastAction);
               restoredShapes.push(combinedShape.name || combinedShape.id);
+              
+              // Update selection to the newly combined shape after a brief delay
+              setTimeout(() => {
+                updateCurrentSelection([combinedShape.id]);
+              }, 10);
             }
           }
         } catch (error) {
