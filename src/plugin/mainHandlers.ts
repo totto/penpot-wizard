@@ -1975,14 +1975,16 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
           const previousPosition = alignData.previousPositions[i];
 
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const shape = (penpot as any).currentPage?.findShape(shapeId) as any;
-            if (shape) {
-              // Restore the previous position
-              shape.x = previousPosition.x;
-              shape.y = previousPosition.y;
-              restoredShapes.push(shape.name || shape.id);
-            }
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore the previous position
+            shape.x = previousPosition.x;
+            shape.y = previousPosition.y;
+            restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to restore position for shape ${shapeId}:`, error);
           }
