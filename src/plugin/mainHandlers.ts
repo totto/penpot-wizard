@@ -27,6 +27,7 @@ import {
   ApplyRadialGradientQueryPayload,
   ApplyShadowQueryPayload,
   AlignHorizontalQueryPayload,
+  AlignVerticalQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -1800,6 +1801,180 @@ You can undo this action anytime with "undo last action".`,
   }
 }
 
+export async function alignVerticalTool(payload: AlignVerticalQueryPayload): Promise<PluginResponseMessage> {
+  const { alignment } = payload;
+
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.ALIGN_VERTICAL,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    // Handle single shape alignment differently - align to parent bounds
+    if (sel.length === 1) {
+      const shape = sel[0];
+      const previousX = shape.x;
+      const previousY = shape.y;
+
+      try {
+        // Get parent bounds for alignment reference
+        let parentBounds = { x: 0, y: 0, width: 0, height: 0 };
+
+        // Try to get parent bounds - fallback to page bounds if no parent
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const parent = (shape as any).parent;
+          if (parent && typeof parent === 'object') {
+            parentBounds = {
+              x: parent.x || 0,
+              y: parent.y || 0,
+              width: parent.width || 0,
+              height: parent.height || 0,
+            };
+          }
+        } catch {
+          // Fallback to reasonable page bounds
+          parentBounds = {
+            x: 0,
+            y: 0,
+            width: 800,  // Reasonable default width
+            height: 600, // Reasonable default height
+          };
+        }
+
+        // Calculate new position based on alignment
+        let newY = shape.y;
+        switch (alignment) {
+          case 'top':
+            newY = parentBounds.y;
+            break;
+          case 'center':
+            newY = parentBounds.y + (parentBounds.height - shape.height) / 2;
+            break;
+          case 'bottom':
+            newY = parentBounds.y + parentBounds.height - shape.height;
+            break;
+        }
+
+        // Apply the new position
+        shape.y = newY;
+
+        const undoInfo: UndoInfo = {
+          actionType: ClientQueryType.ALIGN_VERTICAL,
+          actionId: `align_vertical_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          undoData: {
+            shapeIds: [shape.id],
+            previousPositions: [{ x: previousX, y: previousY }],
+            alignment,
+          },
+          description: `Aligned shape vertically (${alignment}) to parent bounds`,
+          timestamp: Date.now(),
+        };
+
+        undoStack.push(undoInfo);
+
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.ALIGN_VERTICAL,
+          message: `Perfect! I aligned your shape vertically to the **${alignment}** of its container.
+
+Aligned shape: ${shape.name || shape.id}
+
+This matches Penpot's native alignment behavior for single shapes.`,
+          payload: {
+            alignedShapes: [{ id: shape.id, name: shape.name }],
+            alignment,
+            undoInfo,
+          },
+        };
+      } catch (singleAlignError) {
+        console.warn(`Single shape vertical alignment failed:`, singleAlignError);
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.ALIGN_VERTICAL,
+          success: false,
+          message: `Failed to align the single shape. The shape may not have accessible parent bounds.`,
+        };
+      }
+    }
+
+    // Handle multiple shapes using Penpot's alignVertical API
+    // Store previous positions for undo
+    const shapeIds: string[] = [];
+    const previousPositions: Array<{ x: number; y: number }> = [];
+
+    // First pass: capture previous positions
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      previousPositions.push({ x: shape.x, y: shape.y });
+    }
+
+    // Apply vertical alignment using Penpot's alignVertical method
+    try {
+      // Call Penpot's alignVertical method on the selection
+      penpot.alignVertical(sel, alignment);
+    } catch (alignError) {
+      console.warn(`Penpot alignVertical failed:`, alignError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.ALIGN_VERTICAL,
+        success: false,
+        message: `Failed to align shapes vertically. Penpot's alignment API may not be available or the shapes may not be alignable.`,
+      };
+    }
+
+    const shapeNames = sel.map(s => s.name || s.id).join(', ');
+
+    // Add to undo stack
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.ALIGN_VERTICAL,
+      actionId: `align_vertical_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        shapeIds,
+        previousPositions,
+        alignment,
+      },
+      description: `Aligned ${sel.length} shapes vertically (${alignment})`,
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.ALIGN_VERTICAL,
+      message: `Perfect! I aligned ${sel.length} shapes vertically to the **${alignment}**.
+
+Aligned shapes: ${shapeNames}
+
+Vertical alignment options:
+• **top**: Align all shapes to the topmost shape's top edge
+• **center**: Center all shapes vertically around the middle point
+• **bottom**: Align all shapes to the bottommost shape's bottom edge
+
+You can undo this action anytime with "undo last action".`,
+      payload: {
+        alignedShapes: sel.map(s => ({ id: s.id, name: s.name })),
+        alignment,
+        undoInfo,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.ALIGN_VERTICAL,
+      success: false,
+      message: `Error aligning shapes vertically: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function undoLastAction(_payload: UndoLastActionQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Check if there's anything to undo
@@ -1964,6 +2139,35 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
       }
 
       case ClientQueryType.ALIGN_HORIZONTAL: {
+        // Restore previous positions
+        const alignData = lastAction.undoData as {
+          shapeIds: string[];
+          previousPositions: Array<{ x: number; y: number }>;
+        };
+
+        for (let i = 0; i < alignData.shapeIds.length; i++) {
+          const shapeId = alignData.shapeIds[i];
+          const previousPosition = alignData.previousPositions[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore the previous position
+            shape.x = previousPosition.x;
+            shape.y = previousPosition.y;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore position for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.ALIGN_VERTICAL: {
         // Restore previous positions
         const alignData = lastAction.undoData as {
           shapeIds: string[];
@@ -2215,6 +2419,92 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             restoredShapes.push(...shapesToAlign.map(s => s.name || s.id));
           } catch (alignError) {
             console.warn(`Failed to redo horizontal alignment:`, alignError);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.ALIGN_VERTICAL: {
+        // Reapply the vertical alignment
+        const alignData = lastAction.undoData as {
+          shapeIds: string[];
+          previousPositions: Array<{ x: number; y: number }>;
+          alignment: 'top' | 'center' | 'bottom';
+        };
+
+        // Get the shapes and reapply alignment
+        const shapesToAlign: Shape[] = [];
+        for (const shapeId of alignData.shapeIds) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const shape = (currentPage as any).getShapeById(shapeId);
+            if (shape) {
+              shapesToAlign.push(shape);
+            }
+          } catch (error) {
+            console.warn(`Failed to find shape ${shapeId} for redo alignment:`, error);
+          }
+        }
+
+        // Reapply the alignment if we have shapes
+        if (shapesToAlign.length >= 2) {
+          try {
+            penpot.alignVertical(shapesToAlign, alignData.alignment);
+            restoredShapes.push(...shapesToAlign.map(s => s.name || s.id));
+          } catch (alignError) {
+            console.warn(`Failed to redo vertical alignment:`, alignError);
+          }
+        } else if (shapesToAlign.length === 1) {
+          // Handle single shape redo by reapplying the alignment logic
+          const shape = shapesToAlign[0];
+          try {
+            // Get parent bounds for alignment reference
+            let parentBounds = { x: 0, y: 0, width: 0, height: 0 };
+
+            // Try to get parent bounds - fallback to page bounds if no parent
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const parent = (shape as any).parent;
+              if (parent && typeof parent === 'object') {
+                parentBounds = {
+                  x: parent.x || 0,
+                  y: parent.y || 0,
+                  width: parent.width || 0,
+                  height: parent.height || 0,
+                };
+              }
+            } catch {
+              // Fallback to reasonable page bounds
+              parentBounds = {
+                x: 0,
+                y: 0,
+                width: 800,
+                height: 600,
+              };
+            }
+
+            // Calculate new position based on alignment
+            let newY = shape.y;
+            switch (alignData.alignment) {
+              case 'top':
+                newY = parentBounds.y;
+                break;
+              case 'center':
+                newY = parentBounds.y + (parentBounds.height - shape.height) / 2;
+                break;
+              case 'bottom':
+                newY = parentBounds.y + parentBounds.height - shape.height;
+                break;
+            }
+
+            // Apply the new position
+            shape.y = newY;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (singleAlignError) {
+            console.warn(`Failed to redo single shape vertical alignment:`, singleAlignError);
           }
         }
         break;

@@ -39,6 +39,7 @@ export enum ClientQueryType {
   APPLY_RADIAL_GRADIENT = 'APPLY_RADIAL_GRADIENT',
   APPLY_SHADOW = 'APPLY_SHADOW',
   ALIGN_HORIZONTAL = 'ALIGN_HORIZONTAL',
+  ALIGN_VERTICAL = 'ALIGN_VERTICAL',
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
 }
@@ -55,7 +56,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -120,6 +121,10 @@ export interface ApplyShadowQueryPayload {
 
 export interface AlignHorizontalQueryPayload {
   alignment: 'left' | 'center' | 'right';
+}
+
+export interface AlignVerticalQueryPayload {
+  alignment: 'top' | 'center' | 'bottom';
 }
 
 export interface UndoLastActionQueryPayload {
@@ -216,6 +221,12 @@ export interface ApplyShadowResponsePayload {
 export interface AlignHorizontalResponsePayload {
   alignedShapes: Array<{ id: string; name?: string }>;
   alignment: 'left' | 'center' | 'right';
+  undoInfo?: UndoInfo;
+}
+
+export interface AlignVerticalResponsePayload {
+  alignedShapes: Array<{ id: string; name?: string }>;
+  alignment: 'top' | 'center' | 'bottom';
   undoInfo?: UndoInfo;
 }
 
@@ -387,6 +398,7 @@ export type PluginResponsePayload =
   | ApplyRadialGradientResponsePayload
   | ApplyShadowResponsePayload
   | AlignHorizontalResponsePayload
+  | AlignVerticalResponsePayload
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload;
 

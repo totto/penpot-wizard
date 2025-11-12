@@ -93,6 +93,7 @@ When the user wants to redo a recently undone action:
       'apply-stroke-tool',
       'apply-shadow-tool',
       'align-horizontal-tool',
+      'align-vertical-tool',
     
     ],    
     
