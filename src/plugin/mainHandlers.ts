@@ -471,7 +471,7 @@ export function getSelectionForAction(): Shape[] {
 
   try {
     // Only access selection when actually performing an action
-    const directSel = (penpot as unknown as { selection: Shape[] }).selection;
+    const directSel = penpot.selection;
     if (directSel && Array.isArray(directSel) && directSel.length > 0) {
       console.log(`✅ Found ${directSel.length} shapes for action`);
       return directSel;
