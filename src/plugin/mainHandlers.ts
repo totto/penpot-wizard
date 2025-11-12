@@ -33,6 +33,7 @@ import {
   DistributeVerticalQueryPayload,
   GroupQueryPayload,
   UngroupQueryPayload,
+  CombineShapesQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -2409,6 +2410,114 @@ You can undo this action anytime with "undo last action".`,
       type: ClientQueryType.UNGROUP,
       success: false,
       message: `Error ungrouping shapes: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function combineShapesTool(_payload: CombineShapesQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length < 2) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.COMBINE_SHAPES,
+        success: false,
+        message: sel && sel.length === 1
+          ? 'NEED_MORE_SHAPES'
+          : 'NO_SELECTION',
+      };
+    }
+
+    // Store information about the shapes being combined for undo
+    const shapeIds: string[] = [];
+    const shapePositions: Array<{ x: number; y: number }> = [];
+    const shapeProperties: Array<{
+      id: string;
+      name: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      fills?: unknown;
+      strokes?: unknown;
+    }> = [];
+
+    // First pass: capture shape information
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      shapePositions.push({ x: shape.x, y: shape.y });
+      shapeProperties.push({
+        id: shape.id,
+        name: shape.name || shape.id,
+        x: shape.x,
+        y: shape.y,
+        width: shape.width || 0,
+        height: shape.height || 0,
+        fills: (shape as any).fills,
+        strokes: (shape as any).strokes,
+      });
+    }
+
+    // Create the combined shape using Penpot's createBoolean method with "union"
+    try {
+      const combinedShape = penpot.createBoolean("union", sel);
+      if (!combinedShape) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.COMBINE_SHAPES,
+          success: false,
+          message: `Failed to combine shapes. Penpot's boolean operation API may not be available or the shapes may not be combinable.`,
+        };
+      }
+
+      const shapeNames = sel.map(s => s.name || s.id).join(', ');
+
+      // Add to undo stack with shape restoration information
+      const undoInfo: UndoInfo = {
+        actionType: ClientQueryType.COMBINE_SHAPES,
+        actionId: `combine_shapes_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        undoData: {
+          combinedShapeId: combinedShape.id,
+          originalShapes: shapeProperties,
+        },
+        description: `Combined ${sel.length} shapes into "${combinedShape.name || combinedShape.id}"`,
+        timestamp: Date.now(),
+      };
+
+      undoStack.push(undoInfo);
+
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.COMBINE_SHAPES,
+        message: `Perfect! I combined ${sel.length} shapes into a single shape using union operation.
+
+Combined shapes: ${shapeNames}
+Result: ${combinedShape.name || combinedShape.id}
+
+The shapes have been merged into one compound shape. You can move, rotate, and scale it as a single unit.
+You can undo this action anytime with "undo last action".`,
+        payload: {
+          combinedShapeId: combinedShape.id,
+          combinedShapes: sel.map(s => ({ id: s.id, name: s.name })),
+          undoInfo,
+        },
+      };
+    } catch (combineError) {
+      console.warn(`Penpot createBoolean union failed:`, combineError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.COMBINE_SHAPES,
+        success: false,
+        message: `Failed to combine shapes. Penpot's boolean operation API may not be available or the shapes may not be combinable.`,
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.COMBINE_SHAPES,
+      success: false,
+      message: `Error combining shapes: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

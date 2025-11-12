@@ -15,6 +15,7 @@ import {
   DistributeVerticalQueryPayload,
   GroupQueryPayload,
   UngroupQueryPayload,
+  CombineShapesQueryPayload,
   ApplyLinearGradientQueryPayload,
   ApplyRadialGradientQueryPayload,
   DrawShapeQueryPayload,
@@ -41,6 +42,7 @@ import {
   distributeVerticalTool,
   groupTool,
   ungroupTool,
+  combineShapesTool,
   applyLinearGradientTool, 
   applyRadialGradientTool, 
   getCurrentPage, 
@@ -185,6 +187,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.UNGROUP:
       responseMessage = await ungroupTool(payload as unknown as UngroupQueryPayload);
+      break;
+
+    case ClientQueryType.COMBINE_SHAPES:
+      responseMessage = await combineShapesTool(payload as unknown as CombineShapesQueryPayload);
       break;
 
     case ClientQueryType.APPLY_LINEAR_GRADIENT:

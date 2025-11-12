@@ -1,5 +1,4 @@
 import { DirectorAgent } from '@/types/types';
-import { get } from 'node_modules/@orama/orama/dist/esm/components/documents-store';
 
 export const directorAgents: DirectorAgent[] = [
   {
@@ -99,8 +98,8 @@ When the user wants to redo a recently undone action:
       'distribute-vertical-tool',
       'group-tool',
       'ungroup-tool',
-    
-    ],    
+      'combine-shapes-tool',
+    ],
     
     specializedAgentIds: ['mobile-projects-coordinator'],
   },

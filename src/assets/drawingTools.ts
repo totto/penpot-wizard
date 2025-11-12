@@ -485,6 +485,27 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.UNGROUP, {});
     return response;
   },
+},
+{
+  id: 'combine-shapes-tool',
+  name: 'CombineShapesTool',
+  description: `
+    Combine multiple selected shapes into a single compound shape using boolean union operation.
+    
+    This tool merges 2+ selected shapes into one compound shape that can be manipulated as a single unit.
+    Uses Penpot's boolean union operation to create complex shapes from overlapping elements.
+    
+    Works with 2+ selected shapes.
+    Uses Penpot's native boolean operations API for professional shape manipulation.
+    Full undo/redo support included - uncombining restores original individual shapes.
+    
+    Perfect for creating complex logos, icons, or custom shapes from multiple overlapping elements.
+  `,
+  inputSchema: z.object({}),
+  function: async () => {
+    const response = await sendMessageToPlugin(ClientQueryType.COMBINE_SHAPES, {});
+    return response;
+  },
 }
 
 ];
