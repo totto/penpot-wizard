@@ -597,6 +597,35 @@ id: 'create-library-color',
     const response = await sendMessageToPlugin(ClientQueryType.EXCLUDE_BOOLEAN_OPERATION, {});
     return response;
   },
+},
+{
+  id: 'flatten-selection-tool',
+  name: 'FlattenSelectionTool',
+  description: `
+    Flatten selected shapes into editable paths.
+    
+    This tool converts compound shapes, groups, or complex shapes into flattened, editable paths.
+    Removes grouping structure and converts everything into individual path elements that can be edited.
+    
+    ⚠️ IMPORTANT: Flatten operations are DESTRUCTIVE and cannot be perfectly undone.
+    The AI will attempt to recreate your original shapes during undo, but some visual properties 
+    (gradients, effects, complex styling) may be lost. This is an approximation, not perfect restoration.
+    
+    Works with 1+ selected shapes.
+    Uses Penpot's native flatten API to convert shapes into editable paths.
+    Limited undo support - recreates approximations of original shapes.
+    
+    Perfect for converting complex shapes into editable paths, preparing shapes for further manipulation,
+    or breaking down compound shapes into their constituent parts.
+    Consider saving your work before using this tool.
+    
+    AI Aliases: flatten shapes, convert to paths, break apart, decompose shapes, make editable, flatten selection
+  `,
+  inputSchema: z.object({}),
+  function: async () => {
+    const response = await sendMessageToPlugin(ClientQueryType.FLATTEN_SELECTION, {});
+    return response;
+  },
 }
 
 ];

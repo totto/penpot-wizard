@@ -19,6 +19,7 @@ import {
   IntersectionBooleanOperationQueryPayload,
   DifferenceBooleanOperationQueryPayload,
   ExcludeBooleanOperationQueryPayload,
+  FlattenSelectionQueryPayload,
   ApplyLinearGradientQueryPayload,
   ApplyRadialGradientQueryPayload,
   DrawShapeQueryPayload,
@@ -49,6 +50,7 @@ import {
   intersectionBooleanOperationTool,
   differenceBooleanOperationTool,
   excludeBooleanOperationTool,
+  flattenSelectionTool,
   applyLinearGradientTool, 
   applyRadialGradientTool, 
   getCurrentPage, 
@@ -209,6 +211,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.EXCLUDE_BOOLEAN_OPERATION:
       responseMessage = await excludeBooleanOperationTool(payload as unknown as ExcludeBooleanOperationQueryPayload);
+      break;
+
+    case ClientQueryType.FLATTEN_SELECTION:
+      responseMessage = await flattenSelectionTool(payload as unknown as FlattenSelectionQueryPayload);
       break;
 
     case ClientQueryType.APPLY_LINEAR_GRADIENT:

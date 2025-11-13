@@ -102,6 +102,7 @@ When the user wants to redo a recently undone action:
       'intersection-boolean-operation',
       'difference-boolean-operation',
       'exclude-boolean-operation',
+      'flatten-selection-tool',
     ],
     
     specializedAgentIds: ['mobile-projects-coordinator'],

@@ -37,6 +37,7 @@ import {
   IntersectionBooleanOperationQueryPayload,
   DifferenceBooleanOperationQueryPayload,
   ExcludeBooleanOperationQueryPayload,
+  FlattenSelectionQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -2849,6 +2850,114 @@ Consider saving your work before using boolean operations.`,
   }
 }
 
+export async function flattenSelectionTool(_payload: FlattenSelectionQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.FLATTEN_SELECTION,
+        success: false,
+        message: `Please select at least 1 shape to flatten. You currently have ${sel?.length || 0} shape${(sel?.length || 0) !== 1 ? 's' : ''} selected.`,
+      };
+    }
+
+    // Store information about the shapes being flattened for undo
+    const shapeProperties: Array<{
+      id: string;
+      name: string;
+      type: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      fills?: unknown;
+      strokes?: unknown;
+    }> = [];
+
+    // First pass: capture shape information
+    for (const shape of sel) {
+      shapeProperties.push({
+        id: shape.id,
+        name: shape.name || `Shape ${shape.id.slice(-4)}`,
+        type: shape.type || 'rectangle',
+        x: shape.x,
+        y: shape.y,
+        width: shape.width || 100,
+        height: shape.height || 100,
+        fills: shape.fills,
+        strokes: shape.strokes,
+      });
+    }
+
+    // Create the flattened shape using Penpot's flatten method
+    try {
+      const flattenedShapes = penpot.flatten(sel);
+      if (!flattenedShapes || flattenedShapes.length === 0) {
+        throw new Error('flatten returned no shapes - operation may not be supported');
+      }
+
+      // For simplicity, we'll consider the first flattened shape as the main result
+      // In practice, flatten might return multiple paths
+      // const mainFlattenedShape = flattenedShapes[0]; // Not used for now
+
+      // Add to undo stack
+      const undoInfo: UndoInfo = {
+        actionType: ClientQueryType.FLATTEN_SELECTION,
+        actionId: `flatten_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        undoData: {
+          flattenedShapeIds: flattenedShapes.map(s => s.id),
+          originalShapes: shapeProperties,
+        },
+        description: `Flattened ${sel.length} shapes into ${flattenedShapes.length} paths`,
+        timestamp: Date.now(),
+      };
+
+      undoStack.push(undoInfo);
+
+      const shapeNames = shapeProperties.map(s => s.name).join(', ');
+
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.FLATTEN,
+        success: true,
+        message: `Perfect! I flattened ${sel.length} shapes into ${flattenedShapes.length} path${flattenedShapes.length > 1 ? 's' : ''}.
+
+⚠️ **IMPORTANT**: Flatten operations are DESTRUCTIVE and cannot be perfectly undone.
+The original shapes have been converted and replaced with flattened paths.
+You can undo this action, but it will recreate approximations of your original shapes.
+Some visual properties like gradients, effects, or complex styling may be lost.
+
+Flattened shapes: ${shapeNames}
+Result: ${flattenedShapes.length} flattened path${flattenedShapes.length > 1 ? 's' : ''}
+
+The shapes have been flattened into editable paths that can be manipulated individually or as a group.`,
+        payload: {
+          flattenedShapeIds: flattenedShapes.map(s => s.id),
+          flattenedShapes: shapeProperties.map(s => ({ id: s.id, name: s.name })),
+          undoInfo,
+        },
+      };
+    } catch (flattenError) {
+      console.warn(`Penpot flatten failed:`, flattenError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.FLATTEN,
+        success: false,
+        message: `Failed to flatten shapes. Penpot's flatten API may not be available or the shapes may not be flattanable.`,
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.FLATTEN,
+      success: false,
+      message: `Error flattening shapes: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function undoLastAction(_payload: UndoLastActionQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Check if there's anything to undo
@@ -3637,6 +3746,95 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.FLATTEN_SELECTION: {
+        // Restore original shapes by deleting the flattened paths and recreating originals
+        const flattenData = lastAction.undoData as {
+          flattenedShapeIds: string[];
+          originalShapes: Array<{
+            id: string;
+            name: string;
+            type: string;
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            fills?: unknown;
+            strokes?: unknown;
+          }>;
+        };
+
+        try {
+          const currentPage = penpot.currentPage;
+          if (!currentPage) {
+            throw new Error('No current page available');
+          }
+
+          // Delete the flattened paths
+          for (const shapeId of flattenData.flattenedShapeIds) {
+            const shape = currentPage.getShapeById(shapeId);
+            if (shape) {
+              shape.remove();
+            }
+          }
+
+          // Recreate the original shapes as rectangles (since we don't know the exact types)
+          const newShapeIds: string[] = [];
+          for (const originalShape of flattenData.originalShapes) {
+            try {
+              // Create a shape of the correct type
+              let newShape: Shape;
+              switch (originalShape.type) {
+                case 'ellipse':
+                  newShape = penpot.createEllipse();
+                  break;
+                case 'path':
+                  newShape = penpot.createPath();
+                  break;
+                case 'rectangle':
+                default:
+                  newShape = penpot.createRectangle();
+                  break;
+              }
+
+              newShape.x = originalShape.x;
+              newShape.y = originalShape.y;
+              newShape.resize(originalShape.width, originalShape.height);
+              newShape.name = originalShape.name;
+
+              // Restore fills and strokes if they exist
+              if (originalShape.fills) {
+                newShape.fills = originalShape.fills as Fill[];
+              }
+              if (originalShape.strokes) {
+                newShape.strokes = originalShape.strokes as Stroke[];
+              }
+
+              newShapeIds.push(newShape.id);
+              restoredShapes.push(originalShape.name);
+            } catch (shapeError) {
+              console.warn(`Failed to recreate shape ${originalShape.name}:`, shapeError);
+            }
+          }
+
+          // Update selection to the newly created shapes after a brief delay
+          // to avoid conflicts with automatic selection change events
+          if (newShapeIds.length > 0) {
+            setTimeout(() => {
+              updateCurrentSelection(newShapeIds);
+            }, 10);
+          }
+        } catch (error) {
+          console.warn('Failed to undo flatten operation:', error);
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.UNDO_LAST_ACTION,
+            success: false,
+            message: `Failed to undo flatten operation: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+        break;
+      }
+
       default:
         return {
           ...pluginResponse,
@@ -3650,16 +3848,18 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
     const isIntersectionBoolean = lastAction.actionType === ClientQueryType.INTERSECTION_BOOLEAN_OPERATION;
     const isDifferenceBoolean = lastAction.actionType === ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION;
     const isExcludeBoolean = lastAction.actionType === ClientQueryType.EXCLUDE_BOOLEAN_OPERATION;
+    const isFlatten = lastAction.actionType === ClientQueryType.FLATTEN;
     const isBooleanOperation = isUnionBoolean || isIntersectionBoolean || isDifferenceBoolean || isExcludeBoolean;
+    const isDestructiveOperation = isBooleanOperation || isFlatten;
     
     return {
       ...pluginResponse,
       type: ClientQueryType.UNDO_LAST_ACTION,
       success: true,
-      message: isBooleanOperation 
+      message: isDestructiveOperation
         ? `🔄 Undo: Recreated approximations of original shapes
 
-⚠️ Boolean operations cannot be perfectly reversed. The AI has recreated approximations of your original shapes. Some visual properties like gradients, effects, or complex styling may have been lost.`
+⚠️ ${isBooleanOperation ? 'Boolean operations' : 'Flatten operations'} cannot be perfectly reversed. The AI has recreated approximations of your original shapes. Some visual properties like gradients, effects, or complex styling may have been lost.`
         : `Undid: ${lastAction.description}`,
       payload: {
         undoneAction: lastAction.description,

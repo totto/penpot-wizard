@@ -49,6 +49,7 @@ export enum ClientQueryType {
   INTERSECTION_BOOLEAN_OPERATION = 'INTERSECTION_BOOLEAN_OPERATION',
   DIFFERENCE_BOOLEAN_OPERATION = 'DIFFERENCE_BOOLEAN_OPERATION',
   EXCLUDE_BOOLEAN_OPERATION = 'EXCLUDE_BOOLEAN_OPERATION',
+  FLATTEN_SELECTION = 'FLATTEN_SELECTION',
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
 }
@@ -65,7 +66,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UnionBooleanOperationQueryPayload | IntersectionBooleanOperationQueryPayload | DifferenceBooleanOperationQueryPayload | ExcludeBooleanOperationQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UnionBooleanOperationQueryPayload | IntersectionBooleanOperationQueryPayload | DifferenceBooleanOperationQueryPayload | ExcludeBooleanOperationQueryPayload | FlattenSelectionQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -153,6 +154,8 @@ export type IntersectionBooleanOperationQueryPayload = Record<string, never>;
 export type DifferenceBooleanOperationQueryPayload = Record<string, never>;
 
 export type ExcludeBooleanOperationQueryPayload = Record<string, never>;
+
+export type FlattenSelectionQueryPayload = Record<string, never>;
 
 export interface UndoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to undo, otherwise undo the last one
@@ -296,6 +299,12 @@ export interface DifferenceBooleanOperationResponsePayload {
 export interface ExcludeBooleanOperationResponsePayload {
   excludeShapeId: string;
   excludeShapes: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface FlattenResponsePayload {
+  flattenedShapeIds: string[];
+  flattenedShapes: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
 }
 
@@ -475,6 +484,7 @@ export type PluginResponsePayload =
   | IntersectionBooleanOperationResponsePayload
   | DifferenceBooleanOperationResponsePayload
   | ExcludeBooleanOperationResponsePayload
+  | FlattenResponsePayload
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload;
 
