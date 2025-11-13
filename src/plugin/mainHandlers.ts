@@ -2891,35 +2891,100 @@ export async function flattenSelectionTool(_payload: FlattenSelectionQueryPayloa
       });
     }
 
-    // Create the flattened shape using Penpot's flatten method
+    // Create the flattened shape using Penpot's flatten method or manual conversion
     try {
-      // Check if flatten API is available
-      if (typeof penpot.flatten !== 'function') {
-        throw new Error('flatten API is not available in this version of Penpot');
-      }
-      
       const flattenedShapes: Shape[] = [];
       
-      // Process each shape individually (flatten typically works on single shapes)
-      for (const shape of sel) {
-        try {
-          const flattened = penpot.flatten([shape]); // Try with single shape in array
-          if (flattened && flattened.length > 0) {
-            flattenedShapes.push(...flattened);
+      // Check if flatten API is available and try to use it
+      if (typeof penpot.flatten === 'function') {
+        console.log('Using penpot.flatten API');
+        
+        // Process each shape individually (flatten typically works on single shapes)
+        for (const shape of sel) {
+          try {
+            const flattened = penpot.flatten([shape]); // Try with single shape in array
+            if (flattened && flattened.length > 0) {
+              flattenedShapes.push(...flattened);
+            }
+          } catch (singleShapeError) {
+            console.warn(`Failed to flatten individual shape ${shape.name}:`, singleShapeError);
+            // Continue with other shapes
           }
-        } catch (singleShapeError) {
-          console.warn(`Failed to flatten individual shape ${shape.name}:`, singleShapeError);
-          // Continue with other shapes
+        }
+      } else {
+        // Fallback: manually convert shapes to paths
+        console.log('penpot.flatten not available, using manual conversion');
+        
+        for (const shape of sel) {
+          try {
+            let pathData: string | undefined;
+            
+            // Convert different shape types to path data
+            switch (shape.type) {
+              case 'rectangle': {
+                // Convert rectangle to path
+                const x = shape.x || 0;
+                const y = shape.y || 0;
+                const w = shape.width || 100;
+                const h = shape.height || 100;
+                pathData = `M ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`;
+                break;
+              }
+                
+              case 'ellipse': {
+                // Convert ellipse to path (approximation)
+                const cx = (shape.x || 0) + (shape.width || 100) / 2;
+                const cy = (shape.y || 0) + (shape.height || 100) / 2;
+                const rx = (shape.width || 100) / 2;
+                const ry = (shape.height || 100) / 2;
+                pathData = `M ${cx - rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx + rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx - rx} ${cy} Z`;
+                break;
+              }
+                
+              case 'path':
+                // Path is already flattened
+                pathData = (shape as any).content;
+                break;
+                
+              default:
+                // For other shapes, try to get content if available
+                pathData = (shape as any).content;
+                break;
+            }
+            
+            if (pathData) {
+              // Create a new path shape
+              const newPath = penpot.createPath();
+              newPath.x = shape.x || 0;
+              newPath.y = shape.y || 0;
+              newPath.name = shape.name || `Flattened ${shape.type}`;
+              
+              // Set the path content
+              (newPath as any).content = pathData;
+              
+              // Copy fills and strokes (handle type issues)
+              if (shape.fills && Array.isArray(shape.fills)) {
+                newPath.fills = shape.fills as any;
+              }
+              if (shape.strokes && Array.isArray(shape.strokes)) {
+                newPath.strokes = shape.strokes as any;
+              }
+              
+              flattenedShapes.push(newPath);
+              
+              // Remove the original shape
+              shape.remove();
+            }
+          } catch (singleShapeError) {
+            console.warn(`Failed to convert shape ${shape.name} to path:`, singleShapeError);
+            // Continue with other shapes
+          }
         }
       }
       
       if (flattenedShapes.length === 0) {
-        throw new Error('flatten returned no shapes - operation may not be supported for the selected shapes');
+        throw new Error('Could not convert any shapes to paths - shapes may not be supported for flattening');
       }
-
-      // For simplicity, we'll consider the first flattened shape as the main result
-      // In practice, flatten might return multiple paths
-      // const mainFlattenedShape = flattenedShapes[0]; // Not used for now
 
       // Add to undo stack
       const undoInfo: UndoInfo = {
