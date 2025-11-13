@@ -2893,9 +2893,28 @@ export async function flattenSelectionTool(_payload: FlattenSelectionQueryPayloa
 
     // Create the flattened shape using Penpot's flatten method
     try {
-      const flattenedShapes = penpot.flatten(sel);
-      if (!flattenedShapes || flattenedShapes.length === 0) {
-        throw new Error('flatten returned no shapes - operation may not be supported');
+      // Check if flatten API is available
+      if (typeof penpot.flatten !== 'function') {
+        throw new Error('flatten API is not available in this version of Penpot');
+      }
+      
+      const flattenedShapes: Shape[] = [];
+      
+      // Process each shape individually (flatten typically works on single shapes)
+      for (const shape of sel) {
+        try {
+          const flattened = penpot.flatten([shape]); // Try with single shape in array
+          if (flattened && flattened.length > 0) {
+            flattenedShapes.push(...flattened);
+          }
+        } catch (singleShapeError) {
+          console.warn(`Failed to flatten individual shape ${shape.name}:`, singleShapeError);
+          // Continue with other shapes
+        }
+      }
+      
+      if (flattenedShapes.length === 0) {
+        throw new Error('flatten returned no shapes - operation may not be supported for the selected shapes');
       }
 
       // For simplicity, we'll consider the first flattened shape as the main result
@@ -2920,9 +2939,9 @@ export async function flattenSelectionTool(_payload: FlattenSelectionQueryPayloa
 
       return {
         ...pluginResponse,
-        type: ClientQueryType.FLATTEN,
+        type: ClientQueryType.FLATTEN_SELECTION,
         success: true,
-        message: `Perfect! I flattened ${sel.length} shapes into ${flattenedShapes.length} path${flattenedShapes.length > 1 ? 's' : ''}.
+        message: `Perfect! I flattened ${sel.length} shape${sel.length > 1 ? 's' : ''} into ${flattenedShapes.length} path${flattenedShapes.length > 1 ? 's' : ''}.
 
 ⚠️ **IMPORTANT**: Flatten operations are DESTRUCTIVE and cannot be perfectly undone.
 The original shapes have been converted and replaced with flattened paths.
@@ -2943,15 +2962,15 @@ The shapes have been flattened into editable paths that can be manipulated indiv
       console.warn(`Penpot flatten failed:`, flattenError);
       return {
         ...pluginResponse,
-        type: ClientQueryType.FLATTEN,
+        type: ClientQueryType.FLATTEN_SELECTION,
         success: false,
-        message: `Failed to flatten shapes. Penpot's flatten API may not be available or the shapes may not be flattanable.`,
+        message: `Failed to flatten shapes. Penpot's flatten API may not be available or the shapes may not be flattenable.`,
       };
     }
   } catch (error) {
     return {
       ...pluginResponse,
-      type: ClientQueryType.FLATTEN,
+      type: ClientQueryType.FLATTEN_SELECTION,
       success: false,
       message: `Error flattening shapes: ${error instanceof Error ? error.message : String(error)}`,
     };
@@ -3848,7 +3867,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
     const isIntersectionBoolean = lastAction.actionType === ClientQueryType.INTERSECTION_BOOLEAN_OPERATION;
     const isDifferenceBoolean = lastAction.actionType === ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION;
     const isExcludeBoolean = lastAction.actionType === ClientQueryType.EXCLUDE_BOOLEAN_OPERATION;
-    const isFlatten = lastAction.actionType === ClientQueryType.FLATTEN;
+    const isFlatten = lastAction.actionType === ClientQueryType.FLATTEN_SELECTION;
     const isBooleanOperation = isUnionBoolean || isIntersectionBoolean || isDifferenceBoolean || isExcludeBoolean;
     const isDestructiveOperation = isBooleanOperation || isFlatten;
     
