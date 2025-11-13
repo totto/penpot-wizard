@@ -487,8 +487,8 @@ id: 'create-library-color',
   },
 },
 {
-  id: 'combine-shapes-tool',
-  name: 'CombineShapesTool',
+  id: 'union-boolean-operation',
+  name: 'UnionBooleanOperationTool',
   description: `
     Combine multiple selected shapes into a single compound shape using boolean union operation.
     
@@ -505,16 +505,18 @@ id: 'create-library-color',
     
     Perfect for creating complex logos, icons, or custom shapes from multiple overlapping elements.
     Consider saving your work before using this tool.
+    
+    AI Aliases: combine shapes, merge shapes, join shapes, unite shapes, add shapes together
   `,
   inputSchema: z.object({}),
   function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.COMBINE_SHAPES, {});
+    const response = await sendMessageToPlugin(ClientQueryType.UNION_BOOLEAN_OPERATION, {});
     return response;
   },
 },
 {
-  id: 'intersect-shapes-tool',
-  name: 'IntersectShapesTool',
+  id: 'intersection-boolean-operation',
+  name: 'IntersectionBooleanOperationTool',
   description: `
     Intersect multiple selected shapes to create a new shape from their overlapping areas.
     
@@ -531,16 +533,18 @@ id: 'create-library-color',
     
     Perfect for creating precise cutouts, masks, or extracting overlapping areas from shapes.
     Consider saving your work before using this tool.
+    
+    AI Aliases: intersect shapes, overlap shapes, find common area, keep overlapping parts
   `,
   inputSchema: z.object({}),
   function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.INTERSECT_SHAPES, {});
+    const response = await sendMessageToPlugin(ClientQueryType.INTERSECTION_BOOLEAN_OPERATION, {});
     return response;
   },
 },
 {
-  id: 'subtract-shapes-tool',
-  name: 'SubtractShapesTool',
+  id: 'difference-boolean-operation',
+  name: 'DifferenceBooleanOperationTool',
   description: `
     Subtract shapes to create cutouts and holes in other shapes.
     
@@ -557,10 +561,40 @@ id: 'create-library-color',
     
     Perfect for creating cutouts, holes, negative space, or complex shapes with voids.
     Consider saving your work before using this tool.
+    
+    AI Aliases: subtract shapes, cut out shapes, create holes, remove overlapping parts
   `,
   inputSchema: z.object({}),
   function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.SUBTRACT_SHAPES, {});
+    const response = await sendMessageToPlugin(ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION, {});
+    return response;
+  },
+},
+{
+  id: 'exclude-boolean-operation',
+  name: 'ExcludeBooleanOperationTool',
+  description: `
+    Exclude overlapping areas to create complex shapes with voids and cutouts.
+    
+    This tool creates a new shape by excluding (removing) all overlapping areas between shapes.
+    Uses Penpot's boolean exclude operation to create shapes with multiple voids and cutouts.
+    
+    ⚠️ IMPORTANT: Boolean operations are DESTRUCTIVE and cannot be perfectly undone.
+    The AI will attempt to recreate your original shapes during undo, but some visual properties 
+    (gradients, effects, complex styling) may be lost. This is an approximation, not perfect restoration.
+    
+    Works with 2+ selected shapes.
+    Uses Penpot's native boolean operations API for professional shape manipulation.
+    Limited undo support - recreates approximations of original shapes.
+    
+    Perfect for creating complex patterns, lace-like designs, or shapes with multiple cutouts.
+    Consider saving your work before using this tool.
+    
+    AI Aliases: exclude shapes, remove overlaps, create voids, make cutouts, exclude overlapping areas
+  `,
+  inputSchema: z.object({}),
+  function: async () => {
+    const response = await sendMessageToPlugin(ClientQueryType.EXCLUDE_BOOLEAN_OPERATION, {});
     return response;
   },
 }

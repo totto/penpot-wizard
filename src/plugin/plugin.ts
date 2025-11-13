@@ -15,9 +15,10 @@ import {
   DistributeVerticalQueryPayload,
   GroupQueryPayload,
   UngroupQueryPayload,
-  CombineShapesQueryPayload,
-  IntersectShapesQueryPayload,
-  SubtractShapesQueryPayload,
+  UnionBooleanOperationQueryPayload,
+  IntersectionBooleanOperationQueryPayload,
+  DifferenceBooleanOperationQueryPayload,
+  ExcludeBooleanOperationQueryPayload,
   ApplyLinearGradientQueryPayload,
   ApplyRadialGradientQueryPayload,
   DrawShapeQueryPayload,
@@ -44,9 +45,10 @@ import {
   distributeVerticalTool,
   groupTool,
   ungroupTool,
-  combineShapesTool,
-  intersectShapesTool,
-  subtractShapesTool,
+  unionBooleanOperationTool,
+  intersectionBooleanOperationTool,
+  differenceBooleanOperationTool,
+  excludeBooleanOperationTool,
   applyLinearGradientTool, 
   applyRadialGradientTool, 
   getCurrentPage, 
@@ -193,16 +195,20 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       responseMessage = await ungroupTool(payload as unknown as UngroupQueryPayload);
       break;
 
-    case ClientQueryType.COMBINE_SHAPES:
-      responseMessage = await combineShapesTool(payload as unknown as CombineShapesQueryPayload);
+    case ClientQueryType.UNION_BOOLEAN_OPERATION:
+      responseMessage = await unionBooleanOperationTool(payload as unknown as UnionBooleanOperationQueryPayload);
       break;
 
-    case ClientQueryType.INTERSECT_SHAPES:
-      responseMessage = await intersectShapesTool(payload as unknown as IntersectShapesQueryPayload);
+    case ClientQueryType.INTERSECTION_BOOLEAN_OPERATION:
+      responseMessage = await intersectionBooleanOperationTool(payload as unknown as IntersectionBooleanOperationQueryPayload);
       break;
 
-    case ClientQueryType.SUBTRACT_SHAPES:
-      responseMessage = await subtractShapesTool(payload as unknown as SubtractShapesQueryPayload);
+    case ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION:
+      responseMessage = await differenceBooleanOperationTool(payload as unknown as DifferenceBooleanOperationQueryPayload);
+      break;
+
+    case ClientQueryType.EXCLUDE_BOOLEAN_OPERATION:
+      responseMessage = await excludeBooleanOperationTool(payload as unknown as ExcludeBooleanOperationQueryPayload);
       break;
 
     case ClientQueryType.APPLY_LINEAR_GRADIENT:

@@ -33,9 +33,10 @@ import {
   DistributeVerticalQueryPayload,
   GroupQueryPayload,
   UngroupQueryPayload,
-  CombineShapesQueryPayload,
-  IntersectShapesQueryPayload,
-  SubtractShapesQueryPayload,
+  UnionBooleanOperationQueryPayload,
+  IntersectionBooleanOperationQueryPayload,
+  DifferenceBooleanOperationQueryPayload,
+  ExcludeBooleanOperationQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -2416,22 +2417,20 @@ You can undo this action anytime with "undo last action".`,
   }
 }
 
-export async function combineShapesTool(_payload: CombineShapesQueryPayload): Promise<PluginResponseMessage> {
+export async function unionBooleanOperationTool(_payload: UnionBooleanOperationQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Use shared selection system for safe selection access
     const sel = getSelectionForAction();
     if (!sel || sel.length < 2) {
       return {
         ...pluginResponse,
-        type: ClientQueryType.COMBINE_SHAPES,
+        type: ClientQueryType.UNION_BOOLEAN_OPERATION,
         success: false,
-        message: sel && sel.length === 1
-          ? 'NEED_MORE_SHAPES'
-          : 'NO_SELECTION',
+        message: `Please select at least 2 shapes to perform union operation. You currently have ${sel?.length || 0} shape${(sel?.length || 0) !== 1 ? 's' : ''} selected.`,
       };
     }
 
-    // Store information about the shapes being combined for undo
+    // Store information about the shapes being unioned for undo
     const shapeIds: string[] = [];
     const shapePositions: Array<{ x: number; y: number }> = [];
     const shapeProperties: Array<{
@@ -2452,94 +2451,90 @@ export async function combineShapesTool(_payload: CombineShapesQueryPayload): Pr
       shapePositions.push({ x: shape.x, y: shape.y });
       shapeProperties.push({
         id: shape.id,
-        name: shape.name || shape.id,
-        type: shape.type,
+        name: shape.name || `Shape ${shape.id.slice(-4)}`,
+        type: shape.type || 'rectangle',
         x: shape.x,
         y: shape.y,
-        width: shape.width || 0,
-        height: shape.height || 0,
-        fills: (shape as Shape).fills,
-        strokes: (shape as Shape).strokes,
+        width: shape.width || 100,
+        height: shape.height || 100,
+        fills: shape.fills,
+        strokes: shape.strokes,
       });
     }
 
-    // Create the combined shape using Penpot's createBoolean method with "union"
+    // Create the union shape using Penpot's createBoolean method with "union"
     try {
-      const combinedShape = penpot.createBoolean("union", sel);
-      if (!combinedShape) {
-        return {
-          ...pluginResponse,
-          type: ClientQueryType.COMBINE_SHAPES,
-          success: false,
-          message: `Failed to combine shapes. Penpot's boolean operation API may not be available or the shapes may not be combinable.`,
-        };
+      const unionShape = penpot.createBoolean("union", sel);
+      if (!unionShape) {
+        throw new Error('createBoolean returned null - operation may not be supported');
       }
 
-      const shapeNames = sel.map(s => s.name || s.id).join(', ');
-
-      // Add to undo stack with shape restoration information
+      // Add to undo stack
       const undoInfo: UndoInfo = {
-        actionType: ClientQueryType.COMBINE_SHAPES,
-        actionId: `combine_shapes_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        actionType: ClientQueryType.UNION_BOOLEAN_OPERATION,
+        actionId: `union_boolean_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         undoData: {
-          combinedShapeId: combinedShape.id,
+          unionShapeId: unionShape.id,
           originalShapes: shapeProperties,
         },
-        description: `Combined ${sel.length} shapes into "${combinedShape.name || combinedShape.id}"`,
+        description: `Performed union boolean operation on ${sel.length} shapes`,
         timestamp: Date.now(),
       };
 
       undoStack.push(undoInfo);
 
+      const shapeNames = shapeProperties.map(s => s.name).join(', ');
+
       return {
         ...pluginResponse,
-        type: ClientQueryType.COMBINE_SHAPES,
-        message: `✅ Shapes combined successfully using union operation!
+        type: ClientQueryType.UNION_BOOLEAN_OPERATION,
+        success: true,
+        message: `Perfect! I performed a union boolean operation on ${sel.length} shapes.
 
-Combined shapes: ${shapeNames}
-Result: ${combinedShape.name || combinedShape.id}
+⚠️ **IMPORTANT**: Boolean operations are DESTRUCTIVE and cannot be perfectly undone.
+The original shapes have been merged and replaced with the union result.
+You can undo this action, but it will recreate approximations of your original shapes.
+Some visual properties like gradients, effects, or complex styling may be lost.
 
-The shapes have been merged into one compound shape. You can move, rotate, and scale it as a single unit.
+Union shapes: ${shapeNames}
+Result: ${unionShape.name || unionShape.id}
 
-⚠️ Note: Boolean operations are destructive and cannot be perfectly undone. 
-Undo will attempt to recreate approximations of your original shapes, but some visual properties may be lost.`,
+Consider saving your work before using boolean operations.`,
         payload: {
-          combinedShapeId: combinedShape.id,
-          combinedShapes: sel.map(s => ({ id: s.id, name: s.name })),
+          unionShapeId: unionShape.id,
+          unionShapes: shapeProperties.map(s => ({ id: s.id, name: s.name })),
           undoInfo,
         },
       };
-    } catch (combineError) {
-      console.warn(`Penpot createBoolean union failed:`, combineError);
+    } catch (unionError) {
+      console.warn(`Penpot createBoolean union failed:`, unionError);
       return {
         ...pluginResponse,
-        type: ClientQueryType.COMBINE_SHAPES,
+        type: ClientQueryType.UNION_BOOLEAN_OPERATION,
         success: false,
-        message: `Failed to combine shapes. Penpot's boolean operation API may not be available or the shapes may not be combinable.`,
+        message: `Failed to perform union boolean operation. Penpot's boolean operation API may not be available or the shapes may not be unionable.`,
       };
     }
   } catch (error) {
     return {
       ...pluginResponse,
-      type: ClientQueryType.COMBINE_SHAPES,
+      type: ClientQueryType.UNION_BOOLEAN_OPERATION,
       success: false,
-      message: `Error combining shapes: ${error instanceof Error ? error.message : String(error)}`,
+      message: `Error performing union boolean operation: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
 
-export async function intersectShapesTool(_payload: IntersectShapesQueryPayload): Promise<PluginResponseMessage> {
+export async function intersectionBooleanOperationTool(_payload: IntersectionBooleanOperationQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Use shared selection system for safe selection access
     const sel = getSelectionForAction();
     if (!sel || sel.length < 2) {
       return {
         ...pluginResponse,
-        type: ClientQueryType.INTERSECT_SHAPES,
+        type: ClientQueryType.INTERSECTION_BOOLEAN_OPERATION,
         success: false,
-        message: sel && sel.length === 1
-          ? 'NEED_MORE_SHAPES'
-          : 'NO_SELECTION',
+        message: `Please select at least 2 shapes to perform intersection operation. You currently have ${sel?.length || 0} shape${(sel?.length || 0) !== 1 ? 's' : ''} selected.`,
       };
     }
 
@@ -2564,92 +2559,90 @@ export async function intersectShapesTool(_payload: IntersectShapesQueryPayload)
       shapePositions.push({ x: shape.x, y: shape.y });
       shapeProperties.push({
         id: shape.id,
-        name: shape.name || shape.id,
-        type: shape.type,
+        name: shape.name || `Shape ${shape.id.slice(-4)}`,
+        type: shape.type || 'rectangle',
         x: shape.x,
         y: shape.y,
-        width: shape.width || 0,
-        height: shape.height || 0,
-        fills: (shape as Shape).fills,
-        strokes: (shape as Shape).strokes,
+        width: shape.width || 100,
+        height: shape.height || 100,
+        fills: shape.fills,
+        strokes: shape.strokes,
       });
     }
 
-    // Create the intersected shape using Penpot's createBoolean method with "intersection"
+    // Create the intersection shape using Penpot's createBoolean method with "intersection"
     try {
-      const intersectedShape = penpot.createBoolean("intersection", sel);
-      if (!intersectedShape) {
-        return {
-          ...pluginResponse,
-          type: ClientQueryType.INTERSECT_SHAPES,
-          success: false,
-          message: `Failed to intersect shapes. Penpot's boolean operation API may not be available or the shapes may not be intersectable.`,
-        };
+      const intersectionShape = penpot.createBoolean("intersection", sel);
+      if (!intersectionShape) {
+        throw new Error('createBoolean returned null - operation may not be supported');
       }
 
-      const shapeNames = sel.map(s => s.name || s.id).join(', ');
-
-      // Add to undo stack with shape restoration information
+      // Add to undo stack
       const undoInfo: UndoInfo = {
-        actionType: ClientQueryType.INTERSECT_SHAPES,
-        actionId: `intersect_shapes_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        actionType: ClientQueryType.INTERSECTION_BOOLEAN_OPERATION,
+        actionId: `intersection_boolean_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         undoData: {
-          intersectedShapeId: intersectedShape.id,
+          intersectionShapeId: intersectionShape.id,
           originalShapes: shapeProperties,
         },
-        description: `Intersected ${sel.length} shapes into "${intersectedShape.name || intersectedShape.id}"`,
+        description: `Performed intersection boolean operation on ${sel.length} shapes`,
         timestamp: Date.now(),
       };
 
       undoStack.push(undoInfo);
 
+      const shapeNames = shapeProperties.map(s => s.name).join(', ');
+
       return {
         ...pluginResponse,
-        type: ClientQueryType.INTERSECT_SHAPES,
-        message: `✅ Shapes intersected successfully!
+        type: ClientQueryType.INTERSECTION_BOOLEAN_OPERATION,
+        success: true,
+        message: `Perfect! I performed an intersection boolean operation on ${sel.length} shapes.
 
-Intersected shapes: ${shapeNames}
-Result: ${intersectedShape.name || intersectedShape.id}
+⚠️ **IMPORTANT**: Boolean operations are DESTRUCTIVE and cannot be perfectly undone.
+The original shapes have been replaced with the intersection result.
+You can undo this action, but it will recreate approximations of your original shapes.
+Some visual properties like gradients, effects, or complex styling may be lost.
 
-The shapes have been intersected to show only their overlapping area. You can move, rotate, and scale the result as a single unit.
+Intersection shapes: ${shapeNames}
+Result: ${intersectionShape.name || intersectionShape.id}
 
-⚠️ Note: Boolean operations are destructive and cannot be perfectly undone. 
-Undo will attempt to recreate approximations of your original shapes, but some visual properties may be lost.`,
+Consider saving your work before using boolean operations.`,
         payload: {
-          intersectedShapeId: intersectedShape.id,
-          intersectedShapes: sel.map(s => ({ id: s.id, name: s.name })),
+          intersectionShapeId: intersectionShape.id,
+          intersectionShapes: shapeProperties.map(s => ({ id: s.id, name: s.name })),
           undoInfo,
         },
       };
-    } catch (intersectError) {
-      console.warn(`Penpot createBoolean intersection failed:`, intersectError);
+    } catch (intersectionError) {
+      console.warn(`Penpot createBoolean intersection failed:`, intersectionError);
       return {
         ...pluginResponse,
-        type: ClientQueryType.INTERSECT_SHAPES,
+        type: ClientQueryType.INTERSECTION_BOOLEAN_OPERATION,
         success: false,
-        message: `Failed to intersect shapes. Penpot's boolean operation API may not be available or the shapes may not be intersectable.`,
+        message: `Failed to perform intersection boolean operation. Penpot's boolean operation API may not be available or the shapes may not be intersectable.`,
       };
     }
   } catch (error) {
     return {
       ...pluginResponse,
-      type: ClientQueryType.INTERSECT_SHAPES,
+      type: ClientQueryType.INTERSECTION_BOOLEAN_OPERATION,
       success: false,
-      message: `Error intersecting shapes: ${error instanceof Error ? error.message : String(error)}`,
+      message: `Error performing intersection boolean operation: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
 
-export async function subtractShapesTool(_payload: SubtractShapesQueryPayload): Promise<PluginResponseMessage> {
+export async function differenceBooleanOperationTool(_payload: DifferenceBooleanOperationQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Use shared selection system for safe selection access
     const sel = getSelectionForAction();
     if (!sel || sel.length < 2) {
       return {
         ...pluginResponse,
-        type: ClientQueryType.SUBTRACT_SHAPES,
+        type: ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION,
         success: false,
-        message: `Please select at least 2 shapes to subtract. You currently have ${sel?.length || 0} shape${(sel?.length || 0) !== 1 ? 's' : ''} selected.`,
+        message: `Please select at least 2 shapes to perform difference operation. You currently have ${sel?.length || 0} shape${(sel?.length || 0) !== 1 ? 's' : ''} selected.`,
       };
     }
 
@@ -2685,22 +2678,22 @@ export async function subtractShapesTool(_payload: SubtractShapesQueryPayload): 
       });
     }
 
-    // Create the subtracted shape using Penpot's createBoolean method with "difference"
+    // Create the difference shape using Penpot's createBoolean method with "difference"
     try {
-      const subtractedShape = penpot.createBoolean("difference", sel);
-      if (!subtractedShape) {
+      const differenceShape = penpot.createBoolean("difference", sel);
+      if (!differenceShape) {
         throw new Error('createBoolean returned null - operation may not be supported');
       }
 
       // Add to undo stack
       const undoInfo: UndoInfo = {
-        actionType: ClientQueryType.SUBTRACT_SHAPES,
-        actionId: `subtract_shapes_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        actionType: ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION,
+        actionId: `difference_boolean_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         undoData: {
-          subtractedShapeId: subtractedShape.id,
+          differenceShapeId: differenceShape.id,
           originalShapes: shapeProperties,
         },
-        description: `Subtracted ${sel.length} shapes`,
+        description: `Performed difference boolean operation on ${sel.length} shapes`,
         timestamp: Date.now(),
       };
 
@@ -2710,40 +2703,148 @@ export async function subtractShapesTool(_payload: SubtractShapesQueryPayload): 
 
       return {
         ...pluginResponse,
-        type: ClientQueryType.SUBTRACT_SHAPES,
+        type: ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION,
         success: true,
-        message: `Perfect! I subtracted ${sel.length} shapes to create a new compound shape.
+        message: `Perfect! I performed a difference boolean operation on ${sel.length} shapes.
 
 ⚠️ **IMPORTANT**: Boolean operations are DESTRUCTIVE and cannot be perfectly undone.
-The original shapes have been removed and replaced with the subtracted result.
+The original shapes have been replaced with the difference result.
 You can undo this action, but it will recreate approximations of your original shapes.
 Some visual properties like gradients, effects, or complex styling may be lost.
 
-Subtracted shapes: ${shapeNames}
-Result: ${subtractedShape.name || subtractedShape.id}
+Difference shapes: ${shapeNames}
+Result: ${differenceShape.name || differenceShape.id}
 
 Consider saving your work before using boolean operations.`,
         payload: {
-          subtractedShapeId: subtractedShape.id,
-          subtractedShapes: shapeProperties.map(s => ({ id: s.id, name: s.name })),
+          differenceShapeId: differenceShape.id,
+          differenceShapes: shapeProperties.map(s => ({ id: s.id, name: s.name })),
           undoInfo,
         },
       };
-    } catch (subtractError) {
-      console.warn(`Penpot createBoolean difference failed:`, subtractError);
+    } catch (differenceError) {
+      console.warn(`Penpot createBoolean difference failed:`, differenceError);
       return {
         ...pluginResponse,
-        type: ClientQueryType.SUBTRACT_SHAPES,
+        type: ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION,
         success: false,
-        message: `Failed to subtract shapes. Penpot's boolean operation API may not be available or the shapes may not be subtractable.`,
+        message: `Failed to perform difference boolean operation. Penpot's boolean operation API may not be available or the shapes may not be differentiable.`,
       };
     }
   } catch (error) {
     return {
       ...pluginResponse,
-      type: ClientQueryType.SUBTRACT_SHAPES,
+      type: ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION,
       success: false,
-      message: `Error subtracting shapes: ${error instanceof Error ? error.message : String(error)}`,
+      message: `Error performing difference boolean operation: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function excludeBooleanOperationTool(_payload: ExcludeBooleanOperationQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length < 2) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.EXCLUDE_BOOLEAN_OPERATION,
+        success: false,
+        message: `Please select at least 2 shapes to perform exclude operation. You currently have ${sel?.length || 0} shape${(sel?.length || 0) !== 1 ? 's' : ''} selected.`,
+      };
+    }
+
+    // Store information about the shapes being excluded for undo
+    const shapeIds: string[] = [];
+    const shapePositions: Array<{ x: number; y: number }> = [];
+    const shapeProperties: Array<{
+      id: string;
+      name: string;
+      type: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      fills?: unknown;
+      strokes?: unknown;
+    }> = [];
+
+    // First pass: capture shape information
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      shapePositions.push({ x: shape.x, y: shape.y });
+      shapeProperties.push({
+        id: shape.id,
+        name: shape.name || `Shape ${shape.id.slice(-4)}`,
+        type: shape.type || 'rectangle',
+        x: shape.x,
+        y: shape.y,
+        width: shape.width || 100,
+        height: shape.height || 100,
+        fills: shape.fills,
+        strokes: shape.strokes,
+      });
+    }
+
+    // Create the exclude shape using Penpot's createBoolean method with "exclude"
+    try {
+      const excludeShape = penpot.createBoolean("exclude", sel);
+      if (!excludeShape) {
+        throw new Error('createBoolean returned null - operation may not be supported');
+      }
+
+      // Add to undo stack
+      const undoInfo: UndoInfo = {
+        actionType: ClientQueryType.EXCLUDE_BOOLEAN_OPERATION,
+        actionId: `exclude_boolean_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        undoData: {
+          excludeShapeId: excludeShape.id,
+          originalShapes: shapeProperties,
+        },
+        description: `Performed exclude boolean operation on ${sel.length} shapes`,
+        timestamp: Date.now(),
+      };
+
+      undoStack.push(undoInfo);
+
+      const shapeNames = shapeProperties.map(s => s.name).join(', ');
+
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.EXCLUDE_BOOLEAN_OPERATION,
+        success: true,
+        message: `Perfect! I performed an exclude boolean operation on ${sel.length} shapes.
+
+⚠️ **IMPORTANT**: Boolean operations are DESTRUCTIVE and cannot be perfectly undone.
+The original shapes have been replaced with the exclude result.
+You can undo this action, but it will recreate approximations of your original shapes.
+Some visual properties like gradients, effects, or complex styling may be lost.
+
+Exclude shapes: ${shapeNames}
+Result: ${excludeShape.name || excludeShape.id}
+
+Consider saving your work before using boolean operations.`,
+        payload: {
+          excludeShapeId: excludeShape.id,
+          excludeShapes: shapeProperties.map(s => ({ id: s.id, name: s.name })),
+          undoInfo,
+        },
+      };
+    } catch (excludeError) {
+      console.warn(`Penpot createBoolean exclude failed:`, excludeError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.EXCLUDE_BOOLEAN_OPERATION,
+        success: false,
+        message: `Failed to perform exclude boolean operation. Penpot's boolean operation API may not be available or the shapes may not be excludable.`,
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.EXCLUDE_BOOLEAN_OPERATION,
+      success: false,
+      message: `Error performing exclude boolean operation: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
@@ -3188,10 +3289,10 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
-      case ClientQueryType.COMBINE_SHAPES: {
-        // Restore original shapes by deleting the combined shape and recreating originals
-        const combineData = lastAction.undoData as {
-          combinedShapeId: string;
+      case ClientQueryType.UNION_BOOLEAN_OPERATION: {
+        // Restore original shapes by deleting the union shape and recreating originals
+        const unionData = lastAction.undoData as {
+          unionShapeId: string;
           originalShapes: Array<{
             id: string;
             name: string;
@@ -3211,15 +3312,15 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             throw new Error('No current page available');
           }
 
-          // Delete the combined shape
-          const combinedShape = currentPage.getShapeById(combineData.combinedShapeId);
-          if (combinedShape) {
-            combinedShape.remove();
+          // Delete the union shape
+          const unionShape = currentPage.getShapeById(unionData.unionShapeId);
+          if (unionShape) {
+            unionShape.remove();
           }
 
           // Recreate the original shapes as rectangles (since we don't know the exact types)
           const newShapeIds: string[] = [];
-          for (const originalShape of combineData.originalShapes) {
+          for (const originalShape of unionData.originalShapes) {
             try {
               // Create a shape of the correct type
               let newShape: Shape;
@@ -3264,21 +3365,21 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             }, 10);
           }
         } catch (error) {
-          console.warn('Failed to undo combine shapes:', error);
+          console.warn('Failed to undo union boolean operation:', error);
           return {
             ...pluginResponse,
             type: ClientQueryType.UNDO_LAST_ACTION,
             success: false,
-            message: `Failed to undo combine shapes: ${error instanceof Error ? error.message : String(error)}`,
+            message: `Failed to undo union boolean operation: ${error instanceof Error ? error.message : String(error)}`,
           };
         }
         break;
       }
 
-      case ClientQueryType.INTERSECT_SHAPES: {
-        // Restore original shapes by deleting the intersected shape and recreating originals
-        const intersectData = lastAction.undoData as {
-          intersectedShapeId: string;
+      case ClientQueryType.INTERSECTION_BOOLEAN_OPERATION: {
+        // Restore original shapes by deleting the intersection shape and recreating originals
+        const intersectionData = lastAction.undoData as {
+          intersectionShapeId: string;
           originalShapes: Array<{
             id: string;
             name: string;
@@ -3298,15 +3399,15 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             throw new Error('No current page available');
           }
 
-          // Delete the intersected shape
-          const intersectedShape = currentPage.getShapeById(intersectData.intersectedShapeId);
-          if (intersectedShape) {
-            intersectedShape.remove();
+          // Delete the intersection shape
+          const intersectionShape = currentPage.getShapeById(intersectionData.intersectionShapeId);
+          if (intersectionShape) {
+            intersectionShape.remove();
           }
 
           // Recreate the original shapes as rectangles (since we don't know the exact types)
           const newShapeIds: string[] = [];
-          for (const originalShape of intersectData.originalShapes) {
+          for (const originalShape of intersectionData.originalShapes) {
             try {
               // Create a shape of the correct type
               let newShape: Shape;
@@ -3351,21 +3452,21 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             }, 10);
           }
         } catch (error) {
-          console.warn('Failed to undo intersect shapes:', error);
+          console.warn('Failed to undo intersection boolean operation:', error);
           return {
             ...pluginResponse,
             type: ClientQueryType.UNDO_LAST_ACTION,
             success: false,
-            message: `Failed to undo intersect shapes: ${error instanceof Error ? error.message : String(error)}`,
+            message: `Failed to undo intersection boolean operation: ${error instanceof Error ? error.message : String(error)}`,
           };
         }
         break;
       }
 
-      case ClientQueryType.SUBTRACT_SHAPES: {
-        // Restore original shapes by deleting the subtracted shape and recreating originals
-        const subtractData = lastAction.undoData as {
-          subtractedShapeId: string;
+      case ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION: {
+        // Restore original shapes by deleting the difference shape and recreating originals
+        const differenceData = lastAction.undoData as {
+          differenceShapeId: string;
           originalShapes: Array<{
             id: string;
             name: string;
@@ -3385,15 +3486,15 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             throw new Error('No current page available');
           }
 
-          // Delete the subtracted shape
-          const subtractedShape = currentPage.getShapeById(subtractData.subtractedShapeId);
-          if (subtractedShape) {
-            subtractedShape.remove();
+          // Delete the difference shape
+          const differenceShape = currentPage.getShapeById(differenceData.differenceShapeId);
+          if (differenceShape) {
+            differenceShape.remove();
           }
 
           // Recreate the original shapes as rectangles (since we don't know the exact types)
           const newShapeIds: string[] = [];
-          for (const originalShape of subtractData.originalShapes) {
+          for (const originalShape of differenceData.originalShapes) {
             try {
               // Create a shape of the correct type
               let newShape: Shape;
@@ -3438,12 +3539,99 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             }, 10);
           }
         } catch (error) {
-          console.warn('Failed to undo subtract shapes:', error);
+          console.warn('Failed to undo difference boolean operation:', error);
           return {
             ...pluginResponse,
             type: ClientQueryType.UNDO_LAST_ACTION,
             success: false,
-            message: `Failed to undo subtract shapes: ${error instanceof Error ? error.message : String(error)}`,
+            message: `Failed to undo difference boolean operation: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+        break;
+      }
+
+      case ClientQueryType.EXCLUDE_BOOLEAN_OPERATION: {
+        // Restore original shapes by deleting the exclude shape and recreating originals
+        const excludeData = lastAction.undoData as {
+          excludeShapeId: string;
+          originalShapes: Array<{
+            id: string;
+            name: string;
+            type: string;
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            fills?: unknown;
+            strokes?: unknown;
+          }>;
+        };
+
+        try {
+          const currentPage = penpot.currentPage;
+          if (!currentPage) {
+            throw new Error('No current page available');
+          }
+
+          // Delete the exclude shape
+          const excludeShape = currentPage.getShapeById(excludeData.excludeShapeId);
+          if (excludeShape) {
+            excludeShape.remove();
+          }
+
+          // Recreate the original shapes as rectangles (since we don't know the exact types)
+          const newShapeIds: string[] = [];
+          for (const originalShape of excludeData.originalShapes) {
+            try {
+              // Create a shape of the correct type
+              let newShape: Shape;
+              switch (originalShape.type) {
+                case 'ellipse':
+                  newShape = penpot.createEllipse();
+                  break;
+                case 'path':
+                  newShape = penpot.createPath();
+                  break;
+                case 'rectangle':
+                default:
+                  newShape = penpot.createRectangle();
+                  break;
+              }
+
+              newShape.x = originalShape.x;
+              newShape.y = originalShape.y;
+              newShape.resize(originalShape.width, originalShape.height);
+              newShape.name = originalShape.name;
+
+              // Restore fills and strokes if they exist
+              if (originalShape.fills) {
+                newShape.fills = originalShape.fills as Fill[];
+              }
+              if (originalShape.strokes) {
+                newShape.strokes = originalShape.strokes as Stroke[];
+              }
+
+              newShapeIds.push(newShape.id);
+              restoredShapes.push(originalShape.name);
+            } catch (shapeError) {
+              console.warn(`Failed to recreate shape ${originalShape.name}:`, shapeError);
+            }
+          }
+
+          // Update selection to the newly created shapes after a brief delay
+          // to avoid conflicts with automatic selection change events
+          if (newShapeIds.length > 0) {
+            setTimeout(() => {
+              updateCurrentSelection(newShapeIds);
+            }, 10);
+          }
+        } catch (error) {
+          console.warn('Failed to undo exclude boolean operation:', error);
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.UNDO_LAST_ACTION,
+            success: false,
+            message: `Failed to undo exclude boolean operation: ${error instanceof Error ? error.message : String(error)}`,
           };
         }
         break;
@@ -3458,10 +3646,11 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         };
     }
 
-    const isCombineShapes = lastAction.actionType === ClientQueryType.COMBINE_SHAPES;
-    const isIntersectShapes = lastAction.actionType === ClientQueryType.INTERSECT_SHAPES;
-    const isSubtractShapes = lastAction.actionType === ClientQueryType.SUBTRACT_SHAPES;
-    const isBooleanOperation = isCombineShapes || isIntersectShapes || isSubtractShapes;
+    const isUnionBoolean = lastAction.actionType === ClientQueryType.UNION_BOOLEAN_OPERATION;
+    const isIntersectionBoolean = lastAction.actionType === ClientQueryType.INTERSECTION_BOOLEAN_OPERATION;
+    const isDifferenceBoolean = lastAction.actionType === ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION;
+    const isExcludeBoolean = lastAction.actionType === ClientQueryType.EXCLUDE_BOOLEAN_OPERATION;
+    const isBooleanOperation = isUnionBoolean || isIntersectionBoolean || isDifferenceBoolean || isExcludeBoolean;
     
     return {
       ...pluginResponse,
@@ -3994,162 +4183,6 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
           } catch (error) {
             console.warn(`Failed to redo radial gradient for shape ${shapeId}:`, error);
           }
-        }
-        break;
-      }
-
-      case ClientQueryType.COMBINE_SHAPES: {
-        // Reapply the combine operation - find original shapes and combine them
-        const combineData = lastAction.undoData as {
-          combinedShapeId: string;
-          originalShapes: Array<{
-            id: string;
-            name: string;
-            type: string;
-            x: number;
-            y: number;
-            width: number;
-            height: number;
-            fills?: unknown;
-            strokes?: unknown;
-          }>;
-        };
-
-        try {
-          // Find the original shapes that should be combined
-          const shapesToCombine: Shape[] = [];
-          for (const originalShape of combineData.originalShapes) {
-            const shape = penpot.currentPage?.getShapeById(originalShape.id);
-            if (shape) {
-              shapesToCombine.push(shape);
-            }
-          }
-
-          if (shapesToCombine.length >= 2) {
-            // Reapply the combine operation
-            const combinedShape = penpot.createBoolean("union", shapesToCombine);
-            if (combinedShape) {
-              undoStack.push(lastAction);
-              restoredShapes.push(combinedShape.name || combinedShape.id);
-              
-              // Update selection to the newly combined shape after a brief delay
-              setTimeout(() => {
-                updateCurrentSelection([combinedShape.id]);
-              }, 10);
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to redo combine shapes:', error);
-          return {
-            ...pluginResponse,
-            type: ClientQueryType.REDO_LAST_ACTION,
-            success: false,
-            message: `Failed to redo combine shapes: ${error instanceof Error ? error.message : String(error)}`,
-          };
-        }
-        break;
-      }
-
-      case ClientQueryType.INTERSECT_SHAPES: {
-        // Reapply the intersect operation - find original shapes and intersect them
-        const intersectData = lastAction.undoData as {
-          intersectedShapeId: string;
-          originalShapes: Array<{
-            id: string;
-            name: string;
-            type: string;
-            x: number;
-            y: number;
-            width: number;
-            height: number;
-            fills?: unknown;
-            strokes?: unknown;
-          }>;
-        };
-
-        try {
-          // Find the original shapes that should be intersected
-          const shapesToIntersect: Shape[] = [];
-          for (const originalShape of intersectData.originalShapes) {
-            const shape = penpot.currentPage?.getShapeById(originalShape.id);
-            if (shape) {
-              shapesToIntersect.push(shape);
-            }
-          }
-
-          if (shapesToIntersect.length >= 2) {
-            // Reapply the intersect operation
-            const intersectedShape = penpot.createBoolean("intersection", shapesToIntersect);
-            if (intersectedShape) {
-              undoStack.push(lastAction);
-              restoredShapes.push(intersectedShape.name || intersectedShape.id);
-              
-              // Update selection to the newly intersected shape after a brief delay
-              setTimeout(() => {
-                updateCurrentSelection([intersectedShape.id]);
-              }, 10);
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to redo intersect shapes:', error);
-          return {
-            ...pluginResponse,
-            type: ClientQueryType.REDO_LAST_ACTION,
-            success: false,
-            message: `Failed to redo intersect shapes: ${error instanceof Error ? error.message : String(error)}`,
-          };
-        }
-        break;
-      }
-
-      case ClientQueryType.SUBTRACT_SHAPES: {
-        // Reapply the subtract operation - find original shapes and subtract them
-        const subtractData = lastAction.undoData as {
-          subtractedShapeId: string;
-          originalShapes: Array<{
-            id: string;
-            name: string;
-            type: string;
-            x: number;
-            y: number;
-            width: number;
-            height: number;
-            fills?: unknown;
-            strokes?: unknown;
-          }>;
-        };
-
-        try {
-          // Find the original shapes that should be subtracted
-          const shapesToSubtract: Shape[] = [];
-          for (const originalShape of subtractData.originalShapes) {
-            const shape = penpot.currentPage?.getShapeById(originalShape.id);
-            if (shape) {
-              shapesToSubtract.push(shape);
-            }
-          }
-
-          if (shapesToSubtract.length >= 2) {
-            // Reapply the subtract operation
-            const subtractedShape = penpot.createBoolean("difference", shapesToSubtract);
-            if (subtractedShape) {
-              undoStack.push(lastAction);
-              restoredShapes.push(subtractedShape.name || subtractedShape.id);
-              
-              // Update selection to the newly subtracted shape after a brief delay
-              setTimeout(() => {
-                updateCurrentSelection([subtractedShape.id]);
-              }, 10);
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to redo subtract shapes:', error);
-          return {
-            ...pluginResponse,
-            type: ClientQueryType.REDO_LAST_ACTION,
-            success: false,
-            message: `Failed to redo subtract shapes: ${error instanceof Error ? error.message : String(error)}`,
-          };
         }
         break;
       }

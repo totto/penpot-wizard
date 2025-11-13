@@ -45,9 +45,10 @@ export enum ClientQueryType {
   DISTRIBUTE_VERTICAL = 'DISTRIBUTE_VERTICAL',
   GROUP = 'GROUP',
   UNGROUP = 'UNGROUP',
-  COMBINE_SHAPES = 'COMBINE_SHAPES',
-  INTERSECT_SHAPES = 'INTERSECT_SHAPES',
-  SUBTRACT_SHAPES = 'SUBTRACT_SHAPES',
+  UNION_BOOLEAN_OPERATION = 'UNION_BOOLEAN_OPERATION',
+  INTERSECTION_BOOLEAN_OPERATION = 'INTERSECTION_BOOLEAN_OPERATION',
+  DIFFERENCE_BOOLEAN_OPERATION = 'DIFFERENCE_BOOLEAN_OPERATION',
+  EXCLUDE_BOOLEAN_OPERATION = 'EXCLUDE_BOOLEAN_OPERATION',
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
 }
@@ -64,7 +65,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CombineShapesQueryPayload | IntersectShapesQueryPayload | SubtractShapesQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UnionBooleanOperationQueryPayload | IntersectionBooleanOperationQueryPayload | DifferenceBooleanOperationQueryPayload | ExcludeBooleanOperationQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -145,11 +146,13 @@ export type GroupQueryPayload = Record<string, never>;
 
 export type UngroupQueryPayload = Record<string, never>;
 
-export type CombineShapesQueryPayload = Record<string, never>;
+export type UnionBooleanOperationQueryPayload = Record<string, never>;
 
-export type IntersectShapesQueryPayload = Record<string, never>;
+export type IntersectionBooleanOperationQueryPayload = Record<string, never>;
 
-export type SubtractShapesQueryPayload = Record<string, never>;
+export type DifferenceBooleanOperationQueryPayload = Record<string, never>;
+
+export type ExcludeBooleanOperationQueryPayload = Record<string, never>;
 
 export interface UndoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to undo, otherwise undo the last one
@@ -159,7 +162,7 @@ export interface RedoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to redo, otherwise redo the last undone one
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CombineShapesQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -269,6 +272,30 @@ export interface IntersectShapesResponsePayload {
 export interface SubtractShapesResponsePayload {
   subtractedShapeId: string;
   subtractedShapes: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface UnionBooleanOperationResponsePayload {
+  unionShapeId: string;
+  unionShapes: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface IntersectionBooleanOperationResponsePayload {
+  intersectionShapeId: string;
+  intersectionShapes: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface DifferenceBooleanOperationResponsePayload {
+  differenceShapeId: string;
+  differenceShapes: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface ExcludeBooleanOperationResponsePayload {
+  excludeShapeId: string;
+  excludeShapes: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
 }
 
@@ -444,6 +471,10 @@ export type PluginResponsePayload =
   | CombineShapesResponsePayload
   | IntersectShapesResponsePayload
   | SubtractShapesResponsePayload
+  | UnionBooleanOperationResponsePayload
+  | IntersectionBooleanOperationResponsePayload
+  | DifferenceBooleanOperationResponsePayload
+  | ExcludeBooleanOperationResponsePayload
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload;
 

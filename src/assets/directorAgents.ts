@@ -98,9 +98,10 @@ When the user wants to redo a recently undone action:
       'distribute-vertical-tool',
       'group-tool',
       'ungroup-tool',
-      'combine-shapes-tool',
-      'intersect-shapes-tool',
-      'subtract-shapes-tool',
+      'union-boolean-operation',
+      'intersection-boolean-operation',
+      'difference-boolean-operation',
+      'exclude-boolean-operation',
     ],
     
     specializedAgentIds: ['mobile-projects-coordinator'],
