@@ -38,6 +38,7 @@ import {
   DifferenceBooleanOperationQueryPayload,
   ExcludeBooleanOperationQueryPayload,
   FlattenSelectionQueryPayload,
+  CreateShapeFromSvgQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -2989,6 +2990,99 @@ The shapes have been flattened into editable paths that can be manipulated indiv
       type: ClientQueryType.FLATTEN_SELECTION,
       success: false,
       message: `Error flattening shapes: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function createShapeFromSvgTool(payload: CreateShapeFromSvgQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { svgString, name } = payload ?? {};
+
+    if (!svgString || typeof svgString !== 'string' || svgString.trim().length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_SHAPE_FROM_SVG,
+        success: false,
+        message: 'Invalid payload. Expected { svgString: string, name?: string }',
+      };
+    }
+
+    // Check if createShapeFromSvg API is available
+    if (typeof penpot.createShapeFromSvg !== 'function') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_SHAPE_FROM_SVG,
+        success: false,
+        message: 'Penpot createShapeFromSvg API is not available in this version.',
+      };
+    }
+
+    try {
+      // Create shape from SVG using Penpot API
+      const createdShape = penpot.createShapeFromSvg(svgString);
+
+      if (!createdShape) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.CREATE_SHAPE_FROM_SVG,
+          success: false,
+          message: 'Failed to create shape from SVG. The SVG may be invalid or unsupported.',
+        };
+      }
+
+      // Set name if provided
+      if (name && typeof name === 'string') {
+        createdShape.name = name;
+      }
+
+      // Add to undo stack
+      const undoInfo: UndoInfo = {
+        actionType: ClientQueryType.CREATE_SHAPE_FROM_SVG,
+        actionId: `create_svg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        undoData: {
+          createdShapeId: createdShape.id,
+          svgString: svgString,
+          shapeName: createdShape.name,
+        },
+        description: `Created shape from SVG: ${createdShape.name || 'Unnamed shape'}`,
+        timestamp: Date.now(),
+      };
+
+      undoStack.push(undoInfo);
+
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_SHAPE_FROM_SVG,
+        success: true,
+        message: `Perfect! I created a new shape from the SVG string.
+
+Shape created: ${createdShape.name || 'Unnamed shape'}
+Shape ID: ${createdShape.id}
+SVG length: ${svgString.length} characters
+
+The shape has been added to your current page and can be selected and modified like any other shape.`,
+        payload: {
+          createdShape: createdShape,
+          shapeId: createdShape.id,
+          shapeName: createdShape.name,
+          svgString: svgString,
+        },
+      };
+    } catch (createError) {
+      console.warn('createShapeFromSvg API failed:', createError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CREATE_SHAPE_FROM_SVG,
+        success: false,
+        message: `Failed to create shape from SVG: ${createError instanceof Error ? createError.message : String(createError)}`,
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CREATE_SHAPE_FROM_SVG,
+      success: false,
+      message: `Error creating shape from SVG: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

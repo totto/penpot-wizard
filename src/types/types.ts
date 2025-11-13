@@ -50,6 +50,7 @@ export enum ClientQueryType {
   DIFFERENCE_BOOLEAN_OPERATION = 'DIFFERENCE_BOOLEAN_OPERATION',
   EXCLUDE_BOOLEAN_OPERATION = 'EXCLUDE_BOOLEAN_OPERATION',
   FLATTEN_SELECTION = 'FLATTEN_SELECTION',
+  CREATE_SHAPE_FROM_SVG = 'CREATE_SHAPE_FROM_SVG',
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
 }
@@ -66,7 +67,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UnionBooleanOperationQueryPayload | IntersectionBooleanOperationQueryPayload | DifferenceBooleanOperationQueryPayload | ExcludeBooleanOperationQueryPayload | FlattenSelectionQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UnionBooleanOperationQueryPayload | IntersectionBooleanOperationQueryPayload | DifferenceBooleanOperationQueryPayload | ExcludeBooleanOperationQueryPayload | FlattenSelectionQueryPayload | CreateShapeFromSvgQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -157,6 +158,11 @@ export type ExcludeBooleanOperationQueryPayload = Record<string, never>;
 
 export type FlattenSelectionQueryPayload = Record<string, never>;
 
+export interface CreateShapeFromSvgQueryPayload {
+  svgString: string;
+  name?: string; // Optional name for the created shape
+}
+
 export interface UndoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to undo, otherwise undo the last one
 }
@@ -165,7 +171,7 @@ export interface RedoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to redo, otherwise redo the last undone one
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CreateShapeFromSvgQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -306,6 +312,13 @@ export interface FlattenResponsePayload {
   flattenedShapeIds: string[];
   flattenedShapes: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
+}
+
+export interface CreateShapeFromSvgResponsePayload {
+  createdShape: Shape | null;
+  shapeId?: string;
+  shapeName?: string;
+  svgString: string;
 }
 
 export interface UndoLastActionResponsePayload {
@@ -485,6 +498,7 @@ export type PluginResponsePayload =
   | DifferenceBooleanOperationResponsePayload
   | ExcludeBooleanOperationResponsePayload
   | FlattenResponsePayload
+  | CreateShapeFromSvgResponsePayload
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload;
 

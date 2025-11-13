@@ -103,6 +103,7 @@ When the user wants to redo a recently undone action:
       'difference-boolean-operation',
       'exclude-boolean-operation',
       'flatten-selection-tool',
+      'create-shape-from-svg',
     ],
     
     specializedAgentIds: ['mobile-projects-coordinator'],

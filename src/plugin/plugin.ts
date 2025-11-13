@@ -20,6 +20,7 @@ import {
   DifferenceBooleanOperationQueryPayload,
   ExcludeBooleanOperationQueryPayload,
   FlattenSelectionQueryPayload,
+  CreateShapeFromSvgQueryPayload,
   ApplyLinearGradientQueryPayload,
   ApplyRadialGradientQueryPayload,
   DrawShapeQueryPayload,
@@ -51,6 +52,7 @@ import {
   differenceBooleanOperationTool,
   excludeBooleanOperationTool,
   flattenSelectionTool,
+  createShapeFromSvgTool,
   applyLinearGradientTool, 
   applyRadialGradientTool, 
   getCurrentPage, 
@@ -215,6 +217,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.FLATTEN_SELECTION:
       responseMessage = await flattenSelectionTool(payload as unknown as FlattenSelectionQueryPayload);
+      break;
+
+    case ClientQueryType.CREATE_SHAPE_FROM_SVG:
+      responseMessage = await createShapeFromSvgTool(payload as unknown as CreateShapeFromSvgQueryPayload);
       break;
 
     case ClientQueryType.APPLY_LINEAR_GRADIENT:

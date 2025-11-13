@@ -91,6 +91,31 @@ export const functionTools: FunctionTool[] = [
     },
   },
 
+  {
+    id: "create-shape-from-svg",
+    name: "createShapeFromSvg",
+    description: `
+      Create a new shape in Penpot from an SVG string.
+      This tool takes valid SVG markup and converts it into editable Penpot shapes.
+      Useful for importing custom icons, logos, or complex graphics from SVG format.
+      
+      Parameters:
+      - svgString: A valid SVG string containing the shape definition
+      - name: Optional name for the created shape
+      
+      The SVG should be a valid XML string with proper SVG elements like <svg>, <path>, <circle>, etc.
+      Complex SVGs with multiple elements will be grouped together as a single shape.
+    `,
+    inputSchema: z.object({
+      svgString: z.string().min(1, "SVG string cannot be empty"),
+      name: z.string().optional(),
+    }),
+    function: async (input: { svgString: string; name?: string }) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CREATE_SHAPE_FROM_SVG, input);
+      return response;
+    },
+  },
+
   // NOTE: undo-last-action should be automatically included on every agent because it is a vital tool
   // for user safety and error recovery. Without redo functionality, users cannot easily restore
   // changes they just undid, creating a frustrating user experience.
