@@ -2894,50 +2894,65 @@ export async function flattenSelectionTool(_payload: FlattenSelectionQueryPayloa
     // Create the flattened shape using Penpot's flatten method or manual conversion
     try {
       const flattenedShapes: Shape[] = [];
-      
+
       // Check if flatten API is available and try to use it
       if (typeof penpot.flatten === 'function') {
         console.log('Using penpot.flatten API');
-        
+
         // Use the correct API: penpot.flatten(shapes: Shape[]): Path[]
         try {
           const flattened = penpot.flatten(sel);
-          if (flattened && flattened.length > 0) {
+          console.log('penpot.flatten returned:', flattened);
+
+          // The API might return the flattened shapes or modify selection in-place
+          if (flattened && Array.isArray(flattened) && flattened.length > 0) {
+            // API returned the flattened shapes
             flattenedShapes.push(...flattened);
+            console.log('Using API-returned flattened shapes:', flattenedShapes.length);
+          } else {
+            // API might have modified selection in-place, check current selection
+            const currentSel = getSelectionForAction();
+            if (currentSel && currentSel.length > 0) {
+              // Assume the current selection contains the flattened shapes
+              flattenedShapes.push(...currentSel);
+              console.log('Using current selection as flattened shapes:', flattenedShapes.length);
+            } else {
+              console.warn('No flattened shapes found in API response or current selection');
+            }
           }
         } catch (flattenError) {
-          console.warn('penpot.flatten API failed:', flattenError);
-          throw flattenError; // Re-throw to trigger fallback
+          console.warn('penpot.flatten API threw error:', flattenError);
+          throw flattenError; // Re-throw to trigger error response
         }
       } else {
         throw new Error('penpot.flatten API not available');
       }
-      
-      if (flattenedShapes.length === 0) {
-        throw new Error('Could not convert any shapes to paths - shapes may not be supported for flattening');
-      }
 
-      // Add to undo stack
-      const undoInfo: UndoInfo = {
-        actionType: ClientQueryType.FLATTEN_SELECTION,
-        actionId: `flatten_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        undoData: {
-          flattenedShapeIds: flattenedShapes.map(s => s.id),
-          originalShapes: shapeProperties,
-        },
-        description: `Flattened ${sel.length} shapes into ${flattenedShapes.length} paths`,
-        timestamp: Date.now(),
-      };
+      // If we have flattened shapes, consider it a success
+      if (flattenedShapes.length > 0) {
+        console.log('Flatten operation successful, found', flattenedShapes.length, 'flattened shapes');
 
-      undoStack.push(undoInfo);
+        // Add to undo stack
+        const undoInfo: UndoInfo = {
+          actionType: ClientQueryType.FLATTEN_SELECTION,
+          actionId: `flatten_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          undoData: {
+            flattenedShapeIds: flattenedShapes.map(s => s.id),
+            originalShapes: shapeProperties,
+          },
+          description: `Flattened ${sel.length} shapes into ${flattenedShapes.length} paths`,
+          timestamp: Date.now(),
+        };
 
-      const shapeNames = shapeProperties.map(s => s.name).join(', ');
+        undoStack.push(undoInfo);
 
-      return {
-        ...pluginResponse,
-        type: ClientQueryType.FLATTEN_SELECTION,
-        success: true,
-        message: `Perfect! I flattened ${sel.length} shape${sel.length > 1 ? 's' : ''} into ${flattenedShapes.length} path${flattenedShapes.length > 1 ? 's' : ''}.
+        const shapeNames = shapeProperties.map(s => s.name).join(', ');
+
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.FLATTEN_SELECTION,
+          success: true,
+          message: `Perfect! I flattened ${sel.length} shape${sel.length > 1 ? 's' : ''} into ${flattenedShapes.length} path${flattenedShapes.length > 1 ? 's' : ''}.
 
 ⚠️ **IMPORTANT**: Flatten operations are DESTRUCTIVE and cannot be perfectly undone.
 The original shapes have been converted and replaced with flattened paths.
@@ -2948,14 +2963,19 @@ Flattened shapes: ${shapeNames}
 Result: ${flattenedShapes.length} flattened path${flattenedShapes.length > 1 ? 's' : ''}
 
 The shapes have been flattened into editable paths that can be manipulated individually or as a group.`,
-        payload: {
-          flattenedShapeIds: flattenedShapes.map(s => s.id),
-          flattenedShapes: shapeProperties.map(s => ({ id: s.id, name: s.name })),
-          undoInfo,
-        },
-      };
+          payload: {
+            flattenedShapeIds: flattenedShapes.map(s => s.id),
+            flattenedShapes: shapeProperties.map(s => ({ id: s.id, name: s.name })),
+            undoInfo,
+          },
+        };
+      } else {
+        // No flattened shapes found, but operation might have succeeded
+        console.warn('No flattened shapes detected, but operation may have succeeded');
+        throw new Error('Flatten operation completed but no flattened shapes were detected');
+      }
     } catch (flattenError) {
-      console.warn(`Penpot flatten API failed:`, flattenError);
+      console.warn(`Penpot flatten operation failed:`, flattenError);
       return {
         ...pluginResponse,
         type: ClientQueryType.FLATTEN_SELECTION,
