@@ -319,6 +319,7 @@ export interface CreateShapeFromSvgResponsePayload {
   shapeId?: string;
   shapeName?: string;
   svgString: string;
+  position?: { x: number; y: number };
 }
 
 export interface UndoLastActionResponsePayload {

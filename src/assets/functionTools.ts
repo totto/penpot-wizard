@@ -99,6 +99,10 @@ export const functionTools: FunctionTool[] = [
       This tool takes valid SVG markup and converts it into editable Penpot shapes.
       Useful for importing custom icons, logos, or complex graphics from SVG format.
       
+      The tool uses the current selection to determine positioning:
+      - If shapes are selected: positions the new SVG shape next to the first selected shape
+      - If no shapes are selected: positions the new SVG shape at a default location
+      
       Parameters:
       - svgString: A valid SVG string containing the shape definition
       - name: Optional name for the created shape

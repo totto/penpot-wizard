@@ -3007,6 +3007,10 @@ export async function createShapeFromSvgTool(payload: CreateShapeFromSvgQueryPay
       };
     }
 
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    const hasSelection = sel && sel.length > 0;
+
     // Check if createShapeFromSvg API is available
     if (typeof penpot.createShapeFromSvg !== 'function') {
       return {
@@ -3030,6 +3034,18 @@ export async function createShapeFromSvgTool(payload: CreateShapeFromSvgQueryPay
         };
       }
 
+      // Position the shape based on current selection
+      if (hasSelection && sel.length > 0) {
+        // Position relative to the first selected shape
+        const referenceShape = sel[0];
+        createdShape.x = (referenceShape.x || 0) + (referenceShape.width || 100) + 20; // 20px offset
+        createdShape.y = referenceShape.y || 0;
+      } else {
+        // Default position if no selection
+        createdShape.x = createdShape.x || 100;
+        createdShape.y = createdShape.y || 100;
+      }
+
       // Set name if provided
       if (name && typeof name === 'string') {
         createdShape.name = name;
@@ -3043,12 +3059,17 @@ export async function createShapeFromSvgTool(payload: CreateShapeFromSvgQueryPay
           createdShapeId: createdShape.id,
           svgString: svgString,
           shapeName: createdShape.name,
+          position: { x: createdShape.x, y: createdShape.y },
         },
         description: `Created shape from SVG: ${createdShape.name || 'Unnamed shape'}`,
         timestamp: Date.now(),
       };
 
       undoStack.push(undoInfo);
+
+      const positionInfo = hasSelection
+        ? `Positioned next to selected shape at (${createdShape.x}, ${createdShape.y})`
+        : `Positioned at default location (${createdShape.x}, ${createdShape.y})`;
 
       return {
         ...pluginResponse,
@@ -3059,6 +3080,7 @@ export async function createShapeFromSvgTool(payload: CreateShapeFromSvgQueryPay
 Shape created: ${createdShape.name || 'Unnamed shape'}
 Shape ID: ${createdShape.id}
 SVG length: ${svgString.length} characters
+${positionInfo}
 
 The shape has been added to your current page and can be selected and modified like any other shape.`,
         payload: {
@@ -3066,6 +3088,7 @@ The shape has been added to your current page and can be selected and modified l
           shapeId: createdShape.id,
           shapeName: createdShape.name,
           svgString: svgString,
+          position: { x: createdShape.x, y: createdShape.y },
         },
       };
     } catch (createError) {
