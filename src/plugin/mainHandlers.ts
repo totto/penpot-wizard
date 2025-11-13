@@ -2899,87 +2899,18 @@ export async function flattenSelectionTool(_payload: FlattenSelectionQueryPayloa
       if (typeof penpot.flatten === 'function') {
         console.log('Using penpot.flatten API');
         
-        // Process each shape individually (flatten typically works on single shapes)
-        for (const shape of sel) {
-          try {
-            const flattened = penpot.flatten([shape]); // Try with single shape in array
-            if (flattened && flattened.length > 0) {
-              flattenedShapes.push(...flattened);
-            }
-          } catch (singleShapeError) {
-            console.warn(`Failed to flatten individual shape ${shape.name}:`, singleShapeError);
-            // Continue with other shapes
+        // Use the correct API: penpot.flatten(shapes: Shape[]): Path[]
+        try {
+          const flattened = penpot.flatten(sel);
+          if (flattened && flattened.length > 0) {
+            flattenedShapes.push(...flattened);
           }
+        } catch (flattenError) {
+          console.warn('penpot.flatten API failed:', flattenError);
+          throw flattenError; // Re-throw to trigger fallback
         }
       } else {
-        // Fallback: manually convert shapes to paths
-        console.log('penpot.flatten not available, using manual conversion');
-        
-        for (const shape of sel) {
-          try {
-            let pathData: string | undefined;
-            
-            // Convert different shape types to path data
-            switch (shape.type) {
-              case 'rectangle': {
-                // Convert rectangle to path
-                const x = shape.x || 0;
-                const y = shape.y || 0;
-                const w = shape.width || 100;
-                const h = shape.height || 100;
-                pathData = `M ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`;
-                break;
-              }
-                
-              case 'ellipse': {
-                // Convert ellipse to path (approximation)
-                const cx = (shape.x || 0) + (shape.width || 100) / 2;
-                const cy = (shape.y || 0) + (shape.height || 100) / 2;
-                const rx = (shape.width || 100) / 2;
-                const ry = (shape.height || 100) / 2;
-                pathData = `M ${cx - rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx + rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx - rx} ${cy} Z`;
-                break;
-              }
-                
-              case 'path':
-                // Path is already flattened
-                pathData = (shape as any).content;
-                break;
-                
-              default:
-                // For other shapes, try to get content if available
-                pathData = (shape as any).content;
-                break;
-            }
-            
-            if (pathData) {
-              // Create a new path shape
-              const newPath = penpot.createPath();
-              newPath.x = shape.x || 0;
-              newPath.y = shape.y || 0;
-              newPath.name = shape.name || `Flattened ${shape.type}`;
-              
-              // Set the path content
-              (newPath as any).content = pathData;
-              
-              // Copy fills and strokes (handle type issues)
-              if (shape.fills && Array.isArray(shape.fills)) {
-                newPath.fills = shape.fills as any;
-              }
-              if (shape.strokes && Array.isArray(shape.strokes)) {
-                newPath.strokes = shape.strokes as any;
-              }
-              
-              flattenedShapes.push(newPath);
-              
-              // Remove the original shape
-              shape.remove();
-            }
-          } catch (singleShapeError) {
-            console.warn(`Failed to convert shape ${shape.name} to path:`, singleShapeError);
-            // Continue with other shapes
-          }
-        }
+        throw new Error('penpot.flatten API not available');
       }
       
       if (flattenedShapes.length === 0) {
@@ -3024,12 +2955,12 @@ The shapes have been flattened into editable paths that can be manipulated indiv
         },
       };
     } catch (flattenError) {
-      console.warn(`Penpot flatten failed:`, flattenError);
+      console.warn(`Penpot flatten API failed:`, flattenError);
       return {
         ...pluginResponse,
         type: ClientQueryType.FLATTEN_SELECTION,
         success: false,
-        message: `Failed to flatten shapes. Penpot's flatten API may not be available or the shapes may not be flattenable.`,
+        message: `Failed to flatten shapes using Penpot's API. The shapes may not be flattenable or the API may not be available in this version of Penpot.`,
       };
     }
   } catch (error) {
