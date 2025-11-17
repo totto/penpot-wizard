@@ -153,6 +153,38 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
+  {
+    id: "export-selection-as-svg",
+    name: "exportSelectionAsSvg",
+    description: `
+      Export the currently selected shapes as a single SVG file with multiple save options.
+      
+      **Background Options:**
+      - Defaults to transparent background
+      - Set includeBackground=true for white background
+      
+      **Save Options Provided:**
+      - Copy SVG code for manual saving
+      - Blob URL for direct downloading
+      - Instructions for text editor saving
+      - Comparison with Penpot's native export
+      
+      Use this tool when:
+      - User wants to export their current selection as SVG
+      - User needs vector graphics for web development
+      - User wants to share designs in SVG format
+      - User needs scalable graphics for print or digital use
+      
+      The exported SVG combines all selected shapes into one document with proper positioning.
+    `,
+    inputSchema: z.object({
+      includeBackground: z.boolean().optional().describe("Whether to include a white background in the exported SVG. Defaults to false (transparent)."),
+    }),
+    function: async (args) => {
+      const response = await sendMessageToPlugin(ClientQueryType.EXPORT_SELECTION_AS_SVG, args);
+      return response;
+    },
+  },
 ];
 
 

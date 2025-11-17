@@ -51,6 +51,10 @@ export enum ClientQueryType {
   EXCLUDE_BOOLEAN_OPERATION = 'EXCLUDE_BOOLEAN_OPERATION',
   FLATTEN_SELECTION = 'FLATTEN_SELECTION',
   CREATE_SHAPE_FROM_SVG = 'CREATE_SHAPE_FROM_SVG',
+  EXPORT_SELECTION_AS_SVG = 'EXPORT_SELECTION_AS_SVG',
+  EXPORT_SELECTION_AS_PNG = 'EXPORT_SELECTION_AS_PNG',
+  EXPORT_SELECTION_AS_JPEG = 'EXPORT_SELECTION_AS_JPEG',
+  EXPORT_SELECTION_AS_WEBP = 'EXPORT_SELECTION_AS_WEBP',
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
 }
@@ -67,7 +71,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UnionBooleanOperationQueryPayload | IntersectionBooleanOperationQueryPayload | DifferenceBooleanOperationQueryPayload | ExcludeBooleanOperationQueryPayload | FlattenSelectionQueryPayload | CreateShapeFromSvgQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UnionBooleanOperationQueryPayload | IntersectionBooleanOperationQueryPayload | DifferenceBooleanOperationQueryPayload | ExcludeBooleanOperationQueryPayload | FlattenSelectionQueryPayload | CreateShapeFromSvgQueryPayload | ExportSelectionAsSvgQueryPayload | ExportSelectionAsPngQueryPayload | ExportSelectionAsJpegQueryPayload | ExportSelectionAsWebpQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -171,7 +175,7 @@ export interface RedoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to redo, otherwise redo the last undone one
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CreateShapeFromSvgQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CreateShapeFromSvgQueryPayload | ExportSelectionAsSvgQueryPayload | ExportSelectionAsPngQueryPayload | ExportSelectionAsJpegQueryPayload | ExportSelectionAsWebpQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -320,6 +324,47 @@ export interface CreateShapeFromSvgResponsePayload {
   shapeName?: string;
   svgString: string;
   position?: { x: number; y: number };
+}
+
+export interface ExportSelectionAsSvgQueryPayload {
+  includeBackground?: boolean;
+}
+
+export interface ExportSelectionAsPngQueryPayload {
+  quality?: number; // 0-1
+  includeBackground?: boolean;
+}
+
+export interface ExportSelectionAsJpegQueryPayload {
+  quality?: number; // 0-1
+  includeBackground?: boolean;
+}
+
+export interface ExportSelectionAsSvgResponsePayload {
+  svgString: string;
+  shapeCount: number;
+  exportedShapes: Array<{ id: string; name?: string }>;
+  fileName?: string;
+  includeBackground?: boolean;
+  blobUrl?: string;
+}
+
+export interface ExportSelectionAsPngResponsePayload {
+  downloadUrls: string[];
+  shapeCount: number;
+  exportedShapes: Array<{ id: string; name?: string; fileName: string }>;
+}
+
+export interface ExportSelectionAsJpegResponsePayload {
+  downloadUrls: string[];
+  shapeCount: number;
+  exportedShapes: Array<{ id: string; name?: string; fileName: string }>;
+}
+
+export interface ExportSelectionAsWebpResponsePayload {
+  downloadUrls: string[];
+  shapeCount: number;
+  exportedShapes: Array<{ id: string; name?: string; fileName: string }>;
 }
 
 export interface UndoLastActionResponsePayload {
@@ -500,6 +545,10 @@ export type PluginResponsePayload =
   | ExcludeBooleanOperationResponsePayload
   | FlattenResponsePayload
   | CreateShapeFromSvgResponsePayload
+  | ExportSelectionAsSvgResponsePayload
+  | ExportSelectionAsPngResponsePayload
+  | ExportSelectionAsJpegResponsePayload
+  | ExportSelectionAsWebpResponsePayload
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload;
 

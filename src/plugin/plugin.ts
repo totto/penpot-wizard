@@ -29,6 +29,7 @@ import {
   CreateLibraryComponentPayload,
   UndoLastActionQueryPayload,
   RedoLastActionQueryPayload,
+  ExportSelectionAsSvgQueryPayload,
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
@@ -65,7 +66,8 @@ import {
   createLibraryComponent, 
   updateCurrentSelection, 
   undoLastAction, 
-  redoLastAction 
+  redoLastAction,
+  exportSelectionAsSvgTool
 } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
@@ -279,6 +281,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.REDO_LAST_ACTION:
       responseMessage = await redoLastAction(payload as unknown as RedoLastActionQueryPayload);
+      break;
+
+    case ClientQueryType.EXPORT_SELECTION_AS_SVG:
+      responseMessage = await exportSelectionAsSvgTool(payload as unknown as ExportSelectionAsSvgQueryPayload);
       break;
 
     default:

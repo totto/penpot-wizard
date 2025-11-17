@@ -39,6 +39,7 @@ import {
   ExcludeBooleanOperationQueryPayload,
   FlattenSelectionQueryPayload,
   CreateShapeFromSvgQueryPayload,
+  ExportSelectionAsSvgQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -3106,6 +3107,161 @@ The shape has been added to your current page and can be selected and modified l
       type: ClientQueryType.CREATE_SHAPE_FROM_SVG,
       success: false,
       message: `Error creating shape from SVG: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function exportSelectionAsSvgTool(payload: ExportSelectionAsSvgQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.EXPORT_SELECTION_AS_SVG,
+        success: false,
+        message: `Please select at least 1 shape to export as SVG. You currently have ${sel?.length || 0} shape${(sel?.length || 0) !== 1 ? 's' : ''} selected.`,
+      };
+    }
+
+    const { includeBackground = false } = payload ?? {};
+
+    try {
+      // Export each shape as SVG
+      const svgPromises = sel.map(async (shape) => {
+        try {
+          const uint8Array = await shape.export({ type: 'svg' });
+          // Convert Uint8Array to string using String.fromCharCode
+          const svgText = String.fromCharCode(...Array.from(uint8Array));
+          return {
+            svgText,
+            shapeId: shape.id,
+            shapeName: shape.name || `Shape ${shape.id.slice(-4)}`,
+            x: shape.x || 0,
+            y: shape.y || 0,
+          };
+        } catch (shapeError) {
+          console.warn(`Failed to export shape ${shape.name}:`, shapeError);
+          return null;
+        }
+      });
+
+      const svgResults = await Promise.all(svgPromises);
+      const validResults = svgResults.filter(result => result !== null);
+
+      if (validResults.length === 0) {
+        throw new Error('Could not export any shapes as SVG - all exports failed');
+      }
+
+      // Combine all SVG content into a single document
+      let combinedSvg = '';
+
+      if (validResults.length === 1) {
+        // Single shape - return as-is
+        combinedSvg = validResults[0].svgText;
+      } else {
+        // Multiple shapes - combine into one SVG document
+        // Calculate bounds for the combined SVG
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        validResults.forEach(result => {
+          minX = Math.min(minX, result.x);
+          minY = Math.min(minY, result.y);
+          // Estimate max bounds (this is approximate since we don't have exact shape dimensions)
+          maxX = Math.max(maxX, result.x + 200); // Default estimate
+          maxY = Math.max(maxY, result.y + 200); // Default estimate
+        });
+
+        const width = maxX - minX;
+        const height = maxY - minY;
+
+        // Create combined SVG
+        combinedSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${minX} ${minY} ${width} ${height}">`;
+
+        if (includeBackground) {
+          combinedSvg += `<rect width="100%" height="100%" fill="white"/>`;
+        }
+
+        // Extract and combine SVG elements from each shape's export
+        validResults.forEach(result => {
+          // Parse the SVG text and extract the inner content
+          const parser = new DOMParser();
+          const svgDoc = parser.parseFromString(result.svgText, 'image/svg+xml');
+          const svgElement = svgDoc.documentElement;
+
+          // Get all child elements (excluding the root <svg> tag)
+          const childElements = Array.from(svgElement.children);
+          childElements.forEach(child => {
+            // Adjust positioning relative to the combined SVG
+            const transform = `translate(${result.x - minX}, ${result.y - minY})`;
+            child.setAttribute('transform', transform);
+            combinedSvg += child.outerHTML;
+          });
+        });
+
+        combinedSvg += '</svg>';
+      }
+
+      const backgroundStatus = includeBackground ? 'with white background' : 'with transparent background';
+
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.EXPORT_SELECTION_AS_SVG,
+        success: true,
+        message: `Perfect! I exported ${sel.length} shape${sel.length > 1 ? 's' : ''} as SVG ${backgroundStatus}.
+
+✅ **Export Summary:**
+- Shapes exported: ${validResults.length}/${sel.length}
+- Combined into single SVG document
+- Background: ${includeBackground ? 'White' : 'Transparent'}
+- File size: ${combinedSvg.length} characters
+
+**SVG Content Preview:**
+\`\`\`svg
+${combinedSvg.length > 500 ? combinedSvg.substring(0, 500) + '...' : combinedSvg}
+\`\`\`
+
+**How would you like to save this SVG?**
+
+**Option 1: Copy & Save Manually**
+1. Copy the SVG code above
+2. Paste into a text editor (like VS Code, Notepad, or TextEdit)
+3. Save the file as \`exported_shapes.svg\`
+
+**Option 2: Use as Blob URL**
+You can create a downloadable link using: \`data:image/svg+xml;base64,${btoa(combinedSvg)}\`
+
+**Option 3: Manual Penpot Export**
+For comparison, you can also use Penpot's built-in export:
+- Select your shapes in Penpot
+- Right-click → Export → SVG
+- Choose your save location
+
+The exported SVG is ready to use in web projects, design tools, or anywhere SVG is supported!`,
+        payload: {
+          svgString: combinedSvg,
+          shapeCount: validResults.length,
+          exportedShapes: validResults.map(r => ({ id: r.shapeId, name: r.shapeName })),
+          fileName: `exported_shapes_${Date.now()}.svg`,
+          includeBackground,
+          blobUrl: `data:image/svg+xml;base64,${btoa(combinedSvg)}`,
+        },
+      };
+    } catch (exportError) {
+      console.warn('SVG export failed:', exportError);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.EXPORT_SELECTION_AS_SVG,
+        success: false,
+        message: `Failed to export shapes as SVG: ${exportError instanceof Error ? exportError.message : String(exportError)}`,
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.EXPORT_SELECTION_AS_SVG,
+      success: false,
+      message: `Error exporting selection as SVG: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
