@@ -3124,15 +3124,41 @@ export async function exportSelectionAsSvgTool(payload: ExportSelectionAsSvgQuer
       };
     }
 
+    // Validate that we have actual shape objects with export capability
+    const validShapes = sel.filter(shape => {
+      if (!shape) {
+        console.warn('❌ Null shape in selection');
+        return false;
+      }
+      if (typeof shape.export !== 'function') {
+        console.warn(`❌ Shape ${shape.id} does not have export method:`, shape);
+        return false;
+      }
+      return true;
+    });
+
+    if (validShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.EXPORT_SELECTION_AS_SVG,
+        success: false,
+        message: `No valid shapes found in selection. Please select shapes that can be exported as SVG.`,
+      };
+    }
+
+    console.log(`✅ Processing ${validShapes.length} valid shapes for SVG export`);
+
     const { includeBackground = false } = payload ?? {};
 
     try {
-      // Export each shape as SVG
-      const svgPromises = sel.map(async (shape) => {
+      // Export each valid shape as SVG
+      const svgPromises = validShapes.map(async (shape) => {
         try {
+          console.log(`🔄 Exporting shape: ${shape.name || shape.id}`);
           const uint8Array = await shape.export({ type: 'svg' });
           // Convert Uint8Array to string using String.fromCharCode
           const svgText = String.fromCharCode(...Array.from(uint8Array));
+          console.log(`✅ Successfully exported shape: ${shape.name || shape.id}`);
           return {
             svgText,
             shapeId: shape.id,
@@ -3141,7 +3167,7 @@ export async function exportSelectionAsSvgTool(payload: ExportSelectionAsSvgQuer
             y: shape.y || 0,
           };
         } catch (shapeError) {
-          console.warn(`Failed to export shape ${shape.name}:`, shapeError);
+          console.warn(`❌ Failed to export shape ${shape.name || shape.id}:`, shapeError);
           return null;
         }
       });
@@ -3208,11 +3234,11 @@ export async function exportSelectionAsSvgTool(payload: ExportSelectionAsSvgQuer
         ...pluginResponse,
         type: ClientQueryType.EXPORT_SELECTION_AS_SVG,
         success: true,
-        message: `Perfect! I exported ${sel.length} shape${sel.length > 1 ? 's' : ''} as SVG ${backgroundStatus}.
+        message: `Perfect! I exported ${validResults.length} shape${validResults.length > 1 ? 's' : ''} as SVG ${backgroundStatus}.
 
 ✅ **Export Summary:**
-- Shapes exported: ${validResults.length}/${sel.length}
-- Combined into single SVG document
+- Shapes selected: ${sel.length}
+- Shapes exported: ${validResults.length}/${validShapes.length}
 - Background: ${includeBackground ? 'White' : 'Transparent'}
 - File size: ${combinedSvg.length} characters
 
