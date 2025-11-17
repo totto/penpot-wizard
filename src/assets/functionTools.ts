@@ -185,6 +185,24 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
+  {
+    id: "resize-selection",
+    name: "resizeSelection",
+    description: `
+      Use this tool to resize the currently selected shapes, boards, images, or other selectable objects in Penpot.
+      You can specify new width and height dimensions, and optionally maintain the aspect ratio.
+      This tool works on all selectable objects including shapes, boards, images, and groups.
+    `,
+    inputSchema: z.object({
+      width: z.number().positive().describe("The new width for the selected objects."),
+      height: z.number().positive().describe("The new height for the selected objects."),
+      maintainAspectRatio: z.boolean().optional().default(true).describe("Whether to maintain the aspect ratio when resizing. Defaults to true."),
+    }),
+    function: async (args) => {
+      const response = await sendMessageToPlugin(ClientQueryType.RESIZE, args);
+      return response;
+    },
+  },
 ];
 
 

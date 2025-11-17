@@ -70,6 +70,15 @@ When the user wants to redo a recently undone action:
 - Redo only works if there are recently undone actions available
 - Always confirm what was redone in your response to the user
 </undo_operations>
+
+<resize_operations>
+When using the resize-selection tool:
+- Always default to maintaining aspect ratio (maintainAspectRatio: true) for the initial resize operation
+- After successfully resizing with aspect ratio preservation, ALWAYS ask the user: "I've resized the selection while maintaining proportions. Would you like me to redo this resize without maintaining the aspect ratio?"
+- If the user says yes to redoing without proportions, call resize-selection again with the same width/height but maintainAspectRatio: false
+- If the user says no or doesn't respond, keep the proportional resize
+- This gives users the flexibility to try proportional resize first, then adjust if needed
+</resize_operations>
     `,
     toolIds: [
       'get-user-data', 
@@ -105,6 +114,7 @@ When the user wants to redo a recently undone action:
       'flatten-selection-tool',
       'create-shape-from-svg',
       'export-selection-as-svg',
+      'resize-selection',
     ],
     
     specializedAgentIds: ['mobile-projects-coordinator'],

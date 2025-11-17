@@ -57,6 +57,7 @@ export enum ClientQueryType {
   EXPORT_SELECTION_AS_WEBP = 'EXPORT_SELECTION_AS_WEBP',
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
+  RESIZE = 'RESIZE',
 }
 
 export enum PenpotShapeType {
@@ -71,7 +72,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UnionBooleanOperationQueryPayload | IntersectionBooleanOperationQueryPayload | DifferenceBooleanOperationQueryPayload | ExcludeBooleanOperationQueryPayload | FlattenSelectionQueryPayload | CreateShapeFromSvgQueryPayload | ExportSelectionAsSvgQueryPayload | ExportSelectionAsPngQueryPayload | ExportSelectionAsJpegQueryPayload | ExportSelectionAsWebpQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UnionBooleanOperationQueryPayload | IntersectionBooleanOperationQueryPayload | DifferenceBooleanOperationQueryPayload | ExcludeBooleanOperationQueryPayload | FlattenSelectionQueryPayload | CreateShapeFromSvgQueryPayload | ExportSelectionAsSvgQueryPayload | ExportSelectionAsPngQueryPayload | ExportSelectionAsJpegQueryPayload | ExportSelectionAsWebpQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload | ResizeQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -175,7 +176,7 @@ export interface RedoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to redo, otherwise redo the last undone one
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CreateShapeFromSvgQueryPayload | ExportSelectionAsSvgQueryPayload | ExportSelectionAsPngQueryPayload | ExportSelectionAsJpegQueryPayload | ExportSelectionAsWebpQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload;
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CreateShapeFromSvgQueryPayload | ExportSelectionAsSvgQueryPayload | ExportSelectionAsPngQueryPayload | ExportSelectionAsJpegQueryPayload | ExportSelectionAsWebpQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload | ResizeQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -340,6 +341,17 @@ export interface ExportSelectionAsJpegQueryPayload {
   includeBackground?: boolean;
 }
 
+export interface ExportSelectionAsWebpQueryPayload {
+  quality?: number; // 0-1
+  includeBackground?: boolean;
+}
+
+export interface ResizeQueryPayload {
+  width?: number;
+  height?: number;
+  maintainAspectRatio?: boolean;
+}
+
 export interface ExportSelectionAsSvgResponsePayload {
   svgString: string;
   shapeCount: number;
@@ -365,6 +377,13 @@ export interface ExportSelectionAsWebpResponsePayload {
   downloadUrls: string[];
   shapeCount: number;
   exportedShapes: Array<{ id: string; name?: string; fileName: string }>;
+}
+
+export interface ResizeResponsePayload {
+  resizedShapes: Array<{ id: string; name?: string }>;
+  newDimensions: { width?: number; height?: number };
+  maintainAspectRatio: boolean;
+  undoInfo: UndoInfo;
 }
 
 export interface UndoLastActionResponsePayload {
@@ -550,7 +569,8 @@ export type PluginResponsePayload =
   | ExportSelectionAsJpegResponsePayload
   | ExportSelectionAsWebpResponsePayload
   | UndoLastActionResponsePayload
-  | RedoLastActionResponsePayload;
+  | RedoLastActionResponsePayload
+  | ResizeResponsePayload;
 
 
 

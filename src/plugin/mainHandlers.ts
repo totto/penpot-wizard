@@ -40,6 +40,7 @@ import {
   FlattenSelectionQueryPayload,
   CreateShapeFromSvgQueryPayload,
   ExportSelectionAsSvgQueryPayload,
+  ResizeQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -3288,6 +3289,125 @@ The exported SVG is ready to use in web projects, design tools, or anywhere SVG 
       type: ClientQueryType.EXPORT_SELECTION_AS_SVG,
       success: false,
       message: `Error exporting selection as SVG: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function resizeTool(payload: ResizeQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use shared selection system for safe selection access
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.RESIZE,
+        success: false,
+        message: `Please select at least 1 shape to resize. You currently have ${sel?.length || 0} shape${(sel?.length || 0) !== 1 ? 's' : ''} selected.`,
+      };
+    }
+
+    const { width, height, maintainAspectRatio = false } = payload ?? {};
+
+    // Validate that we have dimensions to resize to
+    if (width === undefined && height === undefined) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.RESIZE,
+        success: false,
+        message: `Please specify at least a width or height to resize to. Current payload: ${JSON.stringify(payload)}`,
+      };
+    }
+
+    // Store previous dimensions for undo
+    const shapeIds: string[] = [];
+    const previousDimensions: Array<{ width: number; height: number }> = [];
+
+    // First pass: capture previous dimensions
+    for (const shape of sel) {
+      shapeIds.push(shape.id);
+      previousDimensions.push({ width: shape.width, height: shape.height });
+    }
+
+    // Second pass: apply resize
+    let resizedCount = 0;
+    for (let i = 0; i < sel.length; i++) {
+      const shape = sel[i];
+      try {
+        let newWidth = width;
+        let newHeight = height;
+
+        // If maintaining aspect ratio, calculate the missing dimension
+        if (maintainAspectRatio) {
+          const originalWidth = previousDimensions[i].width;
+          const originalHeight = previousDimensions[i].height;
+          const aspectRatio = originalWidth / originalHeight;
+
+          if (width !== undefined && height === undefined) {
+            // Width specified, calculate height
+            newHeight = width / aspectRatio;
+          } else if (height !== undefined && width === undefined) {
+            // Height specified, calculate width
+            newWidth = height * aspectRatio;
+          }
+          // If both are specified, use them as-is (don't maintain aspect ratio)
+        }
+
+        // Apply resize if we have valid dimensions
+        if (newWidth !== undefined && newHeight !== undefined) {
+          shape.resize(newWidth, newHeight);
+          resizedCount++;
+        }
+      } catch (shapeError) {
+        console.warn(`Failed to resize shape ${shape.id}:`, shapeError);
+      }
+    }
+
+    if (resizedCount === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.RESIZE,
+        success: false,
+        message: 'Failed to resize any shapes',
+      };
+    }
+
+    const shapeNames = sel.map(s => s.name || s.id).join(', ');
+
+    // Add to undo stack
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.RESIZE,
+      actionId: `resize_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        shapeIds,
+        previousDimensions,
+      },
+      description: `Resized ${resizedCount} shape${resizedCount > 1 ? 's' : ''} to ${width || 'auto'} × ${height || 'auto'}${maintainAspectRatio ? ' (maintaining aspect ratio)' : ''}`,
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.RESIZE,
+      message: `Perfect! I resized ${resizedCount} shape${resizedCount > 1 ? 's' : ''} to ${width || 'original'} × ${height || 'original'}${maintainAspectRatio ? ' (maintaining aspect ratio)' : ''}.
+
+Resized shapes: ${shapeNames}
+
+You can undo this action anytime with "undo last action".`,
+      payload: {
+        resizedShapes: sel.map(s => ({ id: s.id, name: s.name })),
+        newDimensions: { width, height },
+        maintainAspectRatio,
+        undoInfo,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.RESIZE,
+      success: false,
+      message: `Error resizing shapes: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
