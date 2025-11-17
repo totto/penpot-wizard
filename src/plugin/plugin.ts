@@ -31,6 +31,7 @@ import {
   RedoLastActionQueryPayload,
   ExportSelectionAsSvgQueryPayload,
   ResizeQueryPayload,
+  GetSelectionInfoQueryPayload,
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
@@ -69,7 +70,8 @@ import {
   undoLastAction, 
   redoLastAction,
   exportSelectionAsSvgTool,
-  resizeTool
+  resizeTool,
+  getSelectionInfoTool
 } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
@@ -291,6 +293,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.RESIZE:
       responseMessage = await resizeTool(payload as unknown as ResizeQueryPayload);
+      break;
+
+    case ClientQueryType.GET_SELECTION_INFO:
+      responseMessage = await getSelectionInfoTool(payload as unknown as GetSelectionInfoQueryPayload);
       break;
 
     default:

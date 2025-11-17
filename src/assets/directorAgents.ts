@@ -121,6 +121,7 @@ When using the resize-selection tool:
       'flatten-selection-tool',
       'create-shape-from-svg',
       'export-selection-as-svg',
+      'get-selection-info',
       'resize-selection',
     ],
     

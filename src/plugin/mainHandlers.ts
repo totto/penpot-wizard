@@ -41,6 +41,7 @@ import {
   CreateShapeFromSvgQueryPayload,
   ExportSelectionAsSvgQueryPayload,
   ResizeQueryPayload,
+  GetSelectionInfoQueryPayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -504,6 +505,42 @@ export function hasValidSelection(): boolean {
   } catch (error) {
     console.warn('❌ Error checking selection validity:', error);
     return false;
+  }
+}
+
+// SAFE SELECTION INFO READING
+// ===========================
+// This function is specifically for READING selection information only.
+// It should NEVER be used for modifying shapes - only for getting properties.
+// Use getSelectionForAction() for any shape modifications.
+export function getSelectionInfo(): Array<{ id: string; name?: string; type: string; x: number; y: number; width: number; height: number; rotation?: number; opacity?: number }> {
+  console.log('📊 getSelectionInfo called - safe for information reading only');
+
+  try {
+    const selection = penpot.selection;
+    if (!selection || !Array.isArray(selection) || selection.length === 0) {
+      console.log('❌ No selection available for info reading');
+      return [];
+    }
+
+    // Only read properties, never modify - this is safe for information gathering
+    const info = selection.map(shape => ({
+      id: shape.id,
+      name: shape.name,
+      type: shape.type || 'unknown',
+      x: shape.x || 0,
+      y: shape.y || 0,
+      width: shape.width || 0,
+      height: shape.height || 0,
+      rotation: shape.rotation,
+      opacity: shape.opacity,
+    }));
+
+    console.log(`✅ Read info for ${info.length} selected shapes`);
+    return info;
+  } catch (error) {
+    console.warn('❌ Error reading selection info:', error);
+    return [];
   }
 }
 
@@ -3411,6 +3448,41 @@ You can undo this action anytime with "undo last action".`,
       type: ClientQueryType.RESIZE,
       success: false,
       message: `Error resizing shapes: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function getSelectionInfoTool(_payload: GetSelectionInfoQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Use the safe information-reading function
+    const selectedObjects = getSelectionInfo();
+
+    if (selectedObjects.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_SELECTION_INFO,
+        success: false,
+        message: 'No shapes are currently selected. Please select one or more shapes first.',
+      };
+    }
+
+    const shapeNames = selectedObjects.map(obj => obj.name || `Shape ${obj.id.slice(-4)}`).join(', ');
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_SELECTION_INFO,
+      message: `Found ${selectedObjects.length} selected shape${selectedObjects.length > 1 ? 's' : ''}: ${shapeNames}`,
+      payload: {
+        selectionCount: selectedObjects.length,
+        selectedObjects,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_SELECTION_INFO,
+      success: false,
+      message: `Error reading selection information: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
