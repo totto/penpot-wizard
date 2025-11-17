@@ -3306,57 +3306,60 @@ export async function resizeTool(payload: ResizeQueryPayload): Promise<PluginRes
       };
     }
 
-    const { width, height, maintainAspectRatio = false } = payload ?? {};
+    const { scaleX, scaleY, maintainAspectRatio = true } = payload ?? {};
 
-    // Validate that we have dimensions to resize to
-    if (width === undefined && height === undefined) {
+    // Validate that we have scale factors to work with
+    if (scaleX === undefined && scaleY === undefined) {
       return {
         ...pluginResponse,
         type: ClientQueryType.RESIZE,
         success: false,
-        message: `Please specify at least a width or height to resize to. Current payload: ${JSON.stringify(payload)}`,
+        message: `Please specify at least a scaleX or scaleY factor. For example: scaleX: 1.5 (50% larger) or scaleY: 0.5 (half size). Current payload: ${JSON.stringify(payload)}`,
       };
     }
 
     // Store previous dimensions for undo
     const shapeIds: string[] = [];
     const previousDimensions: Array<{ width: number; height: number }> = [];
+    const newDimensions: Array<{ width: number; height: number }> = [];
 
-    // First pass: capture previous dimensions
+    // First pass: capture previous dimensions and calculate new ones
     for (const shape of sel) {
       shapeIds.push(shape.id);
-      previousDimensions.push({ width: shape.width, height: shape.height });
+      const prevWidth = shape.width;
+      const prevHeight = shape.height;
+      previousDimensions.push({ width: prevWidth, height: prevHeight });
+
+      // Calculate new dimensions based on scale factors
+      let newWidth = prevWidth;
+      let newHeight = prevHeight;
+
+      if (maintainAspectRatio) {
+        // Use scaleX for both dimensions, or scaleY if scaleX not provided
+        const scale = scaleX !== undefined ? scaleX : scaleY !== undefined ? scaleY : 1.0;
+        newWidth = prevWidth * scale;
+        newHeight = prevHeight * scale;
+      } else {
+        // Independent scaling
+        if (scaleX !== undefined) {
+          newWidth = prevWidth * scaleX;
+        }
+        if (scaleY !== undefined) {
+          newHeight = prevHeight * scaleY;
+        }
+      }
+
+      newDimensions.push({ width: newWidth, height: newHeight });
     }
 
     // Second pass: apply resize
     let resizedCount = 0;
     for (let i = 0; i < sel.length; i++) {
       const shape = sel[i];
+      const dims = newDimensions[i];
       try {
-        let newWidth = width;
-        let newHeight = height;
-
-        // If maintaining aspect ratio, calculate the missing dimension
-        if (maintainAspectRatio) {
-          const originalWidth = previousDimensions[i].width;
-          const originalHeight = previousDimensions[i].height;
-          const aspectRatio = originalWidth / originalHeight;
-
-          if (width !== undefined && height === undefined) {
-            // Width specified, calculate height
-            newHeight = width / aspectRatio;
-          } else if (height !== undefined && width === undefined) {
-            // Height specified, calculate width
-            newWidth = height * aspectRatio;
-          }
-          // If both are specified, use them as-is (don't maintain aspect ratio)
-        }
-
-        // Apply resize if we have valid dimensions
-        if (newWidth !== undefined && newHeight !== undefined) {
-          shape.resize(newWidth, newHeight);
-          resizedCount++;
-        }
+        shape.resize(dims.width, dims.height);
+        resizedCount++;
       } catch (shapeError) {
         console.warn(`Failed to resize shape ${shape.id}:`, shapeError);
       }
@@ -3381,7 +3384,7 @@ export async function resizeTool(payload: ResizeQueryPayload): Promise<PluginRes
         shapeIds,
         previousDimensions,
       },
-      description: `Resized ${resizedCount} shape${resizedCount > 1 ? 's' : ''} to ${width || 'auto'} × ${height || 'auto'}${maintainAspectRatio ? ' (maintaining aspect ratio)' : ''}`,
+      description: `Resized ${resizedCount} shape${resizedCount > 1 ? 's' : ''} with scale factors ${scaleX || '1.0'} × ${scaleY || '1.0'}${maintainAspectRatio ? ' (maintaining aspect ratio)' : ''}`,
       timestamp: Date.now(),
     };
 
@@ -3390,14 +3393,14 @@ export async function resizeTool(payload: ResizeQueryPayload): Promise<PluginRes
     return {
       ...pluginResponse,
       type: ClientQueryType.RESIZE,
-      message: `Perfect! I resized ${resizedCount} shape${resizedCount > 1 ? 's' : ''} to ${width || 'original'} × ${height || 'original'}${maintainAspectRatio ? ' (maintaining aspect ratio)' : ''}.
+      message: `Perfect! I resized ${resizedCount} shape${resizedCount > 1 ? 's' : ''} using scale factors ${scaleX || '1.0'} × ${scaleY || '1.0'}${maintainAspectRatio ? ' (maintaining aspect ratio)' : ''}.
 
 Resized shapes: ${shapeNames}
 
 You can undo this action anytime with "undo last action".`,
       payload: {
         resizedShapes: sel.map(s => ({ id: s.id, name: s.name })),
-        newDimensions: { width, height },
+        scaleFactors: { scaleX, scaleY },
         maintainAspectRatio,
         undoInfo,
       },

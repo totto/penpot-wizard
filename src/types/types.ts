@@ -347,9 +347,9 @@ export interface ExportSelectionAsWebpQueryPayload {
 }
 
 export interface ResizeQueryPayload {
-  width?: number;
-  height?: number;
-  maintainAspectRatio?: boolean;
+  scaleX?: number; // Scale factor for width (e.g., 1.5 = 50% larger, 0.5 = half size)
+  scaleY?: number; // Scale factor for height (e.g., 2.0 = double size)
+  maintainAspectRatio?: boolean; // If true, uses scaleX for both dimensions
 }
 
 export interface ExportSelectionAsSvgResponsePayload {
@@ -381,7 +381,7 @@ export interface ExportSelectionAsWebpResponsePayload {
 
 export interface ResizeResponsePayload {
   resizedShapes: Array<{ id: string; name?: string }>;
-  newDimensions: { width?: number; height?: number };
+  scaleFactors: { scaleX?: number; scaleY?: number };
   maintainAspectRatio: boolean;
   undoInfo: UndoInfo;
 }

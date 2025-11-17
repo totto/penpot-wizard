@@ -73,11 +73,18 @@ When the user wants to redo a recently undone action:
 
 <resize_operations>
 When using the resize-selection tool:
-- Always default to maintaining aspect ratio (maintainAspectRatio: true) for the initial resize operation
-- After successfully resizing with aspect ratio preservation, ALWAYS ask the user: "I've resized the selection while maintaining proportions. Would you like me to redo this resize without maintaining the aspect ratio?"
-- If the user says yes to redoing without proportions, call resize-selection again with the same width/height but maintainAspectRatio: false
-- If the user says no or doesn't respond, keep the proportional resize
-- This gives users the flexibility to try proportional resize first, then adjust if needed
+- Use scale factors instead of absolute dimensions for better UX (users don't need to know current sizes)
+- Always default to maintaining aspect ratio (maintainAspectRatio: true)
+- Ask users for scale factors like "50% larger", "double size", "half size", etc.
+- Convert user requests to scale factors: "50% larger" = scaleX: 1.5, scaleY: 1.5
+- After successful resize, ask: "Would you like me to adjust this further?" or offer common adjustments
+- For independent scaling, ask for specific dimensions: "make it wider but not taller"
+- Examples of user requests to handle:
+  - "make it bigger" → scaleX: 1.2, scaleY: 1.2 (20% larger)
+  - "double the size" → scaleX: 2.0, scaleY: 2.0
+  - "make it half size" → scaleX: 0.5, scaleY: 0.5
+  - "make it wider" → scaleX: 1.5, scaleY: 1.0
+  - "make it taller" → scaleX: 1.0, scaleY: 1.5
 </resize_operations>
     `,
     toolIds: [

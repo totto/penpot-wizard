@@ -189,14 +189,20 @@ export const functionTools: FunctionTool[] = [
     id: "resize-selection",
     name: "resizeSelection",
     description: `
-      Use this tool to resize the currently selected shapes, boards, images, or other selectable objects in Penpot.
-      You can specify new width and height dimensions, and optionally maintain the aspect ratio.
+      Use this tool to resize the currently selected shapes, boards, images, or other selectable objects in Penpot using scale factors.
+      Scale factors determine how much to multiply the current dimensions by (e.g., 1.5 = 50% larger, 0.5 = half size).
       This tool works on all selectable objects including shapes, boards, images, and groups.
+      
+      Examples:
+      - scaleX: 2.0, scaleY: 2.0 → Double the size in both dimensions
+      - scaleX: 1.5 → Make 50% wider (height unchanged)
+      - scaleX: 0.5, scaleY: 0.5 → Half the size in both dimensions
+      - scaleX: 1.2, maintainAspectRatio: true → 20% larger maintaining proportions
     `,
     inputSchema: z.object({
-      width: z.number().positive().describe("The new width for the selected objects."),
-      height: z.number().positive().describe("The new height for the selected objects."),
-      maintainAspectRatio: z.boolean().optional().default(true).describe("Whether to maintain the aspect ratio when resizing. Defaults to true."),
+      scaleX: z.number().positive().optional().describe("Scale factor for width (e.g., 1.5 = 50% larger, 0.5 = half width)."),
+      scaleY: z.number().positive().optional().describe("Scale factor for height (e.g., 2.0 = double height, 0.75 = 25% smaller)."),
+      maintainAspectRatio: z.boolean().optional().default(true).describe("Whether to maintain the aspect ratio when resizing. If true, uses scaleX for both dimensions. Defaults to true."),
     }),
     function: async (args) => {
       const response = await sendMessageToPlugin(ClientQueryType.RESIZE, args);
