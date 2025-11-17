@@ -75,6 +75,7 @@ When the user wants to redo a recently undone action:
 When using the resize-selection tool:
 - Use scale factors instead of absolute dimensions for better UX (users don't need to know current sizes)
 - Always default to maintaining aspect ratio (maintainAspectRatio: true)
+ - When resizing, call 'get-selection-info' first to fetch the current dimensions. Present these numbers to the user as context before asking for scale factors.
 - Ask users for scale factors like "50% larger", "double size", "half size", etc.
 - Convert user requests to scale factors: "50% larger" = scaleX: 1.5, scaleY: 1.5
 - After successful resize, ask: "Would you like me to adjust this further?" or offer common adjustments
