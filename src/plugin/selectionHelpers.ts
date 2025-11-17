@@ -6,6 +6,12 @@ import { SelectionInfoItem } from '../types/types';
  * - Must NOT be used to perform any modifications.
  * - This is safe for AI agents and tools that only need information about the selection.
  */
+/**
+ * NOTE: This helper is intentionally independent and read-only.
+ * - It must not import or call any action-performing tools or helpers (e.g., resize, group).
+ * - It can be used by tools and agents to retrieve read-only data about the selection.
+ * - If you need to mutate selection, call the action tool that uses getSelectionForAction() instead.
+ */
 export function readSelectionInfo(): SelectionInfoItem[] {
   console.log('📊 readSelectionInfo called - safe read-only selection access');
 
