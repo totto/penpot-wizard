@@ -20,7 +20,6 @@ export enum ClientQueryType {
   GET_CURRENT_THEME = 'GET_CURRENT_THEME',
   GET_ACTIVE_USERS = 'GET_ACTIVE_USERS',
   GET_FILE_VERSIONS = 'GET_FILE_VERSIONS',
-  GET_CURRENT_SELECTION = 'GET_CURRENT_SELECTION',
   CREATE_LIBRARY_COLOR = 'CREATE_LIBRARY_COLOR',
   CREATE_LIBRARY_FONT = 'CREATE_LIBRARY_FONT',
   CREATE_LIBRARY_COMPONENT = 'CREATE_LIBRARY_COMPONENT',
@@ -172,21 +171,6 @@ export interface GetFileVersionsPayload {
   hasMoreVersions: boolean;
 }
 
-export interface SelectedItem {
-  id: string;
-  name?: string;
-  type?: string;
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-}
-
-export interface GetCurrentSelectionPayload {
-  items: SelectedItem[];
-  count: number;
-}
-
 export interface CreateLibraryColorResponse {
   id?: string;
   name: string;
@@ -219,4 +203,4 @@ export interface CreateLibraryComponentResponse {
 
 export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | CreateLibraryFontPayload | CreateLibraryComponentPayload;
 
-export type PluginResponsePayload = DrawShapeResponsePayload | AddImagePayload | ApplyBlurResponsePayload | GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | GetCurrentThemePayload | GetActiveUsersPayload | GetFileVersionsPayload | GetCurrentSelectionPayload | CreateLibraryColorResponse | CreateLibraryFontResponse | CreateLibraryComponentResponse;
+export type PluginResponsePayload = DrawShapeResponsePayload | AddImagePayload | ApplyBlurResponsePayload | GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | GetCurrentThemePayload | GetActiveUsersPayload | GetFileVersionsPayload | CreateLibraryColorResponse | CreateLibraryFontResponse | CreateLibraryComponentResponse;
