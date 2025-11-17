@@ -86,6 +86,13 @@ When using the resize-selection tool:
   - "make it wider" → scaleX: 1.5, scaleY: 1.0
   - "make it taller" → scaleX: 1.0, scaleY: 1.5
 </resize_operations>
+
+<selection_tools>
+- Always call the 'get-selection-info' tool when you need read-only information about the current selection (dimensions, name, type, etc.).
+ - Do NOT use get-selection-info when intending to modify shapes. For modifications call the action tool (e.g. 'resize-selection') which internally uses getSelectionForAction() to mutate shapes safely.
+- Never instruct the assistant to infer or guess current dimensions — call the tool first to get accurate numbers. That prevents crashes and improves UX.
+- The selection tool is read-only and safe for AI consumption; action tools are protected and must be used to apply changes to avoid JavaFX selection races.
+</selection_tools>
     `,
     toolIds: [
       'get-user-data', 

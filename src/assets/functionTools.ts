@@ -225,6 +225,9 @@ export const functionTools: FunctionTool[] = [
       - width, height: Dimensions
       - rotation: Rotation angle (if any)
       - opacity: Opacity value (if any)
+
+      NOTE: This tool is READ-ONLY — use only for querying selection state. Do NOT call this tool when you intend to modify shapes.
+      To modify shapes, use action tools (e.g., 'resize-selection') which will internally use safe action APIs (getSelectionForAction()).
     `,
     inputSchema: z.object({}),
     function: async () => {

@@ -51,6 +51,7 @@ import {
   UndoLastActionQueryPayload,
   RedoLastActionQueryPayload,
 } from "../types/types";
+import { readSelectionInfo } from './selectionHelpers';
 import type { Shape, Group, Fill, Stroke } from '@penpot/plugin-types';
 
 const pluginResponse: PluginResponseMessage = {
@@ -514,34 +515,8 @@ export function hasValidSelection(): boolean {
 // It should NEVER be used for modifying shapes - only for getting properties.
 // Use getSelectionForAction() for any shape modifications.
 export function getSelectionInfo(): Array<{ id: string; name?: string; type: string; x: number; y: number; width: number; height: number; rotation?: number; opacity?: number }> {
-  console.log('📊 getSelectionInfo called - safe for information reading only');
-
-  try {
-    const selection = penpot.selection;
-    if (!selection || !Array.isArray(selection) || selection.length === 0) {
-      console.log('❌ No selection available for info reading');
-      return [];
-    }
-
-    // Only read properties, never modify - this is safe for information gathering
-    const info = selection.map(shape => ({
-      id: shape.id,
-      name: shape.name,
-      type: shape.type || 'unknown',
-      x: shape.x || 0,
-      y: shape.y || 0,
-      width: shape.width || 0,
-      height: shape.height || 0,
-      rotation: shape.rotation,
-      opacity: shape.opacity,
-    }));
-
-    console.log(`✅ Read info for ${info.length} selected shapes`);
-    return info;
-  } catch (error) {
-    console.warn('❌ Error reading selection info:', error);
-    return [];
-  }
+  // Wrapper to keep backward compatibility while using a shared helper implementation
+  return readSelectionInfo();
 }
 
 
