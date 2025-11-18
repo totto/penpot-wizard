@@ -26,4 +26,7 @@ dist-ssr
 # Personal/IDE files
 codealike.json
 
+# Ignore documentation drafts that are tracked elsewhere
+Code-Cleanup-and-UX.md
+
 
