@@ -2,7 +2,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { applyFillTool, undoLastAction } from '../mainHandlers';
 
-describe.skip('applyFillTool undo behavior', () => {
+describe('applyFillTool undo behavior', () => {
   const originalPenpot = (globalThis as any).penpot;
 
   afterEach(() => {

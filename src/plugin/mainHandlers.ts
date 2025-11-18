@@ -3757,7 +3757,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
 
     // Get the last undoable action
     const lastAction = undoStack.pop()!;
-    console.log('Undoing action:', lastAction.description);
+  console.log('Undoing action:', lastAction.description);
 
     // Push to redo stack so it can be redone
     redoStack.push(lastAction);
@@ -3766,6 +3766,39 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
 
     // Perform the undo based on action type
     switch (lastAction.actionType) {
+      case ClientQueryType.APPLY_FILL: {
+        // Restore previous fill values
+        const fillData = lastAction.undoData as {
+          shapeIds: string[];
+          previousFills: Array<{ fillColor?: string; fillOpacity?: number } | undefined>;
+        };
+
+        for (let i = 0; i < fillData.shapeIds.length; i++) {
+          const shapeId = fillData.shapeIds[i];
+          const previousFill = fillData.previousFills[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore the previous fill
+            if (previousFill) {
+              shape.fills = [previousFill];
+            } else {
+              // If there was no previous fill, remove fills
+              shape.fills = [];
+            }
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore fill for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
 
       
 
