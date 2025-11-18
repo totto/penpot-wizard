@@ -53,6 +53,34 @@ describe('handleAddImage', () => {
     expect(response.success).toBe(false);
   });
 
+  it('moves image near selection when upload by bytes and no viewport available', async () => {
+    const mockImageData = { id: 'img-b-1', width: 64, height: 64, mtype: 'image/png' };
+    const mockUpload = vi.fn().mockResolvedValue(mockImageData);
+    const mockShape: any = {
+      id: 'shape-b-1',
+      name: '',
+      fills: [],
+      resize: function (w:number, h:number) { this.width = w; this.height = h; }
+    };
+
+    const mockCreateRectangle = vi.fn().mockReturnValue(mockShape);
+
+    (globalThis as any).penpot = {
+      uploadMediaData: mockUpload,
+      createRectangle: mockCreateRectangle,
+      currentPage: {
+        getSelectedShapes: () => [ { id: 'selb1', x: 200, y: 40, width: 120, height: 30 } ]
+      }
+    };
+
+    const data = new Uint8Array([255,0,127]);
+    const response = await handleAddImage({ name: 'b-image', data, mimeType: 'image/png' });
+    expect(response.success).toBe(true);
+    expect(mockCreateRectangle).toHaveBeenCalled();
+    expect(mockShape.x).toBe(200 + 120 + 20);
+    expect(mockShape.y).toBe(40);
+  });
+
   it('centers viewport on image when using URL add image', async () => {
     const mockImageData = { id: 'img-url-1', width: 120, height: 80, mtype: 'image/jpeg' };
     const mockUpload = vi.fn().mockResolvedValue(mockImageData);
@@ -78,5 +106,35 @@ describe('handleAddImage', () => {
     const response = await handleAddImageFromUrl({ name: 'url-image', url: 'https://example.com/img.jpg' });
     expect(response.success).toBe(true);
     expect((globalThis as any).penpot.viewport.scrollToRect).toHaveBeenCalledWith({ x: 42, y: 24, width: 120, height: 80 });
+  });
+
+  it('moves image near selection when viewport not available', async () => {
+    const mockImageData = { id: 'img-url-2', width: 200, height: 150, mtype: 'image/png' };
+    const mockUpload = vi.fn().mockResolvedValue(mockImageData);
+    const mockShape: any = {
+      id: 'shape-url-2',
+      name: '',
+      fills: [],
+      resize: function (w:number, h:number) { this.width = w; this.height = h; }
+    };
+
+    const mockCreateRectangle = vi.fn().mockReturnValue(mockShape);
+
+    (globalThis as any).penpot = {
+      uploadMediaUrl: mockUpload,
+      createRectangle: mockCreateRectangle,
+      // No viewport available to mimic environment
+      currentPage: {
+        getSelectedShapes: () => [ { id: 'sel1', x: 10, y: 20, width: 50, height: 50 } ]
+      }
+    };
+
+    const response = await handleAddImageFromUrl({ name: 'url-image-2', url: 'https://example.com/img2.jpg' });
+    expect(response.success).toBe(true);
+    // @ts-expect-error - typed payload union for test harness
+    expect(response.payload?.shapeId).toBe('shape-url-2');
+    expect(mockCreateRectangle).toHaveBeenCalled();
+    expect(mockShape.x).toBe(10 + 50 + 20);
+    expect(mockShape.y).toBe(20);
   });
 });

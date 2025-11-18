@@ -609,7 +609,27 @@ export async function handleAddImageFromUrl(payload: AddImageFromUrlQueryPayload
 
       // Center viewport on the newly added image so it's visible to the user
       try {
-        centerDocumentOnRect(imageShape.x ?? 0, imageShape.y ?? 0, imageShape.width ?? (imageCreatedData.width || 100), imageShape.height ?? (imageCreatedData.height || 100));
+        // Prefer a viewport that's able to scroll/center. If none is available, move the shape
+        // near the current selection (so the user can see it) and then try centering again.
+        const viewport: any = (globalThis as any).penpot?.viewport;
+        if (viewport && (typeof viewport.scrollToRect === 'function' || typeof viewport.centerOnRect === 'function' || typeof viewport.centerOnSelection === 'function' || typeof viewport.scrollTo === 'function')) {
+          centerDocumentOnRect(imageShape.x ?? 0, imageShape.y ?? 0, imageShape.width ?? (imageCreatedData.width || 100), imageShape.height ?? (imageCreatedData.height || 100));
+        } else {
+          // No viewport helper - put the image near the first selected object so it's visible
+          const selInfo = readSelectionInfo();
+          if (selInfo && selInfo.length > 0) {
+            // Put it next to the first selected object
+            imageShape.x = selInfo[0].x + selInfo[0].width + 20;
+            imageShape.y = selInfo[0].y;
+          } else {
+            // Last resort: place near 0,0
+            imageShape.x = imageShape.x ?? 0;
+            imageShape.y = imageShape.y ?? 0;
+          }
+
+          // Try centering again in case the viewport has a different API
+          centerDocumentOnRect(imageShape.x ?? 0, imageShape.y ?? 0, imageShape.width ?? (imageCreatedData.width || 100), imageShape.height ?? (imageCreatedData.height || 100));
+        }
       } catch (e) {
         console.warn('Failed to center viewport on new image (from URL):', e);
       }
@@ -685,7 +705,20 @@ export async function handleAddImage(payload: AddImageQueryPayload): Promise<Plu
 
     // Move the viewport so the user can see the newly-created image
     try {
-      centerDocumentOnRect(imageShape.x ?? 0, imageShape.y ?? 0, imageShape.width ?? (imageCreatedData.width || 100), imageShape.height ?? (imageCreatedData.height || 100));
+      const viewport: any = (globalThis as any).penpot?.viewport;
+      if (viewport && (typeof viewport.scrollToRect === 'function' || typeof viewport.centerOnRect === 'function' || typeof viewport.centerOnSelection === 'function' || typeof viewport.scrollTo === 'function')) {
+        centerDocumentOnRect(imageShape.x ?? 0, imageShape.y ?? 0, imageShape.width ?? (imageCreatedData.width || 100), imageShape.height ?? (imageCreatedData.height || 100));
+      } else {
+        const selInfo = readSelectionInfo();
+        if (selInfo && selInfo.length > 0) {
+          imageShape.x = selInfo[0].x + selInfo[0].width + 20;
+          imageShape.y = selInfo[0].y;
+        } else {
+          imageShape.x = imageShape.x ?? 0;
+          imageShape.y = imageShape.y ?? 0;
+        }
+        centerDocumentOnRect(imageShape.x ?? 0, imageShape.y ?? 0, imageShape.width ?? (imageCreatedData.width || 100), imageShape.height ?? (imageCreatedData.height || 100));
+      }
     } catch (e) {
       console.warn('Failed to center viewport on new image:', e);
     }
