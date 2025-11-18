@@ -1,4 +1,4 @@
-import { FunctionTool, ClientQueryType } from '@/types/types';
+import { FunctionTool, ClientQueryType, AddImageFromUrlQueryPayload } from '@/types/types';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 
@@ -52,6 +52,23 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
+    {
+      id: "add-image-from-url",
+      name: "addImageFromUrl",
+      description: `
+        Upload an image from a URL and place it on the Penpot canvas.
+        Provide either a name (optional) and a fully-qualified URL to the image.
+        The plugin will download the URL and add a rectangle with the uploaded image as a fill.
+      `,
+      inputSchema: z.object({
+        name: z.string().optional(),
+        url: z.string().url(),
+      }),
+      function: async (input: { name?: string; url: string }) => {
+        const response = await sendMessageToPlugin(ClientQueryType.ADD_IMAGE_FROM_URL, input as unknown as AddImageFromUrlQueryPayload);
+        return response;
+      },
+    },
     {
     id: "get-current-theme",
     name: "getCurrentTheme",

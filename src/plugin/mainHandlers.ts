@@ -51,6 +51,7 @@ import {
   UndoInfo,
   UndoLastActionQueryPayload,
   RedoLastActionQueryPayload,
+  AddImageQueryPayload,
 } from "../types/types";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
@@ -589,6 +590,69 @@ export async function handleAddImageFromUrl(payload: AddImageFromUrlQueryPayload
       success: false,
       message: `error importing image from URL ${url}: ${error}`,
     }
+  }
+}
+
+export async function handleAddImage(payload: AddImageQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { name, data, mimeType } = payload ?? {};
+
+    if (!name || !data || !mimeType) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.ADD_IMAGE,
+        success: false,
+        message: 'Invalid payload for ADD_IMAGE. Expected { name, data, mimeType }',
+      };
+    }
+
+    if (!penpot || typeof penpot.uploadMediaData !== 'function') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.ADD_IMAGE,
+        success: false,
+        message: 'Penpot uploadMediaData API is not available in this environment.',
+      };
+    }
+
+    const imageCreatedData = await penpot.uploadMediaData(name, data, mimeType);
+    if (!imageCreatedData) {
+      throw new Error('Failed to upload image data to Penpot');
+    }
+
+    const imageShape = penpot.createRectangle();
+    imageShape.name = name;
+
+    const fills = [
+      {
+        fillImage: {
+          id: imageCreatedData.id,
+          width: imageCreatedData.width || 100,
+          height: imageCreatedData.height || 100,
+          mtype: imageCreatedData.mtype || mimeType,
+          keepAspectRatio: true,
+        },
+      },
+    ];
+    imageShape.fills = fills;
+
+    if (imageCreatedData.width && imageCreatedData.height) {
+      imageShape.resize(imageCreatedData.width, imageCreatedData.height);
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.ADD_IMAGE,
+      message: 'Image uploaded and added to canvas',
+      payload: { newImageData: imageCreatedData, shapeId: imageShape.id },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.ADD_IMAGE,
+      success: false,
+      message: `Error adding image: ${error instanceof Error ? error.message : String(error)}`,
+    };
   }
 }
 

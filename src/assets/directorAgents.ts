@@ -98,7 +98,7 @@ When using the resize-selection tool:
     toolIds: [
       'get-user-data', 
       'get-current-page', 
-      'get-selection-info',
+      //'get-selection-info',
       'rectangle-maker', 
       'ellipse-maker', 
       'path-maker', 

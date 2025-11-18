@@ -4,6 +4,7 @@ import {
   MessageSourceName,
   ClientMessage,
   AddImageFromUrlQueryPayload,
+  AddImageQueryPayload,
   ApplyBlurQueryPayload,
   ApplyFillQueryPayload,
   ApplyStrokeQueryPayload,
@@ -39,6 +40,7 @@ import {
   handleGetProjectData, 
   handleGetUserData, 
   handleAddImageFromUrl, 
+  handleAddImage,
   applyBlurTool, 
   applyFillTool, 
   // selection update lives in actionSelection (action-only). See actionSelection.ts
@@ -161,6 +163,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.ADD_IMAGE_FROM_URL:
       responseMessage = await handleAddImageFromUrl(payload as unknown as AddImageFromUrlQueryPayload);
+      break;
+
+    case ClientQueryType.ADD_IMAGE:
+      responseMessage = await handleAddImage(payload as unknown as AddImageQueryPayload);
       break;
 
     case ClientQueryType.APPLY_BLUR:
