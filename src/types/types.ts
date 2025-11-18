@@ -263,6 +263,14 @@ export interface ApplyShadowResponsePayload {
   shadowBlur: number;
   shadowSpread: number;
   shapesWithExistingShadows?: Array<{ id: string; name?: string }>;
+  requestedShadow?: {
+    shadowColor: string;
+    shadowOffsetX: number;
+    shadowOffsetY: number;
+    shadowBlur: number;
+    shadowSpread: number;
+    shadowStyle?: string;
+  };
   undoInfo?: UndoInfo;
 }
 
