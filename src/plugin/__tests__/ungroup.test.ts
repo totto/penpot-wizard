@@ -96,4 +96,19 @@ describe('ungroupTool handler', () => {
     expect(response.payload?.ungroupedGroups[0].id).toBe('g-empty');
     expect(mockUngroup).toHaveBeenCalledWith(emptyGroup);
   });
+
+  it('fails gracefully when penpot.ungroup throws', async () => {
+    const group = { id: 'g-throws', name: 'Bad Group', children: [{ id: 'c1', x: 0, y: 0 }] };
+    const mockUngroup = vi.fn().mockImplementation(() => { throw new Error('random'); });
+
+    (globalThis as any).penpot = {
+      selection: [group],
+      utils: { types: { isGroup: (s: any) => s && s.id === 'g-throws' } },
+      ungroup: mockUngroup,
+    };
+
+    const response = await ungroupTool({});
+    expect(response.success).toBe(false);
+    expect(response.message).toContain("Failed to ungroup shapes");
+  });
 });
