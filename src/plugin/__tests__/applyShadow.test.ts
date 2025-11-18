@@ -41,4 +41,35 @@ describe('applyShadowTool handler', () => {
     // @ts-expect-error - union payload typing in test harness
     expect(response.payload?.requestedShadow.shadowOffsetX).toBe(2);
   });
+
+  it('applies the shadow when overrideExisting is true', async () => {
+    const shapeWithShadow = {
+      id: 's-shadow-2',
+      name: 'HasShadow2',
+      shadows: [
+        { style: 'drop-shadow', color: '#000000', offsetX: 1, offsetY: 1, blur: 2, spread: 0 }
+      ],
+    } as any;
+
+    (globalThis as any).penpot = {
+      selection: [shapeWithShadow],
+    };
+
+    const response = await applyShadowTool({ shadowColor: '#00FF00', shadowOffsetX: 5, shadowOffsetY: 6, shadowBlur: 10, shadowSpread: 1, overrideExisting: true });
+
+    expect(response.success).toBe(true);
+    // @ts-expect-error - test harness union typing
+    expect(Array.isArray(response.payload?.shadowedShapes)).toBe(true);
+    // @ts-expect-error - test harness union typing
+    expect(response.payload?.shadowedShapes[0]).toBe('HasShadow2');
+
+    // Check that shape in the selection got a new shadow object applied
+    expect(Array.isArray(shapeWithShadow.shadows)).toBe(true);
+    expect(shapeWithShadow.shadows[0].color).toBe('#00FF00');
+    expect(shapeWithShadow.shadows[0].offsetX).toBe(5);
+    expect(shapeWithShadow.shadows[0].offsetY).toBe(6);
+    expect(shapeWithShadow.shadows[0].blur).toBe(10);
+    expect(shapeWithShadow.shadows[0].spread).toBe(1);
+  });
+
 });
