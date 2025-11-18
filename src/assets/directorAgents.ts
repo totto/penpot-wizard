@@ -98,6 +98,7 @@ When using the resize-selection tool:
     toolIds: [
       'get-user-data', 
       'get-current-page', 
+      'get-selection-info',
       'rectangle-maker', 
       'ellipse-maker', 
       'path-maker', 
@@ -129,7 +130,6 @@ When using the resize-selection tool:
       'flatten-selection-tool',
       'create-shape-from-svg',
       'export-selection-as-svg',
-      'get-selection-info',
       'resize-selection',
     ],
     
