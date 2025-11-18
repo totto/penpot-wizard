@@ -49,6 +49,12 @@ export default defineConfig([
         argsIgnorePattern: '^_'
       }],
       '@typescript-eslint/no-explicit-any': 'warn',
+      // Prevent importing the read-only selection helper into action modules
+      // Action modules should use actionSelection.ts for mutations instead.
+      'no-restricted-imports': ['warn', {
+        paths: [{ name: './plugin/selectionHelpers', message: 'readSelectionInfo is read-only; use actionSelection for actions' }],
+        patterns: ['**/plugin/selectionHelpers']
+      }],
     },
   },
 ])
