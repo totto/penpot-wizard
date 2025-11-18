@@ -477,6 +477,12 @@ export function getCurrentPage(): PluginResponseMessage {
 // performing an action, not for general selection querying.
 // Never use this for AI consumption or serialization.
 export function getSelectionForAction(): Shape[] {
+  // IMPORTANT: This is an action-only helper. Tools in the UI/agent layer
+  // should NOT import this function directly. Instead, they should call the
+  // corresponding plugin endpoint (e.g., RESIZE) via sendMessageToPlugin().
+  // The plugin endpoint will use this helper internally to mutate shapes
+  // safely. This keeps read-only and mutation paths separate and prevents
+  // selection-related crashes.
   // Wrapper to preserve public API — action implementation lives in actionSelection.ts
   return actionGetSelectionForAction();
 }
@@ -492,6 +498,11 @@ export function hasValidSelection(): boolean {
 // It should NEVER be used for modifying shapes - only for getting properties.
 // Use getSelectionForAction() for any shape modifications.
 export function getSelectionInfo(): Array<{ id: string; name?: string; type: string; x: number; y: number; width: number; height: number; rotation?: number; opacity?: number }> {
+  // NOTE: For UI tools and director agents, call the GET_SELECTION_INFO
+  // plugin endpoint via sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, {})
+  // so all selection reads from the UI go through the plugin endpoint and
+  // remain read-only. Do not import selection helpers from plugin code into
+  // UI-level modules that can mutate shapes.
   // Wrapper to keep backward compatibility while using a shared helper implementation
   return readSelectionInfo();
 }

@@ -1063,6 +1063,10 @@ penpot.createBoard()
 // Selection
 penpot.selection       // Current selection
 
+// Best practice: from the UI / tool layer, prefer plugin endpoints (e.g., GET_SELECTION_INFO, RESIZE) via
+// sendMessageToPlugin() for selection reads and mutations; do not import plugin selection helpers
+// like `readSelectionInfo` or `getSelectionForAction` directly into UI-facing tools.
+
 // Events
 penpot.on('themechange', callback)
 penpot.on('selectionchange', callback)
