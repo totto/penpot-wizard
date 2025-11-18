@@ -3378,9 +3378,9 @@ export async function resizeTool(payload: ResizeQueryPayload): Promise<PluginRes
     let resizedCount = 0;
     for (let i = 0; i < sel.length; i++) {
       const shape = sel[i];
-      const dims = newDimensions[i];
-      try {
-        shape.resize(dims.width, dims.height);
+    const dimensions = newDimensions[i];
+    try {
+      shape.resize(dimensions.width, dimensions.height);
         resizedCount++;
       } catch (shapeError) {
         console.warn(`Failed to resize shape ${shape.id}:`, shapeError);
