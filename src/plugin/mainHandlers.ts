@@ -634,6 +634,23 @@ export async function handleAddImageFromUrl(payload: AddImageFromUrlQueryPayload
         console.warn('Failed to center viewport on new image (from URL):', e);
       }
 
+      // Select the newly created image so the user can immediately act on it
+      try {
+        // Assign penpot.selection where available — test harness and runtime should support this
+        (penpot as any).selection = [imageShape];
+      } catch (selectErr) {
+        console.warn('Failed to set selection on new image (from URL):', selectErr);
+      }
+
+      // Update internal actionSelection to reflect the new selection
+      setTimeout(() => {
+        try {
+          updateCurrentSelection([imageShape.id]);
+        } catch (err) {
+          console.warn('Failed to update current selection for new image (from URL):', err);
+        }
+      }, 10);
+
       return {
         ...pluginResponse,
         type: ClientQueryType.ADD_IMAGE_FROM_URL,
@@ -722,6 +739,22 @@ export async function handleAddImage(payload: AddImageQueryPayload): Promise<Plu
     } catch (e) {
       console.warn('Failed to center viewport on new image:', e);
     }
+
+      // Select the newly created image so the user can immediately act on it
+      try {
+        (penpot as any).selection = [imageShape];
+      } catch (selErr) {
+        console.warn('Failed to set selection on new image:', selErr);
+      }
+
+      // update internal selection tracking for action-only helpers
+      setTimeout(() => {
+        try {
+          updateCurrentSelection([imageShape.id]);
+        } catch (err) {
+          console.warn('Failed to update current selection for new image:', err);
+        }
+      }, 10);
 
     return {
       ...pluginResponse,

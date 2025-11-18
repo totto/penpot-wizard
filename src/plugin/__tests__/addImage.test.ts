@@ -40,6 +40,8 @@ describe('handleAddImage', () => {
     expect(mockUpload).toHaveBeenCalledWith('uploaded-image', data, 'image/png');
     expect(mockCreateRectangle).toHaveBeenCalled();
   expect((globalThis as any).penpot.viewport.scrollToRect).toHaveBeenCalled();
+    // newly created image must be selected
+    expect((globalThis as any).penpot.selection).toEqual([mockShape]);
   });
 
   it('returns error if upload fails', async () => {
@@ -79,6 +81,8 @@ describe('handleAddImage', () => {
     expect(mockCreateRectangle).toHaveBeenCalled();
     expect(mockShape.x).toBe(200 + 120 + 20);
     expect(mockShape.y).toBe(40);
+    // newly created image must be selected
+    expect((globalThis as any).penpot.selection).toEqual([mockShape]);
   });
 
   it('centers viewport on image when using URL add image', async () => {
@@ -106,6 +110,8 @@ describe('handleAddImage', () => {
     const response = await handleAddImageFromUrl({ name: 'url-image', url: 'https://example.com/img.jpg' });
     expect(response.success).toBe(true);
     expect((globalThis as any).penpot.viewport.scrollToRect).toHaveBeenCalledWith({ x: 42, y: 24, width: 120, height: 80 });
+    // newly created image must be selected
+    expect((globalThis as any).penpot.selection).toEqual([mockShape]);
   });
 
   it('moves image near selection when viewport not available', async () => {
@@ -136,5 +142,7 @@ describe('handleAddImage', () => {
     expect(mockCreateRectangle).toHaveBeenCalled();
     expect(mockShape.x).toBe(10 + 50 + 20);
     expect(mockShape.y).toBe(20);
+    // newly created image must be selected
+    expect((globalThis as any).penpot.selection).toEqual([mockShape]);
   });
 });
