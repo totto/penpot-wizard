@@ -1,4 +1,4 @@
-import { FunctionTool, ClientQueryType, AddImageFromUrlQueryPayload, ApplyShadowQueryPayload } from '@/types/types';
+import { FunctionTool, ClientQueryType, AddImageFromUrlQueryPayload } from '@/types/types';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 
@@ -104,39 +104,6 @@ export const functionTools: FunctionTool[] = [
     inputSchema: z.object({}),
     function: async () => {
       const response = await sendMessageToPlugin(ClientQueryType.GET_FILE_VERSIONS, undefined);
-      return response;
-    },
-  },
-
-  {
-    id: 'apply-shadow-from-text',
-    name: 'applyShadowFromText',
-    description: `Use this tool to apply a shadow using an informal, human instruction.
-
-    The tool will first read the selection with GET_SELECTION_INFO (read-only) and
-    then call APPLY_SHADOW. If the text contains words like "replace" or "override",
-    the tool will set overrideExisting=true so the plugin will replace any existing shadows.
-    `,
-    inputSchema: z.object({ text: z.string().min(1).describe('Natural language instruction (e.g., "Replace the drop shadow on the selected shape")') }),
-    function: async (input: { text: string }) => {
-      const text = (input.text || '').toLowerCase();
-
-      // Read selection info first (read-only). This prevents crashes and lets
-      // the UI (or the assistant) present selection details before mutating.
-      await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, {});
-
-      // Decide whether to force override based on natural language
-      const shouldOverride = /\b(replace|override|overwrite|remove the|replace the|replace existing)\b/.test(text);
-
-      // Heuristics for common words: inner vs drop shadow
-      const style = /inner[- ]?shadow/.test(text) ? 'inner-shadow' : 'drop-shadow';
-
-      // Try to detect a hex color in the text
-      const hexMatch = text.match(/#([0-9a-f]{3,8})/i);
-      const color = hexMatch ? `#${hexMatch[1]}` : '#000000';
-
-  const payload: ApplyShadowQueryPayload = { shadowStyle: style, shadowColor: color, overrideExisting: shouldOverride } as ApplyShadowQueryPayload;
-  const response = await sendMessageToPlugin(ClientQueryType.APPLY_SHADOW, payload);
       return response;
     },
   },
