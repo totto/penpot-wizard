@@ -274,6 +274,15 @@ export interface ApplyShadowResponsePayload {
   undoInfo?: UndoInfo;
 }
 
+// When the plugin finds existing shadows and wants confirmation from the user
+// before applying a new shadow this payload is returned. It is separate from
+// the successful apply payload because it contains only the shapes that already
+// have shadows and the requested shadow parameters for an override prompt.
+export interface ApplyShadowPromptResponsePayload {
+  shapesWithExistingShadows: Array<{ id: string; name?: string }>;
+  requestedShadow: { shadowColor: string; shadowOffsetX: number; shadowOffsetY: number; shadowBlur: number; shadowSpread: number; shadowStyle?: string };
+}
+
 export interface AlignHorizontalResponsePayload {
   alignedShapes: Array<{ id: string; name?: string }>;
   alignment: 'left' | 'center' | 'right';
@@ -568,6 +577,7 @@ export type PluginResponsePayload =
   | DrawShapeResponsePayload
   | AddImagePayload
   | ApplyBlurResponsePayload
+  | ApplyShadowPromptResponsePayload
   | ApplyFillResponsePayload
   | ApplyStrokeResponsePayload
   | ApplyLinearGradientResponsePayload

@@ -108,7 +108,7 @@ export function handleGetUserData(): PluginResponseMessage {
       };
     }
 }
-
+// end wrapper
 export async function createLibraryColor(payload: any): Promise<PluginResponseMessage> {
   try {
     const { name, color, overwrite } = payload ?? {};
@@ -456,28 +456,7 @@ export function getCurrentPage(): PluginResponseMessage {
 // Always handle selection access directly within action tools, never as general queries.
 // This prevents crashes from interfering with Penpot's internal selection handling.
 //
-// Pattern:
-// 1. Access selection directly: const sel = (penpot as any).selection;
-// 2. Check for valid selection before proceeding
-// 3. Handle errors gracefully with try/catch
-// 4. Never serialize or deeply inspect selection objects for general consumption
-
-/**
- * SHARED SELECTION SYSTEM
- * =======================
- *
- * Provides safe selection access for all tools that need to work with selected shapes.
- * This system prevents JavaFX crashes by following the safety pattern:
- * - Access selection directly within action-performing functions only
- * - Never create general-purpose selection querying tools
- * - Handle errors gracefully with try/catch blocks
- */
-
-// SAFE SELECTION ACCESS PATTERN
-// =============================
-// This function should ONLY be called by tools when they are actually
-// performing an action, not for general selection querying.
-// Never use this for AI consumption or serialization.
+// Wrapper to preserve public API — action implementation lives in actionSelection.ts
 export function getSelectionForAction(): Shape[] {
   // IMPORTANT: This is an action-only helper. Tools in the UI/agent layer
   // should NOT import this function directly. Instead, they should call the
@@ -485,7 +464,6 @@ export function getSelectionForAction(): Shape[] {
   // The plugin endpoint will use this helper internally to mutate shapes
   // safely. This keeps read-only and mutation paths separate and prevents
   // selection-related crashes.
-  // Wrapper to preserve public API — action implementation lives in actionSelection.ts
   return actionGetSelectionForAction();
 }
 
@@ -1697,7 +1675,7 @@ Do you want to override the existing shadow${shapesWithShadows.length > 1 ? 's' 
 Say "apply shadow with override" or "apply shadow override existing" to proceed with overriding.`,
           payload: {
             shapesWithExistingShadows: shapesWithShadows.map(s => ({ id: s.id, name: s.name })),
-            requestedShadow: { shadowStyle, shadowColor: hexColor, shadowOffsetX, shadowOffsetY, shadowBlur, shadowSpread }
+            requestedShadow: { shadowColor: hexColor, shadowOffsetX, shadowOffsetY, shadowBlur, shadowSpread }
           }
         };
       }
@@ -2590,7 +2568,7 @@ You can undo this action anytime with "undo last action".`,
       payload: {
         ungroupedGroups: ungroupedGroups.map(g => ({ id: g.groupId, name: g.groupName })),
         undoInfo,
-      } as any,
+      },
     };
   } catch (error) {
     return {

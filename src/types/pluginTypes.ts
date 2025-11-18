@@ -139,6 +139,11 @@ export interface ApplyShadowResponsePayload {
   undoInfo?: UndoInfo;
 }
 
+export interface ApplyShadowPromptResponsePayload {
+  shapesWithExistingShadows: Array<{ id: string; name?: string }>;
+  requestedShadow: { shadowColor: string; shadowOffsetX: number; shadowOffsetY: number; shadowBlur: number; shadowSpread: number; shadowStyle?: string };
+}
+
 export interface GetUserDataPayload {
   name: string;
   id: string;
@@ -241,6 +246,7 @@ DrawShapeResponsePayload
 | AddImagePayload 
 | ApplyBlurResponsePayload 
 | ApplyShadowResponsePayload 
+| ApplyShadowPromptResponsePayload 
 | GetUserDataPayload 
 | GetProjectDataPayload 
 | GetAvailableFontsPayload 
