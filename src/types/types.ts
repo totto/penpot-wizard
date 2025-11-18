@@ -576,7 +576,16 @@ export type PluginResponsePayload =
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload
   | ResizeResponsePayload
-  | GetSelectionInfoResponsePayload;
+  | GetSelectionInfoResponsePayload
+  | UngroupResponsePayload;
+
+// Response for ungrouping shapes
+export interface UngroupResponsePayload {
+  ungroupedGroups: Array<{
+    id: string;
+    name: string;
+  }>;
+}
 
 
 

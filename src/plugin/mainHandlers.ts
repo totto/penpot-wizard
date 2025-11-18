@@ -2590,7 +2590,7 @@ You can undo this action anytime with "undo last action".`,
       payload: {
         ungroupedGroups: ungroupedGroups.map(g => ({ id: g.groupId, name: g.groupName })),
         undoInfo,
-      },
+      } as any,
     };
   } catch (error) {
     return {

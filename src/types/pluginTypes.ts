@@ -201,6 +201,13 @@ export interface CreateLibraryComponentResponse {
   shapes: Shape[];
 }
 
+export interface UngroupResponsePayload {
+  ungroupedGroups: Array<{
+    id: string;
+    name: string;
+  }>;
+}
+
 export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | CreateLibraryFontPayload | CreateLibraryComponentPayload;
 
-export type PluginResponsePayload = DrawShapeResponsePayload | AddImagePayload | ApplyBlurResponsePayload | GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | GetCurrentThemePayload | GetActiveUsersPayload | GetFileVersionsPayload | CreateLibraryColorResponse | CreateLibraryFontResponse | CreateLibraryComponentResponse;
+export type PluginResponsePayload = DrawShapeResponsePayload | AddImagePayload | ApplyBlurResponsePayload | GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | GetCurrentThemePayload | GetActiveUsersPayload | GetFileVersionsPayload | CreateLibraryColorResponse | CreateLibraryFontResponse | CreateLibraryComponentResponse | UngroupResponsePayload;
