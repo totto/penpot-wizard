@@ -207,6 +207,12 @@ export interface AddImagePayload {
   shapeId?: string;
 }
 
+export interface GroupResponsePayload {
+  groupId: string;
+  groupedShapes: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
 export interface ApplyBlurResponsePayload {
   blurredShapes: string[];
   blurValue: number;
@@ -577,7 +583,8 @@ export type PluginResponsePayload =
   | RedoLastActionResponsePayload
   | ResizeResponsePayload
   | GetSelectionInfoResponsePayload
-  | UngroupResponsePayload;
+  | UngroupResponsePayload
+  | GroupResponsePayload;
 
 // Response for ungrouping shapes
 export interface UngroupResponsePayload {

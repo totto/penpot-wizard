@@ -208,6 +208,26 @@ export interface UngroupResponsePayload {
   }>;
 }
 
+export interface GroupResponsePayload {
+  groupId: string;
+  groupedShapes: Array<{ id: string; name?: string }>;
+}
+
 export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | CreateLibraryFontPayload | CreateLibraryComponentPayload;
 
-export type PluginResponsePayload = DrawShapeResponsePayload | AddImagePayload | ApplyBlurResponsePayload | GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | GetCurrentThemePayload | GetActiveUsersPayload | GetFileVersionsPayload | CreateLibraryColorResponse | CreateLibraryFontResponse | CreateLibraryComponentResponse | UngroupResponsePayload;
+export type PluginResponsePayload = 
+DrawShapeResponsePayload 
+| AddImagePayload 
+| ApplyBlurResponsePayload 
+| GetUserDataPayload 
+| GetProjectDataPayload 
+| GetAvailableFontsPayload 
+| GetCurrentPagePayload 
+| GetCurrentThemePayload 
+| GetActiveUsersPayload 
+| GetFileVersionsPayload 
+| CreateLibraryColorResponse 
+| CreateLibraryFontResponse 
+| CreateLibraryComponentResponse 
+| UngroupResponsePayload
+| GroupResponsePayload;
