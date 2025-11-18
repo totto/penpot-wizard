@@ -509,6 +509,42 @@ export function getSelectionInfo(): Array<{ id: string; name?: string; type: str
   return readSelectionInfo();
 }
 
+/**
+ * Center the viewport on a rectangle area. Prefer non-mutating viewport API.
+ * Falls back to more invasive options if necessary.
+ */
+export function centerDocumentOnRect(x: number, y: number, width: number, height: number) {
+  try {
+    // Prefer a viewport API that doesn't touch selection
+    const viewport: any = (globalThis as any).penpot?.viewport;
+    if (viewport && typeof viewport.scrollToRect === 'function') {
+      viewport.scrollToRect({ x, y, width, height });
+      return;
+    }
+
+    if (viewport && typeof viewport.centerOnRect === 'function') {
+      viewport.centerOnRect({ x, y, width, height });
+      return;
+    }
+
+    // Next fallback: center on selection if available. This may change selection briefly.
+    if (viewport && typeof viewport.centerOnSelection === 'function') {
+      viewport.centerOnSelection();
+      return;
+    }
+
+    // Worst-case fallback: try to scroll to the center coordinates if simple scroll API exists
+    if (viewport && typeof viewport.scrollTo === 'function') {
+      const cx = Math.round(x + width / 2);
+      const cy = Math.round(y + height / 2);
+      viewport.scrollTo(cx, cy);
+    }
+  } catch (err) {
+    // Do not fail plugin on viewport centering failure
+    console.warn('centerDocumentOnRect failed', err);
+  }
+}
+
 
 export function getCurrentTheme(): PluginResponseMessage {
   return {
@@ -569,6 +605,13 @@ export async function handleAddImageFromUrl(payload: AddImageFromUrlQueryPayload
       // Resize the shape to match the image dimensions
       if (imageCreatedData.width && imageCreatedData.height) {
         imageShape.resize(imageCreatedData.width, imageCreatedData.height);
+      }
+
+      // Center viewport on the newly added image so it's visible to the user
+      try {
+        centerDocumentOnRect(imageShape.x ?? 0, imageShape.y ?? 0, imageShape.width ?? (imageCreatedData.width || 100), imageShape.height ?? (imageCreatedData.height || 100));
+      } catch (e) {
+        console.warn('Failed to center viewport on new image (from URL):', e);
       }
 
       return {
@@ -638,6 +681,13 @@ export async function handleAddImage(payload: AddImageQueryPayload): Promise<Plu
 
     if (imageCreatedData.width && imageCreatedData.height) {
       imageShape.resize(imageCreatedData.width, imageCreatedData.height);
+    }
+
+    // Move the viewport so the user can see the newly-created image
+    try {
+      centerDocumentOnRect(imageShape.x ?? 0, imageShape.y ?? 0, imageShape.width ?? (imageCreatedData.width || 100), imageShape.height ?? (imageCreatedData.height || 100));
+    } catch (e) {
+      console.warn('Failed to center viewport on new image:', e);
     }
 
     return {
