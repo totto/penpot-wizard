@@ -41,6 +41,7 @@ import {
   CreateShapeFromSvgQueryPayload,
   ExportSelectionAsSvgQueryPayload,
   ResizeQueryPayload,
+  ResizeResponsePayload,
   GetSelectionInfoQueryPayload,
   ClientQueryType,
   MessageSourceName,
@@ -3295,14 +3296,32 @@ The exported SVG is ready to use in web projects, design tools, or anywhere SVG 
 
 export async function resizeTool(payload: ResizeQueryPayload): Promise<PluginResponseMessage> {
   try {
-    // Use shared selection system for safe selection access
+    // First, gather a read-only snapshot of the selection for UI/UX (dimensions, names).
+    // This ensures tools can present selection information even if the director
+    // doesn't have access to GET_SELECTION_INFO. This read-only helper does not
+    // mutate the selection and is safe for use in AI/UX prompts.
+    const selectionInfo = readSelectionInfo();
+    if (!selectionInfo || selectionInfo.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.RESIZE,
+        success: false,
+        message: `Please select at least 1 shape to resize. You currently have ${selectionInfo?.length || 0} shape${(selectionInfo?.length || 0) !== 1 ? 's' : ''} selected.`,
+      };
+    }
+    // Use shared selection system for safe selection access (mutation)
     const sel = getSelectionForAction();
     if (!sel || sel.length === 0) {
+      // We still provide read-only selection information so the caller can present
+      // the current dimensions even if the plugin cannot mutate the selection.
       return {
         ...pluginResponse,
         type: ClientQueryType.RESIZE,
         success: false,
         message: `Please select at least 1 shape to resize. You currently have ${sel?.length || 0} shape${(sel?.length || 0) !== 1 ? 's' : ''} selected.`,
+        payload: {
+          currentSelectionInfo: selectionInfo,
+        } as unknown as ResizeResponsePayload,
       };
     }
 
@@ -3326,8 +3345,11 @@ export async function resizeTool(payload: ResizeQueryPayload): Promise<PluginRes
     // First pass: capture previous dimensions and calculate new ones
     for (const shape of sel) {
       shapeIds.push(shape.id);
-      const prevWidth = shape.width;
-      const prevHeight = shape.height;
+  // Prefer the read-only snapshot for previous dimensions to avoid any
+  // accidental mutation or re-query during calculations.
+  const infoForShape = selectionInfo.find(si => si.id === shape.id);
+  const prevWidth = typeof infoForShape?.width === 'number' ? infoForShape.width : shape.width;
+  const prevHeight = typeof infoForShape?.height === 'number' ? infoForShape.height : shape.height;
       previousDimensions.push({ width: prevWidth, height: prevHeight });
 
       // Calculate new dimensions based on scale factors

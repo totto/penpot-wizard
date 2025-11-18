@@ -403,6 +403,9 @@ export interface ResizeResponsePayload {
   scaleFactors: { scaleX?: number; scaleY?: number };
   maintainAspectRatio: boolean;
   undoInfo: UndoInfo;
+  // Optional: include read-only selection information for UI display when action cannot
+  // proceed (for example, when the director or agent doesn't have GET_SELECTION_INFO).
+  currentSelectionInfo?: SelectionInfoItem[];
 }
 
 export interface UndoLastActionResponsePayload {
