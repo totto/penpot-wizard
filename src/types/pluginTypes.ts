@@ -1,5 +1,6 @@
 import type { Shape, ImageData as PenpotImageData, User } from '@penpot/plugin-types';
 import { PenpotShapeProperties } from './shapeTypes';
+import type { UndoInfo } from './types';
 
 // Shared enums between UI and plugin
 export enum MessageSourceName {
@@ -118,6 +119,18 @@ export interface ApplyBlurResponsePayload {
   blurValue: number;
 }
 
+export interface ApplyShadowResponsePayload {
+  shadowedShapes: string[];
+  shadowStyle: string;
+  shadowColor: string;
+  shadowOffsetX: number;
+  shadowOffsetY: number;
+  shadowBlur: number;
+  shadowSpread: number;
+  shapesWithExistingShadows?: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
 export interface GetUserDataPayload {
   name: string;
   id: string;
@@ -219,6 +232,7 @@ export type PluginResponsePayload =
 DrawShapeResponsePayload 
 | AddImagePayload 
 | ApplyBlurResponsePayload 
+| ApplyShadowResponsePayload 
 | GetUserDataPayload 
 | GetProjectDataPayload 
 | GetAvailableFontsPayload 
