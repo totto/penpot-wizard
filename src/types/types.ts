@@ -58,6 +58,7 @@ export enum ClientQueryType {
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
   RESIZE = 'RESIZE',
+  ROTATE = 'ROTATE',
 }
 
 export enum PenpotShapeType {
@@ -376,6 +377,14 @@ export interface ResizeQueryPayload {
   maintainAspectRatio?: boolean; // If true, uses scaleX for both dimensions
 }
 
+export interface RotateQueryPayload {
+  /**
+   * Rotation angle in degrees. Positive values rotate clockwise.
+   * If not provided, the tool will return read-only selection info for UI display.
+   */
+  angle?: number;
+}
+
 export type GetSelectionInfoQueryPayload = Record<string, never>;
 
 export interface SelectionInfoItem {
@@ -430,6 +439,12 @@ export interface ResizeResponsePayload {
   // Optional: include read-only selection information for UI display when action cannot
   // proceed (for example, when the director or agent doesn't have GET_SELECTION_INFO).
   currentSelectionInfo?: SelectionInfoItem[];
+}
+
+export interface RotateResponsePayload {
+  rotatedShapes: Array<{ id: string; name?: string }>;
+  angle: number; // Degrees rotated (positive clockwise)
+  undoInfo?: UndoInfo;
 }
 
 export interface UndoLastActionResponsePayload {
@@ -601,6 +616,7 @@ export type PluginResponsePayload =
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload
   | ResizeResponsePayload
+  | RotateResponsePayload
   | GetSelectionInfoResponsePayload
   | UngroupResponsePayload
   | GroupResponsePayload;

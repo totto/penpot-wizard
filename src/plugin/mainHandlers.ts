@@ -41,7 +41,9 @@ import {
   CreateShapeFromSvgQueryPayload,
   ExportSelectionAsSvgQueryPayload,
   ResizeQueryPayload,
+  RotateQueryPayload,
   ResizeResponsePayload,
+  RotateResponsePayload,
   GetSelectionInfoQueryPayload,
   ClientQueryType,
   MessageSourceName,
@@ -3595,6 +3597,117 @@ You can undo this action anytime with "undo last action".`,
   }
 }
 
+export async function rotateTool(payload: RotateQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const selectionInfo = readSelectionInfo();
+    if (!selectionInfo || selectionInfo.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.ROTATE,
+        success: false,
+        message: `Please select at least 1 shape to rotate. You currently have ${selectionInfo?.length || 0} shape${(selectionInfo?.length || 0) !== 1 ? 's' : ''} selected.`,
+      };
+    }
+
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.ROTATE,
+        success: false,
+        message: `Please select at least 1 shape to rotate. You currently have ${sel?.length || 0} shape${(sel?.length || 0) !== 1 ? 's' : ''} selected.`,
+        payload: {
+          currentSelectionInfo: selectionInfo,
+        } as unknown as RotateResponsePayload,
+      };
+    }
+
+    const { angle } = payload ?? {};
+
+    if (typeof angle !== 'number') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.ROTATE,
+        success: false,
+        message: `Please specify an angle to rotate shapes. Example: angle: 90 (degrees)`,
+        payload: {
+          currentSelectionInfo: selectionInfo,
+        } as unknown as RotateResponsePayload,
+      };
+    }
+
+    const previousRotations: Array<number | undefined> = [];
+    const rotatedIds: string[] = [];
+
+    for (const shape of sel) {
+      try {
+        const prev = typeof shape.rotation === 'number' ? shape.rotation : undefined;
+        previousRotations.push(prev);
+
+        // Prefer the native rotate method if available
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (typeof (shape as any).rotate === 'function') {
+          // Penpot rotate() takes degrees
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (shape as any).rotate(angle);
+        } else {
+          // fallback: set rotation property directly
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (shape as any).rotation = (prev ?? 0) + angle;
+        }
+
+        rotatedIds.push(shape.id);
+      } catch (e) {
+        console.warn(`Failed to rotate shape ${shape.id}:`, e);
+      }
+    }
+
+    if (rotatedIds.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.ROTATE,
+        success: false,
+        message: 'Failed to rotate any shapes',
+      };
+    }
+
+    const shapeNames = sel.map(s => s.name || s.id).join(', ');
+
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.ROTATE,
+      actionId: `rotate_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        shapeIds: rotatedIds,
+        previousRotations,
+        angle,
+      },
+      description: `Rotated ${rotatedIds.length} shape${rotatedIds.length > 1 ? 's' : ''} by ${angle}°`,
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.ROTATE,
+      message: `Rotated ${rotatedIds.length} shape${rotatedIds.length > 1 ? 's' : ''} by ${angle}°. Shapes: ${shapeNames}`,
+      payload: {
+        rotatedShapes: sel.map(s => ({ id: s.id, name: s.name })),
+        angle,
+        undoInfo,
+      },
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.ROTATE,
+      success: false,
+      message: `Error rotating shapes: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function getSelectionInfoTool(_payload: GetSelectionInfoQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Use the safe information-reading function
@@ -3653,39 +3766,8 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
 
     // Perform the undo based on action type
     switch (lastAction.actionType) {
-      case ClientQueryType.APPLY_FILL: {
-        // Restore previous fill values
-        const fillData = lastAction.undoData as {
-          shapeIds: string[];
-          previousFills: Array<{ fillColor?: string; fillOpacity?: number } | undefined>;
-        };
 
-        for (let i = 0; i < fillData.shapeIds.length; i++) {
-          const shapeId = fillData.shapeIds[i];
-          const previousFill = fillData.previousFills[i];
-
-          try {
-            const currentPage = penpot.currentPage;
-            if (!currentPage) continue;
-
-            const shape = currentPage.getShapeById(shapeId);
-            if (!shape) continue;
-
-            // Restore the previous fill
-            if (previousFill) {
-              shape.fills = [previousFill];
-            } else {
-              // If there was no previous fill, remove fills
-              shape.fills = [];
-            }
-
-            restoredShapes.push(shape.name || shape.id);
-          } catch (error) {
-            console.warn(`Failed to restore fill for shape ${shapeId}:`, error);
-          }
-        }
-        break;
-      }
+      
 
       case ClientQueryType.APPLY_BLUR: {
         // Restore previous blur values
@@ -3793,6 +3875,48 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.ROTATE: {
+        const rotateData = lastAction.undoData as { shapeIds: string[]; previousRotations: Array<number | undefined>; angle: number };
+
+        for (let i = 0; i < rotateData.shapeIds.length; i++) {
+          const shapeId = rotateData.shapeIds[i];
+          const angle = rotateData.angle;
+          const previousRotation = rotateData.previousRotations[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (typeof (shape as any).rotate === 'function') {
+              (shape as any).rotate(angle);
+            } else {
+              (shape as any).rotation = (previousRotation ?? 0) + angle;
+            }
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo rotation for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
       case ClientQueryType.ALIGN_HORIZONTAL: {
         // Restore previous positions
         const alignData = lastAction.undoData as {
@@ -3850,6 +3974,8 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         }
         break;
       }
+
+      
 
       case ClientQueryType.CENTER_ALIGNMENT: {
         // Restore previous positions (same as horizontal/vertical alignment)

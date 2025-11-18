@@ -28,6 +28,7 @@ export enum ClientQueryType {
   ADD_IMAGE = 'ADD_IMAGE',
   ADD_IMAGE_FROM_URL = 'ADD_IMAGE_FROM_URL',
   APPLY_BLUR = 'APPLY_BLUR',
+  ROTATE = 'ROTATE',
 }
 
 // Plugin-specific enums and types
@@ -85,6 +86,10 @@ export interface ApplyBlurQueryPayload {
   blurValue?: number;
 }
 
+export interface RotateQueryPayload {
+  angle?: number; // degrees clockwise; if omitted the tool returns read-only selection info
+}
+
 export interface CreateLibraryFontPayload {
   name: string;
   fontFamily: string;
@@ -136,6 +141,12 @@ export interface ApplyShadowResponsePayload {
     shadowSpread: number;
     shadowStyle?: string;
   };
+  undoInfo?: UndoInfo;
+}
+
+export interface RotateResponsePayload {
+  rotatedShapes: string[];
+  angle: number; // Degrees rotated (positive clockwise)
   undoInfo?: UndoInfo;
 }
 
@@ -258,4 +269,5 @@ DrawShapeResponsePayload
 | CreateLibraryFontResponse 
 | CreateLibraryComponentResponse 
 | UngroupResponsePayload
-| GroupResponsePayload;
+| GroupResponsePayload
+| RotateResponsePayload;

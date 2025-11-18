@@ -234,6 +234,26 @@ export const functionTools: FunctionTool[] = [
     },
   },
   {
+    id: "rotate-selection",
+    name: "rotateSelection",
+    description: `
+      Rotate the currently selected shapes (boards, images, paths, text, etc.) by a given angle in degrees.
+      Positive values rotate clockwise. If no angle is supplied, the tool returns read-only selection info so the UI can show current rotations.
+    `,
+    inputSchema: z.object({
+      angle: z.number().optional().describe('Rotation angle in degrees. Positive clockwise.'),
+    }),
+    function: async (args) => {
+      if (!args || typeof args.angle !== 'number') {
+        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        return selectionResp;
+      }
+
+      const response = await sendMessageToPlugin(ClientQueryType.ROTATE, args);
+      return response;
+    },
+  },
+  {
     id: "get-selection-info",
     name: "getSelectionInfo",
     description: `

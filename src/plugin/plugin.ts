@@ -32,6 +32,7 @@ import {
   RedoLastActionQueryPayload,
   ExportSelectionAsSvgQueryPayload,
   ResizeQueryPayload,
+  RotateQueryPayload,
   GetSelectionInfoQueryPayload,
 } from '../types/types';
 
@@ -74,6 +75,7 @@ import {
   redoLastAction,
   exportSelectionAsSvgTool,
   resizeTool,
+  rotateTool,
   getSelectionInfoTool
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
@@ -301,6 +303,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.RESIZE:
       responseMessage = await resizeTool(payload as unknown as ResizeQueryPayload);
+      break;
+
+    case ClientQueryType.ROTATE:
+      responseMessage = await rotateTool(payload as unknown as RotateQueryPayload);
       break;
 
     case ClientQueryType.GET_SELECTION_INFO:
