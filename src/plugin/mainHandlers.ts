@@ -51,7 +51,9 @@ import {
   UndoLastActionQueryPayload,
   RedoLastActionQueryPayload,
 } from "../types/types";
+/* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
+import { getSelectionForAction as actionGetSelectionForAction, hasValidSelection as actionHasValidSelection, updateCurrentSelection } from './actionSelection';
 import type { Shape, Group, Fill, Stroke } from '@penpot/plugin-types';
 
 const pluginResponse: PluginResponseMessage = {
@@ -63,7 +65,7 @@ const pluginResponse: PluginResponseMessage = {
 };
 
 // Global variable to store current selection IDs (updated by plugin.ts)
-let currentSelectionIds: string[] = [];
+// currentSelectionIds and updateCurrentSelection are now stored in actionSelection.ts
 
 // Global undo stack - stores undo information for reversible actions
 let undoStack: UndoInfo[] = [];
@@ -72,13 +74,7 @@ const redoStack: UndoInfo[] = [];
 const MAX_UNDO_STACK_SIZE = 10; // Keep last 10 undoable actions
 
 // Function to update selection IDs from plugin.ts
-export function updateCurrentSelection(ids: string[]) {
-  currentSelectionIds = ids;
-  console.log('Selection updated to:', ids);
-}
-
-// Export currentSelectionIds for access from plugin.ts
-export { currentSelectionIds };
+// Note: updateCurrentSelection and currentSelectionIds are exported from actionSelection
 
 // Function to add undo information to the stack
 export function addToUndoStack(undoInfo: UndoInfo) {
@@ -481,32 +477,13 @@ export function getCurrentPage(): PluginResponseMessage {
 // performing an action, not for general selection querying.
 // Never use this for AI consumption or serialization.
 export function getSelectionForAction(): Shape[] {
-  console.log('🔍 getSelectionForAction called - safe for action-performing tools only');
-
-  try {
-    // Only access selection when actually performing an action
-    const directSel = penpot.selection;
-    if (directSel && Array.isArray(directSel) && directSel.length > 0) {
-      console.log(`✅ Found ${directSel.length} shapes for action`);
-      return directSel;
-    }
-  } catch (error) {
-    console.warn('❌ Selection access failed:', error);
-  }
-
-  console.log('❌ No selection available for action');
-  return [];
+  // Wrapper to preserve public API — action implementation lives in actionSelection.ts
+  return actionGetSelectionForAction();
 }
 
 // Check if selection exists (safe utility)
 export function hasValidSelection(): boolean {
-  try {
-    const selection = (penpot as unknown as { selection: Shape[] }).selection;
-    return selection && Array.isArray(selection) && selection.length > 0;
-  } catch (error) {
-    console.warn('❌ Error checking selection validity:', error);
-    return false;
-  }
+  return actionHasValidSelection();
 }
 
 // SAFE SELECTION INFO READING

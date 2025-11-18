@@ -41,6 +41,8 @@ import {
   handleAddImageFromUrl, 
   applyBlurTool, 
   applyFillTool, 
+  // selection update lives in actionSelection (action-only). See actionSelection.ts
+  // for mutation-safe helper functions.
   applyStrokeTool, 
   applyShadowTool,
   alignHorizontalTool,
@@ -66,13 +68,13 @@ import {
   createLibraryColor, 
   createLibraryFont, 
   createLibraryComponent, 
-  updateCurrentSelection, 
   undoLastAction, 
   redoLastAction,
   exportSelectionAsSvgTool,
   resizeTool,
   getSelectionInfoTool
 } from './mainHandlers';
+import { updateCurrentSelection } from './actionSelection';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
