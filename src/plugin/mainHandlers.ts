@@ -3798,7 +3798,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
           }
         }
         break;
-      }
+        }
 
       
 
@@ -3908,7 +3908,12 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      /* (removed reapply-rotate case; rotate redo belongs to redoLastAction) */
+
+      
+
       case ClientQueryType.ROTATE: {
+        // Undo the rotation by rotating by the inverse angle or restoring previous rotation
         const rotateData = lastAction.undoData as { shapeIds: string[]; previousRotations: Array<number | undefined>; angle: number };
 
         for (let i = 0; i < rotateData.shapeIds.length; i++) {
@@ -3923,16 +3928,28 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             const shape = currentPage.getShapeById(shapeId);
             if (!shape) continue;
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (typeof (shape as any).rotate === 'function') {
-              (shape as any).rotate(angle);
+            // Prefer to restore the previous absolute rotation when available. This
+            // matches user expectations for undo: an undo should return to the
+            // exact prior rotation rather than applying an inverse angle which
+            // can be additive and produce unexpected values for custom rotate()
+            // implementations. Fall back to native rotate(-angle) only if we
+            // don't have a recorded previousRotation.
+            const shAny = shape as unknown as { rotate?: (a: number) => void; rotation?: number };
+            if (typeof previousRotation === 'number') {
+              // Absolute restoration preserves exact previous state
+              shAny.rotation = previousRotation;
+            } else if (typeof shAny.rotate === 'function') {
+              // No previous rotation recorded; try using the native inverse
+              // rotation (additive). This is a best-effort fallback.
+              shAny.rotate(-angle);
             } else {
-              (shape as any).rotation = (previousRotation ?? 0) + angle;
+              // If there was no previous rotation, remove rotation property
+              shAny.rotation = undefined;
             }
 
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
-            console.warn(`Failed to redo rotation for shape ${shapeId}:`, error);
+            console.warn(`Failed to undo rotation for shape ${shapeId}:`, error);
           }
         }
         break;
@@ -3951,6 +3968,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
       
 
       case ClientQueryType.ALIGN_HORIZONTAL: {
+      
         // Restore previous positions
         const alignData = lastAction.undoData as {
           shapeIds: string[];
@@ -4755,6 +4773,38 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
 
           } catch (error) {
             console.warn(`Failed to redo fill for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.ROTATE: {
+        // Reapply rotation on redo
+        const rotateData = lastAction.undoData as { shapeIds: string[]; previousRotations: Array<number | undefined>; angle: number };
+
+        for (let i = 0; i < rotateData.shapeIds.length; i++) {
+          const shapeId = rotateData.shapeIds[i];
+          const angle = rotateData.angle;
+          const previousRotation = rotateData.previousRotations[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            const shAny = shape as unknown as { rotate?: (a: number) => void; rotation?: number };
+            if (typeof shAny.rotate === 'function') {
+              shAny.rotate(angle);
+            } else {
+              shAny.rotation = (previousRotation ?? 0) + angle;
+            }
+
+            undoStack.push(lastAction);
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo rotation for shape ${shapeId}:`, error);
           }
         }
         break;
