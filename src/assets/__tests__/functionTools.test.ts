@@ -44,4 +44,21 @@ describe('functionTools resize-selection behavior', () => {
     expect(sendMessageToPlugin).toHaveBeenCalledWith('RESIZE', { scaleX: 1.5 });
     expect(resp.success).toBe(true);
   });
+
+  it('maps natural language "Replace" to overrideExisting true with APPLY_SHADOW', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'apply-shadow-from-text');
+    if (!tool) throw new Error('apply-shadow-from-text tool not found');
+
+    (sendMessageToPlugin as any).mockResolvedValueOnce({ payload: { selectedObjects: [{ id: 's1' }] } });
+    // Mock the APPLY_SHADOW response
+    (sendMessageToPlugin as any).mockResolvedValueOnce({ success: true });
+
+    const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>> )({ text: 'Replace the drop shadow on this shape' });
+
+    // Should read selection first
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('GET_SELECTION_INFO', undefined);
+    // Should call APPLY_SHADOW with overrideExisting true
+    expect((sendMessageToPlugin as any).mock.calls.some((c: any[]) => c[0] === 'APPLY_SHADOW' && c[1]?.overrideExisting === true)).toBeTruthy();
+    expect(resp.success).toBe(true);
+  });
 });
