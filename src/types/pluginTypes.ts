@@ -30,7 +30,7 @@ export enum ClientQueryType {
   APPLY_BLUR = 'APPLY_BLUR',
   ROTATE = 'ROTATE',
   MOVE = 'MOVE',
-  TOGGLE_LOCK_SELECTION = 'TOGGLE_LOCK_SELECTION',
+  TOGGLE_SELECTION_LOCK = 'TOGGLE_SELECTION_LOCK',
 }
 
 // Plugin-specific enums and types
@@ -99,7 +99,7 @@ export interface MoveQueryPayload {
   y?: number;
 }
 
-export interface ToggleLockSelectionQueryPayload {
+export interface ToggleSelectionLockQueryPayload {
   lock?: boolean;
   shapeIds?: string[];
 }
@@ -173,7 +173,7 @@ export interface MoveResponsePayload {
   undoInfo?: UndoInfo;
 }
 
-export interface ToggleLockSelectionResponsePayload {
+export interface ToggleSelectionLockResponsePayload {
   lockedShapes?: Array<{ id: string; name?: string }>;
   unlockedShapes?: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;

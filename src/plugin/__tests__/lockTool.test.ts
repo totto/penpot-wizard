@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { toggleLockSelectionTool, undoLastAction, redoLastAction } from '../mainHandlers';
+import { toggleSelectionLockTool, undoLastAction, redoLastAction } from '../mainHandlers';
 
-describe('toggleLockSelectionTool and undo/redo', () => {
+describe('toggleSelectionLockTool and undo/redo', () => {
   const originalPenpot = (globalThis as any).penpot;
 
   beforeEach(() => {
@@ -20,7 +20,7 @@ describe('toggleLockSelectionTool and undo/redo', () => {
       currentPage: { getShapeById: (id: string) => (id === s.id ? s : null) },
     };
 
-  const resp = await toggleLockSelectionTool({ lock: true });
+  const resp = await toggleSelectionLockTool({ lock: true });
     expect(resp.success).toBeTruthy();
     expect(s.locked).toBeTruthy();
     const undoResp = await undoLastAction({});
@@ -38,7 +38,7 @@ describe('toggleLockSelectionTool and undo/redo', () => {
       currentPage: { getShapeById: (id: string) => (id === s.id ? s : null) },
     };
 
-  const resp = await toggleLockSelectionTool({ lock: false });
+  const resp = await toggleSelectionLockTool({ lock: false });
     expect(resp.success).toBeTruthy();
     expect(s.locked).toBeFalsy();
 
@@ -59,7 +59,7 @@ describe('toggleLockSelectionTool and undo/redo', () => {
       currentPage: { getShapeById: (id: string) => (id === locked.id ? locked : id === unlocked.id ? unlocked : null) },
     };
 
-  const resp = await toggleLockSelectionTool({});
+  const resp = await toggleSelectionLockTool({});
     expect(resp.success).toBeFalsy();
     const payload = resp.payload as any;
     expect(payload.lockedShapes).toBeDefined();
@@ -76,7 +76,7 @@ describe('toggleLockSelectionTool and undo/redo', () => {
       currentPage: { getShapeById: (id: string) => (id === a.id ? a : id === b.id ? b : null) },
     };
 
-  const resp = await toggleLockSelectionTool({ lock: true, shapeIds: [b.id] });
+  const resp = await toggleSelectionLockTool({ lock: true, shapeIds: [b.id] });
     expect(resp.success).toBeTruthy();
     expect(a.locked).toBeFalsy();
     expect(b.locked).toBeTruthy();

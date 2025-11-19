@@ -97,7 +97,7 @@ describe('functionTools resize-selection behavior', () => {
 
   it('toggle-selection-lock returns selection info when called without args', async () => {
     const tool = FT.functionTools.find(t => t.id === 'toggle-selection-lock');
-  if (!tool) throw new Error('toggle-lock-selection tool not found');
+  if (!tool) throw new Error('toggle-selection-lock tool not found');
 
     const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
     sendMock.mockResolvedValueOnce({ payload: { selectionCount: 2, selectedObjects: [{ id: 'a' }, { id: 'b' }] } });
@@ -110,23 +110,23 @@ describe('functionTools resize-selection behavior', () => {
 
   it('toggle-selection-lock surfaces mixed selection prompt', async () => {
     const tool = FT.functionTools.find(t => t.id === 'toggle-selection-lock');
-  if (!tool) throw new Error('toggle-lock-selection tool not found');
+  if (!tool) throw new Error('toggle-selection-lock tool not found');
 
     const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
     // read selection first
     sendMock.mockResolvedValueOnce({ payload: { selectionCount: 2, selectedObjects: [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }] } });
-  // TOGGLE_LOCK_SELECTION returns mixed selection info
+  // TOGGLE_SELECTION_LOCK returns mixed selection info
     sendMock.mockResolvedValueOnce({ success: false, message: 'MIXED_SELECTION', payload: { lockedShapes: [{ id: 'a', name: 'A' }], unlockedShapes: [{ id: 'b', name: 'B' }] } });
 
   const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>> )({});
-  expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_LOCK_SELECTION', {});
+  expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_LOCK', {});
     expect(resp.message).toMatch(/Locked: A/);
     expect(resp.message).toMatch(/Unlocked: B/);
   });
 
   it('toggle-selection-lock can lock shapes when lock=true', async () => {
     const tool = FT.functionTools.find(t => t.id === 'toggle-selection-lock');
-  if (!tool) throw new Error('toggle-lock-selection tool not found');
+  if (!tool) throw new Error('toggle-selection-lock tool not found');
 
     const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
     // First call is not used but wrapper should still call GET_SELECTION_INFO
@@ -134,7 +134,7 @@ describe('functionTools resize-selection behavior', () => {
     sendMock.mockResolvedValueOnce({ success: true, payload: { lockedShapes: [{ id: 'a', name: 'A' }] }, message: 'Locked 1 shape' });
 
     const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>> )({ lock: true });
-  expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_LOCK_SELECTION', { lock: true });
+  expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_LOCK', { lock: true });
     expect((resp.payload as unknown as { lockedShapes?: Array<{ id: string }>} )?.lockedShapes).toEqual([{ id: 'a', name: 'A' }]);
   });
 });

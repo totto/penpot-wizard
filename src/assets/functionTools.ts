@@ -2,8 +2,8 @@ import {
   FunctionTool, 
   ClientQueryType, 
   AddImageFromUrlQueryPayload, 
-  ToggleLockSelectionQueryPayload, 
-  ToggleLockSelectionResponsePayload 
+  ToggleSelectionLockQueryPayload, 
+  ToggleSelectionLockResponsePayload 
 } from '@/types/types';
 import type { MoveQueryPayload, MoveResponsePayload } from '@/types/types';
 import { z } from 'zod';
@@ -85,10 +85,10 @@ export const functionTools: FunctionTool[] = [
   await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
 
       // Call plugin to lock/unlock (explicit or inferred)
-  const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_LOCK_SELECTION, args as unknown as ToggleLockSelectionQueryPayload);
+  const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_LOCK, args as unknown as ToggleSelectionLockQueryPayload);
 
       // If plugin returned mixed-selection info, surface it in the message
-  const payload = response.payload as ToggleLockSelectionResponsePayload | undefined;
+  const payload = response.payload as ToggleSelectionLockResponsePayload | undefined;
       if (payload && Array.isArray(payload.lockedShapes) && Array.isArray(payload.unlockedShapes) && payload.lockedShapes.length > 0 && payload.unlockedShapes.length > 0) {
         response.message = `The selection contains locked and unlocked shapes. Locked: ${payload.lockedShapes.map(s => s.name ?? s.id).join(', ')}; Unlocked: ${payload.unlockedShapes.map(s => s.name ?? s.id).join(', ')}. Specify lock=true to lock all unlocked shapes, or lock=false to unlock all locked shapes.`;
       }
