@@ -42,8 +42,10 @@ import {
   ExportSelectionAsSvgQueryPayload,
   ResizeQueryPayload,
   RotateQueryPayload,
+  MoveQueryPayload,
   ResizeResponsePayload,
   RotateResponsePayload,
+  MoveResponsePayload,
   GetSelectionInfoQueryPayload,
   ClientQueryType,
   MessageSourceName,
@@ -3708,6 +3710,121 @@ export async function rotateTool(payload: RotateQueryPayload): Promise<PluginRes
   }
 }
 
+export async function moveSelectionTool(payload: MoveQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const selectionInfo = readSelectionInfo();
+    if (!selectionInfo || selectionInfo.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.MOVE,
+        success: false,
+        message: `Please select at least 1 shape to move. You currently have ${selectionInfo?.length || 0} shape${(selectionInfo?.length || 0) !== 1 ? 's' : ''} selected.`,
+      };
+    }
+
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.MOVE,
+        success: false,
+        message: `Please select at least 1 shape to move. You currently have ${sel?.length || 0} shape${(sel?.length || 0) !== 1 ? 's' : ''} selected.`,
+        payload: {
+          currentSelectionInfo: selectionInfo,
+        } as unknown as MoveResponsePayload,
+      };
+    }
+
+    const { dx, dy, x, y } = payload ?? {};
+    if (typeof dx !== 'number' && typeof dy !== 'number' && typeof x !== 'number' && typeof y !== 'number') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.MOVE,
+        success: false,
+        message: 'Please specify dx/dy for relative move or x/y for absolute move',
+        payload: {
+          currentSelectionInfo: selectionInfo,
+        } as unknown as MoveResponsePayload,
+      };
+    }
+
+    // Capture previous positions
+    const previousPositions: Array<{ x?: number; y?: number }> = [];
+    const newPositions: Array<{ x?: number; y?: number }> = [];
+    const movedIds: string[] = [];
+
+    for (const shape of sel) {
+      try {
+        const prevX = typeof shape.x === 'number' ? shape.x : 0;
+        const prevY = typeof shape.y === 'number' ? shape.y : 0;
+        previousPositions.push({ x: prevX, y: prevY });
+
+        const targetX = typeof x === 'number' ? x : prevX + (dx ?? 0);
+        const targetY = typeof y === 'number' ? y : prevY + (dy ?? 0);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sAny = shape as any;
+        // Preference for a translate method if it exists
+        if (typeof sAny.translate === 'function') {
+          sAny.translate(targetX - prevX, targetY - prevY);
+        } else {
+          sAny.x = targetX;
+          sAny.y = targetY;
+        }
+
+        newPositions.push({ x: targetX, y: targetY });
+        movedIds.push(shape.id);
+      } catch (e) {
+        console.warn(`Failed to move shape ${shape.id}:`, e);
+      }
+    }
+
+    if (movedIds.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.MOVE,
+        success: false,
+        message: 'Failed to move any shapes',
+      };
+    }
+
+    const shapeNames = sel.map(s => s.name || s.id).join(', ');
+
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.MOVE,
+      actionId: `move_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      undoData: {
+        shapeIds: movedIds,
+        previousPositions,
+        newPositions,
+      },
+      description: `Moved ${movedIds.length} shape${movedIds.length > 1 ? 's' : ''}`,
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.MOVE,
+      message: `Moved ${movedIds.length} shape${movedIds.length > 1 ? 's' : ''}: ${shapeNames}`,
+      payload: {
+        movedShapes: sel.map(s => ({ id: s.id, name: s.name })),
+        previousPositions,
+        newPositions,
+        undoInfo,
+      } as unknown as MoveResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.MOVE,
+      success: false,
+      message: `Error moving selection: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function getSelectionInfoTool(_payload: GetSelectionInfoQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Use the safe information-reading function
@@ -3758,6 +3875,8 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
     // Get the last undoable action
     const lastAction = undoStack.pop()!;
   console.log('Undoing action:', lastAction.description);
+  console.log('Undoing actionType:', lastAction.actionType);
+    console.log('Undoing - data:', JSON.stringify(lastAction.undoData));
 
     // Push to redo stack so it can be redone
     redoStack.push(lastAction);
@@ -3779,6 +3898,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
 
           try {
             const currentPage = penpot.currentPage;
+              console.log('DEBUG undo MOVE: currentPage.getShapeById?', typeof (currentPage as any)?.getShapeById);
             if (!currentPage) continue;
 
             const shape = currentPage.getShapeById(shapeId);
@@ -3950,6 +4070,74 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to undo rotation for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+      case ClientQueryType.MOVE: {
+        // Reapply move on redo
+        const moveData = lastAction.undoData as { shapeIds: string[]; previousPositions: Array<{ x?: number; y?: number }>; newPositions: Array<{ x?: number; y?: number }> };
+        for (let i = 0; i < moveData.shapeIds.length; i++) {
+          const shapeId = moveData.shapeIds[i];
+          const newPosition = moveData.newPositions[i];
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            undoStack.push(lastAction);
+
+            if (typeof newPosition.x === 'number') {
+              shape.x = newPosition.x;
+            }
+            if (typeof newPosition.y === 'number') {
+              shape.y = newPosition.y;
+            }
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo move for shape ${shapeId}:`, error);
+          }
+        }
+
+        break;
+      }
+
+      
+
+      
+
+      
+
+      
+
+      case ClientQueryType.MOVE: {
+        const moveData = lastAction.undoData as { shapeIds: string[]; previousPositions: Array<{ x?: number; y?: number }>; newPositions: Array<{ x?: number; y?: number }> };
+  console.log('DEBUG undo MOVE lastAction.undoData:', JSON.stringify(moveData));
+  console.log('DEBUG undo MOVE: begin loop, shapeIds length', moveData.shapeIds.length);
+        for (let i = 0; i < moveData.shapeIds.length; i++) {
+          const shapeId = moveData.shapeIds[i];
+          const previousPosition = moveData.previousPositions[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore previous position if available
+            console.log('Undo MOVE: previousPosition=', previousPosition, 'current shape:', { x: shape.x, y: shape.y });
+            // Use nullish fallback to set previous coords when present
+            shape.x = previousPosition.x ?? shape.x;
+            shape.y = previousPosition.y ?? shape.y;
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to undo move for shape ${shapeId}:`, error);
           }
         }
         break;

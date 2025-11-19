@@ -59,6 +59,7 @@ export enum ClientQueryType {
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
   RESIZE = 'RESIZE',
   ROTATE = 'ROTATE',
+  MOVE = 'MOVE',
 }
 
 export enum PenpotShapeType {
@@ -377,12 +378,28 @@ export interface ResizeQueryPayload {
   maintainAspectRatio?: boolean; // If true, uses scaleX for both dimensions
 }
 
+export interface MoveQueryPayload {
+  // Relative movement (in screen units / pixels) — use dx/dy for relative moves.
+  dx?: number;
+  dy?: number;
+  // Absolute movement — set the new top-left coordinate for each selected object.
+  x?: number;
+  y?: number;
+}
+
 export interface RotateQueryPayload {
   /**
    * Rotation angle in degrees. Positive values rotate clockwise.
    * If not provided, the tool will return read-only selection info for UI display.
    */
   angle?: number;
+}
+
+export interface MoveResponsePayload {
+  movedShapes: Array<{ id: string; name?: string }>;
+  previousPositions: Array<{ x?: number; y?: number }>;
+  newPositions: Array<{ x?: number; y?: number }>;
+  undoInfo?: UndoInfo;
 }
 
 export type GetSelectionInfoQueryPayload = Record<string, never>;
