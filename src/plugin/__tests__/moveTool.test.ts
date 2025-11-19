@@ -100,6 +100,9 @@ describe('moveSelectionTool and undo/redo', () => {
     expect(unlocked.x).toBe(10);
     expect(unlocked.y).toBe(10);
 
+  // The response should include skipped locked shapes
+  expect((resp.payload as any)?.skippedLocked).toEqual([locked.id]);
+
     // undo/redo should only affect the moved shape
     const undoResp = await undoLastAction({});
     expect(undoResp.success).toBeTruthy();
