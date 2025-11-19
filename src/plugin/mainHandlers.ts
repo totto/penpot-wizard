@@ -925,10 +925,9 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
     for (const shape of sel) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       try {
-        // Respect lock state: do not attempt to move locked shapes
+        // Respect lock state: do not attempt to change locked shapes
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((shape as any).locked === true) {
-          skippedLocked.push(shape.id);
           continue;
         }
         // Apply blur effect to the shape
@@ -3759,14 +3758,17 @@ export async function moveSelectionTool(payload: MoveQueryPayload): Promise<Plug
     const previousPositions: Array<{ x?: number; y?: number }> = [];
     const newPositions: Array<{ x?: number; y?: number }> = [];
     const movedIds: string[] = [];
-  const skippedLocked: string[] = [];
+  // Track skipped locked shapes with ids and names for UI feedback
+  const skippedLockedIds: string[] = [];
+  const skippedLockedNames: string[] = [];
 
     for (const shape of sel) {
       try {
         // Respect lock state: do not attempt to move locked shapes
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((shape as any).locked === true) {
-          skippedLocked.push(shape.id);
+          skippedLockedIds.push(shape.id);
+          skippedLockedNames.push(shape.name ?? shape.id);
           continue;
         }
         const prevX = typeof shape.x === 'number' ? shape.x : 0;
@@ -3795,14 +3797,15 @@ export async function moveSelectionTool(payload: MoveQueryPayload): Promise<Plug
 
     if (movedIds.length === 0) {
       // If we couldn't move any shapes but some were locked, return a helpful message
-      if (skippedLocked.length > 0) {
+  if (skippedLockedIds.length > 0) {
         return {
           ...pluginResponse,
           type: ClientQueryType.MOVE,
           success: false,
-          message: `Skipped ${skippedLocked.length} locked shape(s): ${skippedLocked.join(', ')}`,
+    message: `Skipped ${skippedLockedIds.length} locked shape(s): ${skippedLockedNames.join(', ')}`,
           payload: {
-            skippedLocked,
+            skippedLockedIds,
+            skippedLockedNames,
           } as unknown as MoveResponsePayload,
         };
       }
@@ -3836,7 +3839,8 @@ export async function moveSelectionTool(payload: MoveQueryPayload): Promise<Plug
       message: `Moved ${movedIds.length} shape${movedIds.length > 1 ? 's' : ''}: ${shapeNames}`,
       payload: {
         movedShapes: sel.map(s => ({ id: s.id, name: s.name })),
-        skippedLocked,
+  skippedLockedIds,
+  skippedLockedNames,
         previousPositions,
         newPositions,
         undoInfo,

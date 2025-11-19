@@ -13,7 +13,7 @@ describe('functionTools resize-selection behavior', () => {
     if (!tool) throw new Error('resize-selection tool not found');
 
     // Mock GET_SELECTION_INFO response
-    (sendMessageToPlugin as any).mockResolvedValueOnce({ payload: { selectedObjects: [{ id: 's1', width: 10, height: 20 }] } });
+  (sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ payload: { selectedObjects: [{ id: 's1', width: 10, height: 20 }] } });
 
   const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>>)({});
     expect(sendMessageToPlugin).toHaveBeenCalledWith('GET_SELECTION_INFO', undefined);
@@ -43,5 +43,18 @@ describe('functionTools resize-selection behavior', () => {
   const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>>)({ scaleX: 1.5 });
     expect(sendMessageToPlugin).toHaveBeenCalledWith('RESIZE', { scaleX: 1.5 });
     expect(resp.success).toBe(true);
+  });
+
+  it('move-selection surfaces skipped locked shapes in message', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'move-selection');
+    if (!tool) throw new Error('move-selection tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockResolvedValueOnce({ success: true, payload: { skippedLockedNames: ['Locked'] } });
+
+    const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>>)({ dx: 10, dy: 10 });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('MOVE', { dx: 10, dy: 10 });
+  expect((resp.payload as unknown as { skippedLockedNames?: string[] })?.skippedLockedNames).toEqual(['Locked']);
+    expect(resp.message).toMatch(/Skipped locked shapes: Locked/);
   });
 });

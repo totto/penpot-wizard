@@ -178,7 +178,7 @@ export interface RedoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to redo, otherwise redo the last undone one
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CreateShapeFromSvgQueryPayload | ExportSelectionAsSvgQueryPayload | ExportSelectionAsPngQueryPayload | ExportSelectionAsJpegQueryPayload | ExportSelectionAsWebpQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload | ResizeQueryPayload | GetSelectionInfoQueryPayload;
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CreateShapeFromSvgQueryPayload | ExportSelectionAsSvgQueryPayload | ExportSelectionAsPngQueryPayload | ExportSelectionAsJpegQueryPayload | ExportSelectionAsWebpQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload | ResizeQueryPayload | GetSelectionInfoQueryPayload | MoveQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -399,6 +399,9 @@ export interface MoveResponsePayload {
   movedShapes: Array<{ id: string; name?: string }>;
   previousPositions: Array<{ x?: number; y?: number }>;
   newPositions: Array<{ x?: number; y?: number }>;
+  // Shapes that were skipped because they were locked. Names are provided for UI-friendly messages
+  skippedLockedIds?: string[];
+  skippedLockedNames?: string[];
   undoInfo?: UndoInfo;
 }
 

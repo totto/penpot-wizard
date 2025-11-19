@@ -162,6 +162,8 @@ export interface MoveResponsePayload {
   movedShapes: string[];
   previousPositions: Array<{ x?: number; y?: number }>;
   newPositions: Array<{ x?: number; y?: number }>;
+  skippedLockedIds?: string[];
+  skippedLockedNames?: string[];
   undoInfo?: UndoInfo;
 }
 

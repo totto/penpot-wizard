@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { moveSelectionTool, undoLastAction, redoLastAction } from '../mainHandlers';
+import { MoveResponsePayload } from '@/types/types';
 
 describe('moveSelectionTool and undo/redo', () => {
   const originalPenpot = (globalThis as any).penpot;
@@ -28,8 +29,9 @@ describe('moveSelectionTool and undo/redo', () => {
     expect(shape.y).toBe(10);
 
   // verify undoData contains the previous positions
-  expect((moveResp.payload as any)?.undoInfo).toBeDefined();
-  const undoData: any = (moveResp.payload as any)?.undoInfo?.undoData;
+  const payload = moveResp.payload as MoveResponsePayload | undefined;
+  expect(payload?.undoInfo).toBeDefined();
+  const undoData = payload!.undoInfo!.undoData as { previousPositions: Array<{ x?: number; y?: number }> };
   expect(undoData.previousPositions[0].x).toBe(10);
 
   const undoResp = await undoLastAction({});
@@ -101,7 +103,8 @@ describe('moveSelectionTool and undo/redo', () => {
     expect(unlocked.y).toBe(10);
 
   // The response should include skipped locked shapes
-  expect((resp.payload as any)?.skippedLocked).toEqual([locked.id]);
+  const respPayload = resp.payload as MoveResponsePayload;
+  expect(respPayload.skippedLockedNames).toEqual([locked.name]);
 
     // undo/redo should only affect the moved shape
     const undoResp = await undoLastAction({});

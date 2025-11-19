@@ -1,4 +1,4 @@
-import { FunctionTool, ClientQueryType, AddImageFromUrlQueryPayload } from '@/types/types';
+import { FunctionTool, ClientQueryType, AddImageFromUrlQueryPayload, MoveQueryPayload, MoveResponsePayload } from '@/types/types';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 
@@ -49,6 +49,36 @@ export const functionTools: FunctionTool[] = [
     inputSchema: z.object({}),
     function: async () => {
       const response = await sendMessageToPlugin(ClientQueryType.GET_CURRENT_PAGE, undefined);
+      return response;
+    },
+  },
+  {
+    id: 'move-selection',
+    name: 'moveSelection',
+    description: `
+      Move the currently selected shapes using dx/dy (relative) or x/y (absolute) coordinates.
+      Locks are respected: locked shapes will be skipped. If locked shapes were skipped, the function
+      will append a user-friendly message to the plugin response showing the names of skipped shapes.
+    `,
+    inputSchema: z.object({
+      dx: z.number().optional(),
+      dy: z.number().optional(),
+      x: z.number().optional(),
+      y: z.number().optional(),
+    }),
+    function: async (args: MoveQueryPayload) => {
+      if (!args || (typeof args.dx === 'undefined' && typeof args.dy === 'undefined' && typeof args.x === 'undefined' && typeof args.y === 'undefined')) {
+        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        return selectionResp;
+      }
+
+  const response = await sendMessageToPlugin(ClientQueryType.MOVE, args as unknown as MoveQueryPayload);
+      // Surface skipped locked shapes in the user message
+      const payload = response.payload as MoveResponsePayload | undefined;
+      if (payload?.skippedLockedNames && payload.skippedLockedNames.length > 0) {
+        response.message = `${response.message} Skipped locked shapes: ${payload.skippedLockedNames.join(', ')}`;
+      }
+
       return response;
     },
   },
