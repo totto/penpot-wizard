@@ -28,6 +28,7 @@ import {
   PluginResponseMessage,
   MoveQueryPayload,
   ToggleSelectionLockQueryPayload,
+  ToggleSelectionVisibilityQueryPayload,
   CreateLibraryFontPayload,
   CreateLibraryComponentPayload,
   UndoLastActionQueryPayload,
@@ -80,6 +81,7 @@ import {
   rotateTool,
   getSelectionInfoTool
   , moveSelectionTool, toggleSelectionLockTool
+  , toggleSelectionVisibilityTool
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -322,6 +324,9 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.TOGGLE_SELECTION_LOCK:
       responseMessage = await toggleSelectionLockTool(payload as unknown as ToggleSelectionLockQueryPayload);
+      break;
+    case ClientQueryType.TOGGLE_SELECTION_VISIBILITY:
+      responseMessage = await toggleSelectionVisibilityTool(payload as unknown as ToggleSelectionVisibilityQueryPayload);
       break;
 
     default:

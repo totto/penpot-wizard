@@ -61,6 +61,7 @@ export enum ClientQueryType {
   ROTATE = 'ROTATE',
   MOVE = 'MOVE',
   TOGGLE_SELECTION_LOCK = 'TOGGLE_SELECTION_LOCK',
+  TOGGLE_SELECTION_VISIBILITY = 'TOGGLE_SELECTION_VISIBILITY',
 }
 
 export enum PenpotShapeType {
@@ -238,7 +239,8 @@ DrawShapeQueryPayload
 | ResizeQueryPayload 
 | GetSelectionInfoQueryPayload 
 | MoveQueryPayload 
-| ToggleSelectionLockQueryPayload;
+| ToggleSelectionLockQueryPayload
+| ToggleSelectionVisibilityQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -454,6 +456,13 @@ export interface ToggleSelectionLockQueryPayload {
   shapeIds?: string[];
 }
 
+export interface ToggleSelectionVisibilityQueryPayload {
+  // If provided, force hide (true) or unhide (false).
+  hide?: boolean;
+  // Optional specific shape IDs to apply the visibility change to. Uses selection if omitted.
+  shapeIds?: string[];
+}
+
 export interface RotateQueryPayload {
   /**
    * Rotation angle in degrees. Positive values rotate clockwise.
@@ -475,6 +484,12 @@ export interface MoveResponsePayload {
 export interface ToggleSelectionLockResponsePayload {
   lockedShapes?: Array<{ id: string; name?: string }>;
   unlockedShapes?: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface ToggleSelectionVisibilityResponsePayload {
+  hiddenShapes?: Array<{ id: string; name?: string }>;
+  unhiddenShapes?: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
 }
 
@@ -713,6 +728,7 @@ export type PluginResponsePayload =
   | GetSelectionInfoResponsePayload
   | MoveResponsePayload
   | ToggleSelectionLockResponsePayload
+  | ToggleSelectionVisibilityResponsePayload
   | UngroupResponsePayload
   | GroupResponsePayload;
 

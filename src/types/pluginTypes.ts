@@ -31,6 +31,7 @@ export enum ClientQueryType {
   ROTATE = 'ROTATE',
   MOVE = 'MOVE',
   TOGGLE_SELECTION_LOCK = 'TOGGLE_SELECTION_LOCK',
+  TOGGLE_SELECTION_VISIBILITY = 'TOGGLE_SELECTION_VISIBILITY',
 }
 
 // Plugin-specific enums and types
@@ -101,6 +102,11 @@ export interface MoveQueryPayload {
 
 export interface ToggleSelectionLockQueryPayload {
   lock?: boolean;
+  shapeIds?: string[];
+}
+
+export interface ToggleSelectionVisibilityQueryPayload {
+  hide?: boolean;
   shapeIds?: string[];
 }
 
@@ -176,6 +182,12 @@ export interface MoveResponsePayload {
 export interface ToggleSelectionLockResponsePayload {
   lockedShapes?: Array<{ id: string; name?: string }>;
   unlockedShapes?: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface ToggleSelectionVisibilityResponsePayload {
+  hiddenShapes?: Array<{ id: string; name?: string }>;
+  unhiddenShapes?: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
 }
 

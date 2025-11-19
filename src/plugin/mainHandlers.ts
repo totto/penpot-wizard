@@ -48,6 +48,8 @@ import {
   MoveResponsePayload,
   ToggleSelectionLockQueryPayload,
   ToggleSelectionLockResponsePayload,
+  ToggleSelectionVisibilityQueryPayload,
+  ToggleSelectionVisibilityResponsePayload,
   GetSelectionInfoQueryPayload,
   ClientQueryType,
   MessageSourceName,
@@ -3984,6 +3986,126 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
   }
 }
 
+export async function toggleSelectionVisibilityTool(payload: ToggleSelectionVisibilityQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { hide, shapeIds } = payload ?? {};
+
+    let targets: any[] = [];
+    if (shapeIds && Array.isArray(shapeIds) && shapeIds.length > 0) {
+      const currentPage = penpot.currentPage as any;
+      if (!currentPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.TOGGLE_SELECTION_VISIBILITY,
+          success: false,
+          message: 'No current page available to modify shapes',
+        };
+      }
+
+      for (const id of shapeIds) {
+        const s = currentPage.getShapeById(id);
+        if (s) targets.push(s);
+      }
+    } else {
+      targets = getSelectionForAction() as any[];
+    }
+
+    if (!targets || targets.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.TOGGLE_SELECTION_VISIBILITY,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    const visibleStates = targets.map((s: any) => typeof s.visible === 'boolean' ? !!s.visible : true);
+    const hasVisible = visibleStates.some(Boolean);
+    const hasHidden = visibleStates.some(v => !v);
+
+    if (typeof hide === 'undefined' && hasVisible && hasHidden) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.TOGGLE_SELECTION_VISIBILITY,
+        success: false,
+        message: 'MIXED_SELECTION',
+        payload: {
+          hiddenShapes: targets.filter((s: any) => !s.visible).map((s: any) => ({ id: s.id, name: s.name })),
+          unhiddenShapes: targets.filter((s: any) => s.visible).map((s: any) => ({ id: s.id, name: s.name })),
+        } as unknown as ToggleSelectionVisibilityResponsePayload,
+      };
+    }
+
+    const willHide = typeof hide === 'boolean' ? hide : (!hasVisible && !hasHidden ? true : !hasHidden);
+    const previousStates: boolean[] = [];
+    const affectedIds: string[] = [];
+    const hiddenShapes: Array<{ id: string; name?: string }> = [];
+    const unhiddenShapes: Array<{ id: string; name?: string }> = [];
+
+    for (const shape of targets) {
+      try {
+        const prevVisible = typeof shape.visible === 'boolean' ? !!shape.visible : true;
+        if (willHide && shape.visible) {
+          shape.visible = false;
+          hiddenShapes.push({ id: shape.id, name: shape.name });
+          affectedIds.push(shape.id);
+          previousStates.push(prevVisible);
+        } else if (!willHide && !shape.visible) {
+          shape.visible = true;
+          unhiddenShapes.push({ id: shape.id, name: shape.name });
+          affectedIds.push(shape.id);
+          previousStates.push(prevVisible);
+        }
+      } catch (e) {
+        console.warn(`Failed to toggle visibility for shape ${shape.id}:`, e);
+      }
+    }
+
+    if (affectedIds.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.TOGGLE_SELECTION_VISIBILITY,
+        success: false,
+        message: willHide ? 'No shapes to hide' : 'No shapes to unhide',
+      };
+    }
+
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.TOGGLE_SELECTION_VISIBILITY,
+      actionId: `visibility_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `${willHide ? 'Hidden' : 'Unhidden'} ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''}`,
+      undoData: {
+        shapeIds: affectedIds,
+        previousVisibleStates: previousStates,
+      },
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    const respPayload: ToggleSelectionVisibilityResponsePayload = {
+      hiddenShapes: hiddenShapes.length > 0 ? hiddenShapes : undefined,
+      unhiddenShapes: unhiddenShapes.length > 0 ? unhiddenShapes : undefined,
+      undoInfo,
+    };
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.TOGGLE_SELECTION_VISIBILITY,
+      success: true,
+      message: `${willHide ? 'Hidden' : 'Unhidden'} ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''}`,
+      payload: respPayload,
+    };
+  } catch (err) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.TOGGLE_SELECTION_VISIBILITY,
+      success: false,
+      message: `Error toggling visibility for selection: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
 export async function getSelectionInfoTool(_payload: GetSelectionInfoQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Use the safe information-reading function
@@ -4301,6 +4423,29 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to restore lock state for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+      case ClientQueryType.TOGGLE_SELECTION_VISIBILITY: {
+        // Restore previous visibility states
+        const visData = lastAction.undoData as { shapeIds: string[]; previousVisibleStates: boolean[] };
+
+        for (let i = 0; i < visData.shapeIds.length; i++) {
+          const shapeId = visData.shapeIds[i];
+          const previousVisible = visData.previousVisibleStates[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            (shape as any).visible = !!previousVisible;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore visibility for shape ${shapeId}:`, error);
           }
         }
         break;
@@ -5213,6 +5358,32 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
                 restoredShapes.push(shape.name || shape.id);
               } catch (error) {
                 console.warn(`Failed to redo lock/unlock for shape ${shapeId}:`, error);
+              }
+            }
+
+            break;
+          }
+          case ClientQueryType.TOGGLE_SELECTION_VISIBILITY: {
+            const visData = lastAction.undoData as { shapeIds: string[]; previousVisibleStates: boolean[] };
+
+            for (let i = 0; i < visData.shapeIds.length; i++) {
+              const shapeId = visData.shapeIds[i];
+              const previousVisible = visData.previousVisibleStates[i];
+
+              try {
+                const currentPage = penpot.currentPage;
+                if (!currentPage) continue;
+
+                const shape = currentPage.getShapeById(shapeId);
+                if (!shape) continue;
+
+                // reapply the changed visibility (opposite of previous)
+                (shape as any).visible = !previousVisible;
+
+                undoStack.push(lastAction);
+                restoredShapes.push(shape.name || shape.id);
+              } catch (error) {
+                console.warn(`Failed to redo visibility change for shape ${shapeId}:`, error);
               }
             }
 

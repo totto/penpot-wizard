@@ -3,7 +3,9 @@ import {
   ClientQueryType, 
   AddImageFromUrlQueryPayload, 
   ToggleSelectionLockQueryPayload, 
-  ToggleSelectionLockResponsePayload 
+  ToggleSelectionLockResponsePayload, 
+  ToggleSelectionVisibilityQueryPayload, 
+  ToggleSelectionVisibilityResponsePayload
 } from '@/types/types';
 import type { MoveQueryPayload, MoveResponsePayload } from '@/types/types';
 import { z } from 'zod';
@@ -96,6 +98,38 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
+    {
+        id: 'toggle-selection-visibility',
+        name: 'toggleSelectionVisibility',
+        description: `
+          Hide or unhide the currently selected shapes. If called without an explicit 'hide' boolean
+          the tool will read the selection and:
+          - If all selected shapes are visible, it will hide them.
+          - If all selected shapes are hidden, it will unhide them.
+          - If selection contains both visible and hidden shapes, it will return a prompt payload
+            that the UI can use to ask the user whether to hide the visible shapes or unhide the hidden shapes.
+        `,
+        inputSchema: z.object({
+          hide: z.boolean().optional(),
+          shapeIds: z.array(z.string()).optional(),
+        }),
+        function: async (args?: { hide?: boolean; shapeIds?: string[] }) => {
+          if (!args) {
+            return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+          }
+
+          await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+
+          const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_VISIBILITY, args as unknown as ToggleSelectionVisibilityQueryPayload);
+
+          const payload = response.payload as ToggleSelectionVisibilityResponsePayload | undefined;
+          if (payload && Array.isArray(payload.hiddenShapes) && Array.isArray(payload.unhiddenShapes) && payload.hiddenShapes.length > 0 && payload.unhiddenShapes.length > 0) {
+            response.message = `The selection contains hidden and visible shapes. Hidden: ${payload.hiddenShapes.map(s => s.name ?? s.id).join(', ')}; Visible: ${payload.unhiddenShapes.map(s => s.name ?? s.id).join(', ')}. Specify hide=true to hide visible shapes, or hide=false to unhide the hidden shapes.`;
+          }
+
+          return response;
+        },
+    },
   {
     id: 'move-selection',
     name: 'moveSelection',
