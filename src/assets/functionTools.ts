@@ -1,4 +1,5 @@
-import { FunctionTool, ClientQueryType, AddImageFromUrlQueryPayload, MoveQueryPayload, MoveResponsePayload } from '@/types/types';
+import { FunctionTool, ClientQueryType, AddImageFromUrlQueryPayload } from '@/types/types';
+import type { MoveQueryPayload, MoveResponsePayload } from '@/types/types';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 
@@ -72,11 +73,27 @@ export const functionTools: FunctionTool[] = [
         return selectionResp;
       }
 
-  const response = await sendMessageToPlugin(ClientQueryType.MOVE, args as unknown as MoveQueryPayload);
-      // Surface skipped locked shapes in the user message
+      // Read selection before performing the action to tailor the user message if locked shapes
+      // are skipped by the move operation.
+      const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+
+      const response = await sendMessageToPlugin(ClientQueryType.MOVE, args as unknown as MoveQueryPayload);
+      // Tailor the message depending on number of skipped locked shapes and selection context
       const payload = response.payload as MoveResponsePayload | undefined;
       if (payload?.skippedLockedNames && payload.skippedLockedNames.length > 0) {
-        response.message = `${response.message} Skipped locked shapes: ${payload.skippedLockedNames.join(', ')}`;
+        const skipped = payload.skippedLockedNames;
+  const selectionCount = ((selectionResp.payload as unknown) as { selectionCount?: number })?.selectionCount ?? 0;
+
+        if (skipped.length === 1) {
+          const name = skipped[0];
+          if (selectionCount <= 1) {
+            response.message = `We couldn't move ${name} because it is locked. I can provide instructions to unlock it, or (when implemented) unlock it and retry the move.`;
+          } else {
+            response.message = `One of the selected shapes, ${name}, is locked and was skipped. The other shapes were moved. I can provide instructions to unlock it, or re-run the move once it's unlocked.`;
+          }
+        } else {
+          response.message = `The following shapes are locked and were skipped: ${skipped.join(', ')}. The other shapes were moved; I can provide instructions to unlock them so I can also move them.`;
+        }
       }
 
       return response;

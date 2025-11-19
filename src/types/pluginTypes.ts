@@ -267,7 +267,13 @@ export interface GroupResponsePayload {
   groupedShapes: Array<{ id: string; name?: string }>;
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | CreateLibraryFontPayload | CreateLibraryComponentPayload;
+export type ClientQueryPayload = 
+DrawShapeQueryPayload 
+| AddImageQueryPayload 
+| AddImageFromUrlQueryPayload 
+| ApplyBlurQueryPayload 
+| CreateLibraryFontPayload 
+| CreateLibraryComponentPayload;
 
 export type PluginResponsePayload = 
 DrawShapeResponsePayload 
