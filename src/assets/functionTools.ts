@@ -1,4 +1,10 @@
-import { FunctionTool, ClientQueryType, AddImageFromUrlQueryPayload } from '@/types/types';
+import { 
+  FunctionTool, 
+  ClientQueryType, 
+  AddImageFromUrlQueryPayload, 
+  ToggleLockSelectionQueryPayload, 
+  ToggleLockSelectionResponsePayload 
+} from '@/types/types';
 import type { MoveQueryPayload, MoveResponsePayload } from '@/types/types';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
@@ -54,6 +60,43 @@ export const functionTools: FunctionTool[] = [
     },
   },
   {
+  id: 'toggle-selection-lock',
+  name: 'toggleSelectionLock',
+    description: `
+      Lock or unlock the currently selected shapes. If called without an explicit 'lock' boolean
+      the tool will read the selection and:
+      - If all selected shapes are unlocked, it will lock them.
+      - If all selected shapes are locked, it will unlock them.
+      - If selection contains both locked and unlocked shapes, it will return a prompt payload
+        that the UI can use to ask the user whether to lock the unlocked shapes or unlock
+        the locked shapes.
+    `,
+    inputSchema: z.object({
+      lock: z.boolean().optional(),
+      shapeIds: z.array(z.string()).optional(),
+    }),
+    function: async (args?: { lock?: boolean; shapeIds?: string[] }) => {
+      // If args undefined (no explicit input), return read-only selection info
+      if (!args) {
+        return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      }
+
+      // Read selection first for message tailoring, then call the toggle action
+  await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+
+      // Call plugin to lock/unlock (explicit or inferred)
+  const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_LOCK_SELECTION, args as unknown as ToggleLockSelectionQueryPayload);
+
+      // If plugin returned mixed-selection info, surface it in the message
+  const payload = response.payload as ToggleLockSelectionResponsePayload | undefined;
+      if (payload && Array.isArray(payload.lockedShapes) && Array.isArray(payload.unlockedShapes) && payload.lockedShapes.length > 0 && payload.unlockedShapes.length > 0) {
+        response.message = `The selection contains locked and unlocked shapes. Locked: ${payload.lockedShapes.map(s => s.name ?? s.id).join(', ')}; Unlocked: ${payload.unlockedShapes.map(s => s.name ?? s.id).join(', ')}. Specify lock=true to lock all unlocked shapes, or lock=false to unlock all locked shapes.`;
+      }
+
+      return response;
+    },
+  },
+  {
     id: 'move-selection',
     name: 'moveSelection',
     description: `
@@ -87,7 +130,7 @@ export const functionTools: FunctionTool[] = [
         if (skipped.length === 1) {
           const name = skipped[0];
           if (selectionCount <= 1) {
-            response.message = `We couldn't move ${name} because it is locked. I can provide instructions to unlock it, or (when implemented) unlock it and retry the move.`;
+            response.message = `We couldn't move ${name} because it is locked. I can provide instructions to unlock it, or unlock it and retry the move.`;
           } else {
             response.message = `One of the selected shapes, ${name}, is locked and was skipped. The other shapes were moved. I can provide instructions to unlock it, or re-run the move once it's unlocked.`;
           }

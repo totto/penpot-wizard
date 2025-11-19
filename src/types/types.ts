@@ -60,6 +60,7 @@ export enum ClientQueryType {
   RESIZE = 'RESIZE',
   ROTATE = 'ROTATE',
   MOVE = 'MOVE',
+  TOGGLE_LOCK_SELECTION = 'TOGGLE_LOCK_SELECTION',
 }
 
 export enum PenpotShapeType {
@@ -74,7 +75,8 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UnionBooleanOperationQueryPayload | IntersectionBooleanOperationQueryPayload | DifferenceBooleanOperationQueryPayload | ExcludeBooleanOperationQueryPayload | FlattenSelectionQueryPayload | CreateShapeFromSvgQueryPayload | ExportSelectionAsSvgQueryPayload | ExportSelectionAsPngQueryPayload | ExportSelectionAsJpegQueryPayload | ExportSelectionAsWebpQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload | ResizeQueryPayload | GetSelectionInfoQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | UnionBooleanOperationQueryPayload | IntersectionBooleanOperationQueryPayload | DifferenceBooleanOperationQueryPayload | ExcludeBooleanOperationQueryPayload | FlattenSelectionQueryPayload | CreateShapeFromSvgQueryPayload | ExportSelectionAsSvgQueryPayload | ExportSelectionAsPngQueryPayload | ExportSelectionAsJpegQueryPayload | ExportSelectionAsWebpQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload | ResizeQueryPayload | GetSelectionInfoQueryPayload | MoveQueryPayload | ToggleLockSelectionQueryPayload;
+
 }
 
 export interface DrawShapeQueryPayload {
@@ -178,7 +180,7 @@ export interface RedoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to redo, otherwise redo the last undone one
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CreateShapeFromSvgQueryPayload | ExportSelectionAsSvgQueryPayload | ExportSelectionAsPngQueryPayload | ExportSelectionAsJpegQueryPayload | ExportSelectionAsWebpQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload | ResizeQueryPayload | GetSelectionInfoQueryPayload | MoveQueryPayload;
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | AddImageFromUrlQueryPayload | ApplyBlurQueryPayload | ApplyFillQueryPayload | ApplyStrokeQueryPayload | ApplyLinearGradientQueryPayload | ApplyRadialGradientQueryPayload | ApplyShadowQueryPayload | AlignHorizontalQueryPayload | AlignVerticalQueryPayload | CenterAlignmentQueryPayload | DistributeHorizontalQueryPayload | DistributeVerticalQueryPayload | GroupQueryPayload | UngroupQueryPayload | CreateShapeFromSvgQueryPayload | ExportSelectionAsSvgQueryPayload | ExportSelectionAsPngQueryPayload | ExportSelectionAsJpegQueryPayload | ExportSelectionAsWebpQueryPayload | UndoLastActionQueryPayload | RedoLastActionQueryPayload | ResizeQueryPayload | GetSelectionInfoQueryPayload | MoveQueryPayload | ToggleLockSelectionQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -387,6 +389,13 @@ export interface MoveQueryPayload {
   y?: number;
 }
 
+export interface ToggleLockSelectionQueryPayload {
+  // If provided, force lock (true) or unlock (false).
+  lock?: boolean;
+  // Optional shape IDs to apply the lock/unlock to. If omitted, current selection will be used.
+  shapeIds?: string[];
+}
+
 export interface RotateQueryPayload {
   /**
    * Rotation angle in degrees. Positive values rotate clockwise.
@@ -402,6 +411,12 @@ export interface MoveResponsePayload {
   // Shapes that were skipped because they were locked. Names are provided for UI-friendly messages
   skippedLockedIds?: string[];
   skippedLockedNames?: string[];
+  undoInfo?: UndoInfo;
+}
+
+export interface ToggleLockSelectionResponsePayload {
+  lockedShapes?: Array<{ id: string; name?: string }>;
+  unlockedShapes?: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
 }
 
@@ -638,6 +653,8 @@ export type PluginResponsePayload =
   | ResizeResponsePayload
   | RotateResponsePayload
   | GetSelectionInfoResponsePayload
+  | MoveResponsePayload
+  | ToggleLockSelectionResponsePayload
   | UngroupResponsePayload
   | GroupResponsePayload;
 

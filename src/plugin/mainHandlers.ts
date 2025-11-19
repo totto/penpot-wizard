@@ -46,6 +46,8 @@ import {
   ResizeResponsePayload,
   RotateResponsePayload,
   MoveResponsePayload,
+  ToggleLockSelectionQueryPayload,
+  ToggleLockSelectionResponsePayload,
   GetSelectionInfoQueryPayload,
   ClientQueryType,
   MessageSourceName,
@@ -3856,6 +3858,132 @@ export async function moveSelectionTool(payload: MoveQueryPayload): Promise<Plug
   }
 }
 
+export async function toggleLockSelectionTool(payload: ToggleLockSelectionQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { lock, shapeIds } = payload ?? {};
+
+    // Determine which shapes to apply the lock/unlock to
+    let targets: any[] = [];
+    if (shapeIds && Array.isArray(shapeIds) && shapeIds.length > 0) {
+      // Use currentPage to fetch shapes by id
+      const currentPage = penpot.currentPage as any;
+      if (!currentPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.TOGGLE_LOCK_SELECTION,
+          success: false,
+          message: 'No current page available to modify shapes',
+        };
+      }
+
+      for (const id of shapeIds) {
+        const s = currentPage.getShapeById(id);
+        if (s) targets.push(s);
+      }
+    } else {
+      // Use the action-only selection getter for safe mutations
+      targets = getSelectionForAction() as any[];
+    }
+
+    if (!targets || targets.length === 0) {
+      return {
+        ...pluginResponse,
+  type: ClientQueryType.TOGGLE_LOCK_SELECTION,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    // If lock not specified, decide fallback: if all are locked -> unlock all; if all unlocked -> lock all; if mixed -> prompt
+    const lockedStates = targets.map((s: any) => !!s.locked);
+    const hasLocked = lockedStates.some(Boolean);
+    const hasUnlocked = lockedStates.some(v => !v);
+
+    if (typeof lock === 'undefined' && hasLocked && hasUnlocked) {
+      // Mixed selection - return prompt for UI to ask user which action to take
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.TOGGLE_LOCK_SELECTION,
+        success: false,
+        message: 'MIXED_SELECTION',
+        payload: {
+          lockedShapes: targets.filter((s: any) => !!s.locked).map((s: any) => ({ id: s.id, name: s.name })),
+          unlockedShapes: targets.filter((s: any) => !s.locked).map((s: any) => ({ id: s.id, name: s.name })),
+        } as unknown as ToggleLockSelectionResponsePayload,
+      };
+    }
+
+    const willLock = typeof lock === 'boolean' ? lock : (!hasLocked && !hasUnlocked ? true : !hasLocked);
+  const previousStates: boolean[] = [];
+    const affectedIds: string[] = [];
+    const lockedShapes: Array<{ id: string; name?: string }> = [];
+    const unlockedShapes: Array<{ id: string; name?: string }> = [];
+
+    for (const shape of targets) {
+      try {
+        const prevLocked = !!shape.locked;
+        // Apply only if needed
+        if (willLock && !shape.locked) {
+          shape.locked = true;
+          lockedShapes.push({ id: shape.id, name: shape.name });
+          affectedIds.push(shape.id);
+          previousStates.push(prevLocked);
+        } else if (!willLock && shape.locked) {
+          shape.locked = false;
+          unlockedShapes.push({ id: shape.id, name: shape.name });
+          affectedIds.push(shape.id);
+          previousStates.push(prevLocked);
+        }
+      } catch (e) {
+        console.warn(`Failed to toggle lock for shape ${shape.id}:`, e);
+      }
+    }
+
+    if (affectedIds.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.TOGGLE_LOCK_SELECTION,
+        success: false,
+        message: willLock ? 'No shapes to lock' : 'No shapes to unlock',
+      };
+    }
+
+    const undoInfo: UndoInfo = {
+  actionType: ClientQueryType.TOGGLE_LOCK_SELECTION,
+      actionId: `lock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `${willLock ? 'Locked' : 'Unlocked'} ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''}`,
+      undoData: {
+        shapeIds: affectedIds,
+        previousLockedStates: previousStates,
+      },
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+  const respPayload: ToggleLockSelectionResponsePayload = {
+      lockedShapes: lockedShapes.length > 0 ? lockedShapes : undefined,
+      unlockedShapes: unlockedShapes.length > 0 ? unlockedShapes : undefined,
+      undoInfo,
+    };
+
+    return {
+      ...pluginResponse,
+  type: ClientQueryType.TOGGLE_LOCK_SELECTION,
+      success: true,
+      message: `${willLock ? 'Locked' : 'Unlocked'} ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''}`,
+      payload: respPayload,
+    };
+  } catch (err) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.TOGGLE_LOCK_SELECTION,
+      success: false,
+      message: `Error locking/unlocking selection: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
 export async function getSelectionInfoTool(_payload: GetSelectionInfoQueryPayload): Promise<PluginResponseMessage> {
   try {
     // Use the safe information-reading function
@@ -3867,7 +3995,7 @@ export async function getSelectionInfoTool(_payload: GetSelectionInfoQueryPayloa
         type: ClientQueryType.GET_SELECTION_INFO,
         success: false,
         message: 'No shapes are currently selected. Please select one or more shapes first.',
-      };
+  };
     }
 
     const shapeNames = selectedObjects.map(obj => obj.name || `Shape ${obj.id.slice(-4)}`).join(', ');
@@ -4150,6 +4278,35 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         }
         break;
       }
+
+  case ClientQueryType.TOGGLE_LOCK_SELECTION: {
+        // Restore previous locked state (undo)
+        const lockData = lastAction.undoData as { shapeIds: string[]; previousLockedStates: boolean[] };
+
+        for (let i = 0; i < lockData.shapeIds.length; i++) {
+          const shapeId = lockData.shapeIds[i];
+          const previousLocked = lockData.previousLockedStates[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore previous locked state
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (shape as any).locked = !!previousLocked;
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore lock state for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+  // Do not duplicate TOGGLE_LOCK_SELECTION here; handled in undo case above
 
       
 
@@ -5033,6 +5190,34 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
           }
           break;
         }
+
+          case ClientQueryType.TOGGLE_LOCK_SELECTION: {
+            const lockData = lastAction.undoData as { shapeIds: string[]; previousLockedStates: boolean[] };
+
+            for (let i = 0; i < lockData.shapeIds.length; i++) {
+              const shapeId = lockData.shapeIds[i];
+              const previousLocked = lockData.previousLockedStates[i];
+
+              try {
+                const currentPage = penpot.currentPage;
+                if (!currentPage) continue;
+
+                const shape = currentPage.getShapeById(shapeId);
+                if (!shape) continue;
+
+                // Reapply the original applied state (opposite of previousLocked)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (shape as any).locked = !previousLocked;
+
+                undoStack.push(lastAction);
+                restoredShapes.push(shape.name || shape.id);
+              } catch (error) {
+                console.warn(`Failed to redo lock/unlock for shape ${shapeId}:`, error);
+              }
+            }
+
+            break;
+          }
 
       case ClientQueryType.APPLY_STROKE: {
         // Reapply the stroke values
