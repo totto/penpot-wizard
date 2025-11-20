@@ -174,3 +174,9 @@ interface UndoInfo {
 **These instructions and the enclosing `.github/` folder should only exist on the `tools_frank` branch.** They are development aids for tool creation and will not be moved to individual feature branches. When creating separate feature branches for specific tools, keep those branches completely focused and scoped to the respective tools only—do not include this instructions file or `Code-Cleanup-and-UX.md` (which also stays on `tools_frank`).
 
 **The file `codealike.json` should always be untracked and ignored by git in every branch.** It is a personal file added by an extension for tracking coding activity and should never be present in the shared repo.
+
+## Branch Roadmap
+
+This branch keeps all tools together for now. The high-level plan is to eventually pull each tool into its own feature branch that starts from `main` (after the shared-selection-system infrastructure PR merges) and includes only the minimal changes needed for that tool to function. Those feature branches must stay clean, scoped to the tool, and will not start until every tool is finished in this branch. I, the user, will initiate that move when the time comes, but the AI should keep the roadmap in mind while working today.
+
+To make future migrations easier, maintain a lightweight registry (notes, maps, or a documented system) that tracks which files, helper modules, and assets belong to each tool so the AI can quickly locate the pieces to move later. Always walk me through a plan before executing any steps that touch the shared toolset, and remind me of this roadmap during planning.
