@@ -36,6 +36,7 @@ import {
   ExportSelectionAsSvgQueryPayload,
   ResizeQueryPayload,
   RotateQueryPayload,
+  CloneSelectionQueryPayload,
   GetSelectionInfoQueryPayload,
 } from '../types/types';
 
@@ -79,9 +80,11 @@ import {
   exportSelectionAsSvgTool,
   resizeTool,
   rotateTool,
-  getSelectionInfoTool
-  , moveSelectionTool, toggleSelectionLockTool
-  , toggleSelectionVisibilityTool
+  getSelectionInfoTool,
+  moveSelectionTool,
+  cloneSelectionTool,
+  toggleSelectionLockTool,
+  toggleSelectionVisibilityTool
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 

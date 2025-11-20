@@ -43,9 +43,12 @@ import {
   ResizeQueryPayload,
   RotateQueryPayload,
   MoveQueryPayload,
+  CloneSelectionQueryPayload,
   ResizeResponsePayload,
   RotateResponsePayload,
   MoveResponsePayload,
+  CloneSelectionResponsePayload,
+  CloneSelectionPromptResponsePayload,
   ToggleSelectionLockQueryPayload,
   ToggleSelectionLockResponsePayload,
   ToggleSelectionVisibilityQueryPayload,
@@ -64,6 +67,13 @@ import {
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
 import { getSelectionForAction as actionGetSelectionForAction, hasValidSelection as actionHasValidSelection, updateCurrentSelection } from './actionSelection';
+import {
+  findClonePlacement,
+  getPageBounds,
+  getSelectionBounds,
+  unionRects,
+} from './cloneHelpers';
+import type { PlacementFallback, Rect } from './cloneHelpers';
 import type { Shape, Group, Fill, Stroke } from '@penpot/plugin-types';
 
 const pluginResponse: PluginResponseMessage = {
@@ -82,6 +92,11 @@ let undoStack: UndoInfo[] = [];
 // Global redo stack - stores undone actions that can be redone
 const redoStack: UndoInfo[] = [];
 const MAX_UNDO_STACK_SIZE = 10; // Keep last 10 undoable actions
+
+export function resetUndoRedoStacks() {
+  undoStack = [];
+  redoStack.length = 0;
+}
 
 // Function to update selection IDs from plugin.ts
 // Note: updateCurrentSelection and currentSelectionIds are exported from actionSelection
@@ -3720,6 +3735,158 @@ export async function rotateTool(payload: RotateQueryPayload): Promise<PluginRes
   }
 }
 
+export async function cloneSelectionTool(payload: CloneSelectionQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const selectionInfo = readSelectionInfo();
+    if (!selectionInfo || selectionInfo.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CLONE_SELECTION,
+        success: false,
+        message: 'Select at least one shape before cloning the selection.',
+      };
+    }
+
+    const selection = getSelectionForAction();
+    if (!selection || selection.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CLONE_SELECTION,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    const { offset, skipLocked = true, keepPosition = false, fallback = 'auto' } = payload ?? {};
+    const selectionCount = selectionInfo.length;
+    const isShapeLocked = (shape: Shape) => Boolean((shape as { locked?: boolean }).locked);
+    const lockedShapes = selection.filter(isShapeLocked);
+    const lockedShapeDetails = lockedShapes.map(shape => ({ id: shape.id, name: shape.name }));
+    const actionableShapes = skipLocked ? selection.filter(shape => !isShapeLocked(shape)) : selection;
+
+    if (lockedShapes.length > 0 && !skipLocked) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CLONE_SELECTION,
+        success: false,
+        message: 'Locked shapes would block the clone operation.',
+        payload: {
+          lockedShapes: lockedShapeDetails,
+          selectionCount,
+          message: 'Unlock any locked shapes or set skipLocked=true to skip them.',
+        } as CloneSelectionPromptResponsePayload,
+      };
+    }
+
+    if (actionableShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CLONE_SELECTION,
+        success: false,
+        message: 'No unlocked shapes are available to clone.',
+        payload: {
+          lockedShapes: lockedShapeDetails,
+          selectionCount,
+          message: 'All selected shapes are locked. Unlock one or disable skipLocked to proceed.',
+        } as CloneSelectionPromptResponsePayload,
+      };
+    }
+
+    const selectionBounds = getSelectionBounds(actionableShapes);
+    if (!selectionBounds) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CLONE_SELECTION,
+        success: false,
+        message: 'Unable to determine selection bounds for cloning.',
+      };
+    }
+
+    let deltaX = 0;
+    let deltaY = 0;
+    let viewportRect: Rect = selectionBounds;
+
+    if (!keepPosition) {
+      const offsetX = typeof offset?.x === 'number' ? offset.x : 10;
+      const offsetY = typeof offset?.y === 'number' ? offset.y : 10;
+      const fallbackMode = fallback === 'grid' ? 'auto' : (fallback as PlacementFallback);
+      const excludeIds = new Set(actionableShapes.map(shape => shape.id));
+      const existingBounds = getPageBounds(excludeIds);
+      const placement = findClonePlacement(selectionBounds, existingBounds, { offsetX, offsetY, fallback: fallbackMode });
+      deltaX = placement.x - selectionBounds.x;
+      deltaY = placement.y - selectionBounds.y;
+      viewportRect = unionRects(selectionBounds, placement);
+    }
+
+    const createdIds: string[] = [];
+    const createdShapes: Shape[] = [];
+
+    for (const shape of actionableShapes) {
+      try {
+        const clone = shape.clone();
+        const baseX = typeof shape.x === 'number' ? shape.x : 0;
+        const baseY = typeof shape.y === 'number' ? shape.y : 0;
+        clone.x = baseX + deltaX;
+        clone.y = baseY + deltaY;
+        createdIds.push(clone.id);
+        createdShapes.push(clone);
+      } catch (err) {
+        console.warn(`Failed to clone shape ${shape.id}:`, err);
+      }
+    }
+
+    if (createdIds.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CLONE_SELECTION,
+        success: false,
+        message: 'Cloning selection failed. Please try again.',
+      };
+    }
+
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.CLONE_SELECTION,
+      actionId: `clone_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      description: `Cloned ${createdIds.length} shape${createdIds.length > 1 ? 's' : ''}`,
+      undoData: {
+        shapeIds: createdIds,
+        sourceIds: actionableShapes.map(shape => shape.id),
+        deltaX,
+        deltaY,
+      },
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    try {
+      centerDocumentOnRect(viewportRect.x, viewportRect.y, viewportRect.width, viewportRect.height);
+    } catch (centerErr) {
+      console.warn('Failed to center viewport after cloning:', centerErr);
+    }
+
+    const skippedNote = skipLocked && lockedShapes.length > 0 ? ` Skipped ${lockedShapes.length} locked shape${lockedShapes.length > 1 ? 's' : ''}.` : '';
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CLONE_SELECTION,
+      message: `Cloned ${createdIds.length} shape${createdIds.length > 1 ? 's' : ''}.${skippedNote}`,
+      payload: {
+        createdIds,
+        createdShapes,
+        undoInfo,
+      } as CloneSelectionResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CLONE_SELECTION,
+      success: false,
+      message: `Error cloning selection: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function moveSelectionTool(payload: MoveQueryPayload): Promise<PluginResponseMessage> {
   try {
     const selectionInfo = readSelectionInfo();
@@ -4398,6 +4565,27 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             console.warn(`Failed to undo move for shape ${shapeId}:`, error);
           }
         }
+        break;
+      }
+
+      case ClientQueryType.CLONE_SELECTION: {
+        const cloneData = lastAction.undoData as { shapeIds: string[] };
+        const currentPage = penpot.currentPage;
+        if (!currentPage || !Array.isArray(cloneData.shapeIds)) {
+          break;
+        }
+
+        for (const shapeId of cloneData.shapeIds) {
+          try {
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+            shape.remove();
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to remove cloned shape ${shapeId} during undo:`, error);
+          }
+        }
+
         break;
       }
 
@@ -5335,6 +5523,38 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
           }
           break;
         }
+
+          case ClientQueryType.CLONE_SELECTION: {
+            const cloneData = lastAction.undoData as { shapeIds: string[]; sourceIds?: string[]; deltaX?: number; deltaY?: number };
+            const currentPage = penpot.currentPage;
+            if (!currentPage || !Array.isArray(cloneData.sourceIds)) {
+              break;
+            }
+
+            const newCreatedIds: string[] = [];
+            const dx = typeof cloneData.deltaX === 'number' ? cloneData.deltaX : 0;
+            const dy = typeof cloneData.deltaY === 'number' ? cloneData.deltaY : 0;
+
+            for (const sourceId of cloneData.sourceIds) {
+              try {
+                const sourceShape = currentPage.getShapeById(sourceId);
+                if (!sourceShape) continue;
+                const clone = sourceShape.clone();
+                if (!clone) continue;
+                const baseX = typeof sourceShape.x === 'number' ? sourceShape.x : 0;
+                const baseY = typeof sourceShape.y === 'number' ? sourceShape.y : 0;
+                clone.x = baseX + dx;
+                clone.y = baseY + dy;
+                newCreatedIds.push(clone.id);
+                restoredShapes.push(clone.name || clone.id);
+              } catch (error) {
+                console.warn(`Failed to redo clone for source shape ${sourceId}:`, error);
+              }
+            }
+
+            cloneData.shapeIds = newCreatedIds;
+            break;
+          }
 
           case ClientQueryType.TOGGLE_SELECTION_LOCK: {
             const lockData = lastAction.undoData as { shapeIds: string[]; previousLockedStates: boolean[] };

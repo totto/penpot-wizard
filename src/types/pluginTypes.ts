@@ -313,6 +313,7 @@ export type ClientQueryPayload =
   | CreateLibraryFontPayload
   | CreateLibraryComponentPayload
   | CloneSelectionQueryPayload;
+  
 export type PluginResponsePayload = 
   | DrawShapeResponsePayload
   | AddImagePayload
