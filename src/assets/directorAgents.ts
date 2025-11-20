@@ -130,8 +130,14 @@ When using the resize-selection tool:
       'create-shape-from-svg',
       'export-selection-as-svg',
       'resize-selection',
+      'get-selection-info',
+      'rotate-selection',
+      'move-selection',
+      'toggle-selection-lock',
+      'toggle-selection-visibility',
+      'clone-selection',
 
-      //'get-selection-info',
+      
     ],
     
     specializedAgentIds: ['mobile-projects-coordinator'],
