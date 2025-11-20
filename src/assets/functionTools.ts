@@ -1,11 +1,14 @@
-import { 
-  FunctionTool, 
-  ClientQueryType, 
-  AddImageFromUrlQueryPayload, 
-  ToggleSelectionLockQueryPayload, 
-  ToggleSelectionLockResponsePayload, 
-  ToggleSelectionVisibilityQueryPayload, 
-  ToggleSelectionVisibilityResponsePayload
+import {
+  FunctionTool,
+  ClientQueryType,
+  AddImageFromUrlQueryPayload,
+  CloneSelectionQueryPayload,
+  CloneSelectionPromptResponsePayload,
+  GetSelectionInfoResponsePayload,
+  ToggleSelectionLockQueryPayload,
+  ToggleSelectionLockResponsePayload,
+  ToggleSelectionVisibilityQueryPayload,
+  ToggleSelectionVisibilityResponsePayload,
 } from '@/types/types';
 import type { MoveQueryPayload, MoveResponsePayload } from '@/types/types';
 import { z } from 'zod';
@@ -171,6 +174,51 @@ export const functionTools: FunctionTool[] = [
         } else {
           response.message = `The following shapes are locked and were skipped: ${skipped.join(', ')}. The other shapes were moved; I can provide instructions to unlock them so I can also move them.`;
         }
+      }
+
+      return response;
+    },
+  },
+  {
+    id: 'clone-selection',
+    name: 'cloneSelection',
+    description: `
+      Duplicate the current selection to the right with a small offset and automatic collision fallback.
+      Locked shapes are skipped unless you explicitly disable skipLocked, and you will be prompted if locked shapes
+      would otherwise block the action.
+    `,
+    inputSchema: z.object({
+      offset: z.object({
+        x: z.number().optional(),
+        y: z.number().optional(),
+      }).optional(),
+      skipLocked: z.boolean().optional(),
+      keepPosition: z.boolean().optional(),
+      fallback: z.enum(['right', 'below', 'grid', 'auto']).optional(),
+    }),
+    function: async (args?: CloneSelectionQueryPayload) => {
+      if (!args) {
+        return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      }
+
+      const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+      if (!selectionPayload || selectionPayload.selectionCount === 0) {
+        selectionResp.message = 'Select at least one shape before cloning the selection.';
+        return selectionResp;
+      }
+
+      const cloneArgs: CloneSelectionQueryPayload = {
+        offset: args.offset ?? { x: 10, y: 10 },
+        skipLocked: typeof args.skipLocked === 'boolean' ? args.skipLocked : true,
+        keepPosition: args.keepPosition ?? false,
+        fallback: args.fallback ?? 'auto',
+      };
+
+      const response = await sendMessageToPlugin(ClientQueryType.CLONE_SELECTION, cloneArgs);
+      const promptPayload = response.payload as CloneSelectionPromptResponsePayload | undefined;
+      if (!response.success && promptPayload && promptPayload.lockedShapes.length > 0) {
+        response.message = promptPayload.message ?? `Selection contains locked shapes (${promptPayload.lockedShapes.map(shape => shape.name ?? shape.id).join(', ')}). Specify skipLocked=true to skip them or unlock them before cloning.`;
       }
 
       return response;

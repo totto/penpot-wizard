@@ -62,6 +62,7 @@ export enum ClientQueryType {
   MOVE = 'MOVE',
   TOGGLE_SELECTION_LOCK = 'TOGGLE_SELECTION_LOCK',
   TOGGLE_SELECTION_VISIBILITY = 'TOGGLE_SELECTION_VISIBILITY',
+  CLONE_SELECTION = 'CLONE_SELECTION',
 }
 
 export enum PenpotShapeType {
@@ -107,6 +108,7 @@ export interface ClientMessage {
   | ResizeQueryPayload 
   | GetSelectionInfoQueryPayload 
   | MoveQueryPayload 
+  | CloneSelectionQueryPayload 
    | ToggleSelectionLockQueryPayload;
 
 }
@@ -212,35 +214,36 @@ export interface RedoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to redo, otherwise redo the last undone one
 }
 
-export type ClientQueryPayload = 
-DrawShapeQueryPayload 
-| AddImageQueryPayload 
-| AddImageFromUrlQueryPayload 
-| ApplyBlurQueryPayload 
-| ApplyFillQueryPayload 
-| ApplyStrokeQueryPayload 
-| ApplyLinearGradientQueryPayload 
-| ApplyRadialGradientQueryPayload 
-| ApplyShadowQueryPayload 
-| AlignHorizontalQueryPayload 
-| AlignVerticalQueryPayload 
-| CenterAlignmentQueryPayload 
-| DistributeHorizontalQueryPayload 
-| DistributeVerticalQueryPayload 
-| GroupQueryPayload 
-| UngroupQueryPayload 
-| CreateShapeFromSvgQueryPayload 
-| ExportSelectionAsSvgQueryPayload 
-| ExportSelectionAsPngQueryPayload 
-| ExportSelectionAsJpegQueryPayload 
-| ExportSelectionAsWebpQueryPayload 
-| UndoLastActionQueryPayload 
-| RedoLastActionQueryPayload 
-| ResizeQueryPayload 
-| GetSelectionInfoQueryPayload 
-| MoveQueryPayload 
-| ToggleSelectionLockQueryPayload
-| ToggleSelectionVisibilityQueryPayload;
+export type ClientQueryPayload =
+  | DrawShapeQueryPayload
+  | AddImageQueryPayload
+  | AddImageFromUrlQueryPayload
+  | ApplyBlurQueryPayload
+  | ApplyFillQueryPayload
+  | ApplyStrokeQueryPayload
+  | ApplyLinearGradientQueryPayload
+  | ApplyRadialGradientQueryPayload
+  | ApplyShadowQueryPayload
+  | AlignHorizontalQueryPayload
+  | AlignVerticalQueryPayload
+  | CenterAlignmentQueryPayload
+  | DistributeHorizontalQueryPayload
+  | DistributeVerticalQueryPayload
+  | GroupQueryPayload
+  | UngroupQueryPayload
+  | CreateShapeFromSvgQueryPayload
+  | ExportSelectionAsSvgQueryPayload
+  | ExportSelectionAsPngQueryPayload
+  | ExportSelectionAsJpegQueryPayload
+  | ExportSelectionAsWebpQueryPayload
+  | UndoLastActionQueryPayload
+  | RedoLastActionQueryPayload
+  | ResizeQueryPayload
+  | GetSelectionInfoQueryPayload
+  | CloneSelectionQueryPayload
+  | MoveQueryPayload
+  | ToggleSelectionLockQueryPayload
+  | ToggleSelectionVisibilityQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -249,6 +252,15 @@ export interface UndoInfo {
   description: string; // Human-readable description of what will be undone
   undoData: Record<string, unknown>; // Data needed to perform the undo
   timestamp: number; // When the action was performed
+
+}
+
+// Payload for cloning selection (UI side)
+export interface CloneSelectionQueryPayload {
+  offset?: { x?: number; y?: number };
+  skipLocked?: boolean;
+  keepPosition?: boolean;
+  fallback?: 'right' | 'below' | 'grid' | 'auto';
 }
 
 export interface PluginMessage {
@@ -478,6 +490,18 @@ export interface MoveResponsePayload {
   // Shapes that were skipped because they were locked. Names are provided for UI-friendly messages
   skippedLockedIds?: string[];
   skippedLockedNames?: string[];
+  undoInfo?: UndoInfo;
+}
+
+export interface CloneSelectionPromptResponsePayload {
+  lockedShapes: Array<{ id: string; name?: string }>;
+  selectionCount: number;
+  message?: string;
+}
+
+export interface CloneSelectionResponsePayload {
+  createdIds: string[];
+  createdShapes?: Shape[];
   undoInfo?: UndoInfo;
 }
 
@@ -727,6 +751,8 @@ export type PluginResponsePayload =
   | RotateResponsePayload
   | GetSelectionInfoResponsePayload
   | MoveResponsePayload
+  | CloneSelectionPromptResponsePayload
+  | CloneSelectionResponsePayload
   | ToggleSelectionLockResponsePayload
   | ToggleSelectionVisibilityResponsePayload
   | UngroupResponsePayload

@@ -32,6 +32,7 @@ export enum ClientQueryType {
   MOVE = 'MOVE',
   TOGGLE_SELECTION_LOCK = 'TOGGLE_SELECTION_LOCK',
   TOGGLE_SELECTION_VISIBILITY = 'TOGGLE_SELECTION_VISIBILITY',
+  CLONE_SELECTION = 'CLONE_SELECTION',
 }
 
 // Plugin-specific enums and types
@@ -98,6 +99,13 @@ export interface MoveQueryPayload {
   dy?: number;
   x?: number;
   y?: number;
+}
+
+export interface CloneSelectionQueryPayload {
+  offset?: { x?: number; y?: number };
+  skipLocked?: boolean; // if true, skip locked shapes
+  keepPosition?: boolean; // if true the clone is placed exactly on the original
+  fallback?: 'right' | 'below' | 'grid' | 'auto';
 }
 
 export interface ToggleSelectionLockQueryPayload {
@@ -176,6 +184,12 @@ export interface MoveResponsePayload {
   newPositions: Array<{ x?: number; y?: number }>;
   skippedLockedIds?: string[];
   skippedLockedNames?: string[];
+  undoInfo?: UndoInfo;
+}
+
+export interface CloneSelectionResponsePayload {
+  createdIds: string[];
+  createdShapes?: Shape[];
   undoInfo?: UndoInfo;
 }
 
@@ -292,29 +306,30 @@ export interface GroupResponsePayload {
 }
 
 export type ClientQueryPayload = 
-DrawShapeQueryPayload 
-| AddImageQueryPayload 
-| AddImageFromUrlQueryPayload 
-| ApplyBlurQueryPayload 
-| CreateLibraryFontPayload 
-| CreateLibraryComponentPayload;
-
+  | DrawShapeQueryPayload
+  | AddImageQueryPayload
+  | AddImageFromUrlQueryPayload
+  | ApplyBlurQueryPayload
+  | CreateLibraryFontPayload
+  | CreateLibraryComponentPayload
+  | CloneSelectionQueryPayload;
 export type PluginResponsePayload = 
-DrawShapeResponsePayload 
-| AddImagePayload 
-| ApplyBlurResponsePayload 
-| ApplyShadowResponsePayload 
-| ApplyShadowPromptResponsePayload 
-| GetUserDataPayload 
-| GetProjectDataPayload 
-| GetAvailableFontsPayload 
-| GetCurrentPagePayload 
-| GetCurrentThemePayload 
-| GetActiveUsersPayload 
-| GetFileVersionsPayload 
-| CreateLibraryColorResponse 
-| CreateLibraryFontResponse 
-| CreateLibraryComponentResponse 
-| UngroupResponsePayload
-| GroupResponsePayload
-| RotateResponsePayload;
+  | DrawShapeResponsePayload
+  | AddImagePayload
+  | ApplyBlurResponsePayload
+  | ApplyShadowResponsePayload
+  | ApplyShadowPromptResponsePayload
+  | GetUserDataPayload
+  | GetProjectDataPayload
+  | GetAvailableFontsPayload
+  | GetCurrentPagePayload
+  | GetCurrentThemePayload
+  | GetActiveUsersPayload
+  | GetFileVersionsPayload
+  | CreateLibraryColorResponse
+  | CreateLibraryFontResponse
+  | CreateLibraryComponentResponse
+  | UngroupResponsePayload
+  | GroupResponsePayload
+  | RotateResponsePayload
+  | CloneSelectionResponsePayload;
