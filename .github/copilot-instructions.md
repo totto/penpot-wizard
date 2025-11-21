@@ -92,7 +92,9 @@ For tools that conditionally mutate based on existing state:
    }
    ```
 5. **Types**: Add payload interfaces to `src/types/types.ts` and `src/types/pluginTypes.ts`
-6. **Tests**: Add unit tests in `src/plugin/__tests__/` and `src/assets/__tests__/`
+6. **Register in Director agents**: Add the new tool's `id` (kebab-case `toolId`) to the `toolIds` list in `src/assets/directorAgents.ts` so director agents and the UI can surface and test the tool during manual flows and QA.
+  - Without this step the new tool may not appear in the Penpot UI or director agent flows used for manual verification.
+7. **Tests**: Add unit tests in `src/plugin/__tests__/` and `src/assets/__tests__/`
 
 **Build/test**: `npm test`, `npm run build`, `npm run dev:penpot`
 
