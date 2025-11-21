@@ -26,6 +26,7 @@ import {
   ApplyLinearGradientQueryPayload,
   ApplyRadialGradientQueryPayload,
   ApplyShadowQueryPayload,
+  SetSelectionOpacityQueryPayload,
   AlignHorizontalQueryPayload,
   AlignVerticalQueryPayload,
   CenterAlignmentQueryPayload,
@@ -63,6 +64,7 @@ import {
   UndoLastActionQueryPayload,
   RedoLastActionQueryPayload,
   AddImageQueryPayload,
+  SetSelectionOpacityResponsePayload,
 } from "../types/types";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
@@ -1805,6 +1807,99 @@ Say "apply shadow drop-shadow #333333 offset 0,8 blur 12" or "apply shadow inner
       type: ClientQueryType.APPLY_SHADOW,
       success: false,
       message: `Error applying shadow: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function setSelectionOpacityTool(payload: SetSelectionOpacityQueryPayload): Promise<PluginResponseMessage> {
+  const requestedOpacity = typeof payload?.opacity === 'number' && Number.isFinite(payload.opacity) ? payload.opacity : undefined;
+  if (requestedOpacity !== undefined && (requestedOpacity < 0 || requestedOpacity > 1)) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_OPACITY,
+      success: false,
+      message: 'Opacity must be a number between 0.0 and 1.0.',
+    };
+  }
+
+  const appliedOpacity = requestedOpacity ?? 1;
+
+  try {
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_SELECTION_OPACITY,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    const changedShapeIds: string[] = [];
+    const changedShapeNames: string[] = [];
+    const previousOpacities: Array<number | undefined> = [];
+    const skippedLocked: string[] = [];
+
+    for (const shape of sel) {
+      if ((shape as any).locked === true) {
+        skippedLocked.push(shape.name || shape.id);
+        continue;
+      }
+
+      changedShapeIds.push(shape.id);
+      previousOpacities.push(typeof shape.opacity === 'number' ? shape.opacity : undefined);
+      shape.opacity = appliedOpacity;
+      changedShapeNames.push(shape.name || shape.id);
+    }
+
+    if (changedShapeIds.length === 0) {
+      const message = skippedLocked.length > 0
+        ? `All selected shapes are locked (${skippedLocked.join(', ')}). Unlock them before changing opacity.`
+        : 'No shapes were updated.';
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_SELECTION_OPACITY,
+        success: false,
+        message,
+      };
+    }
+
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.SET_SELECTION_OPACITY,
+      actionId: `set_selection_opacity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Set selection opacity to ${appliedOpacity}`,
+      undoData: {
+        shapeIds: changedShapeIds,
+        previousOpacities,
+        appliedOpacity,
+      },
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    let responseMessage = `Set opacity to ${appliedOpacity} for ${changedShapeNames.join(', ')}`;
+    if (skippedLocked.length > 0) {
+      responseMessage += ` (skipped ${skippedLocked.length} locked shape${skippedLocked.length > 1 ? 's' : ''}: ${skippedLocked.join(', ')})`;
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_OPACITY,
+      message: `${responseMessage}.`,
+      payload: {
+        changedShapeIds,
+        appliedOpacity,
+        previousOpacities,
+        undoInfo,
+      } as SetSelectionOpacityResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_OPACITY,
+      success: false,
+      message: `Error setting selection opacity: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
@@ -4512,6 +4607,32 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.SET_SELECTION_OPACITY: {
+        const opacityData = lastAction.undoData as {
+          shapeIds: string[];
+          previousOpacities: Array<number | undefined>;
+        };
+
+        for (let i = 0; i < opacityData.shapeIds.length; i++) {
+          const shapeId = opacityData.shapeIds[i];
+          const previousOpacity = opacityData.previousOpacities[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            shape.opacity = typeof previousOpacity === 'number' ? previousOpacity : 1;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore opacity for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
       /* (removed reapply-rotate case; rotate redo belongs to redoLastAction) */
 
       
@@ -5776,6 +5897,29 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             console.warn(`Failed to redo shadow for shape ${shapeId}:`, error);
           }
         }
+        break;
+      }
+
+      case ClientQueryType.SET_SELECTION_OPACITY: {
+        const opacityData = lastAction.undoData as { shapeIds: string[]; appliedOpacity: number };
+
+        for (const shapeId of opacityData.shapeIds) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            shape.opacity = opacityData.appliedOpacity;
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo opacity for shape ${shapeId}:`, error);
+          }
+        }
+
+        undoStack.push(lastAction);
         break;
       }
 
