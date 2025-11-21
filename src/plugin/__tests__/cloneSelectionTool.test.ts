@@ -94,15 +94,26 @@ describe('cloneSelectionTool', () => {
     expect(clone).toBeDefined();
     expect(clone?.id).not.toBe(source.id);
 
+    // The plugin should select the newly created clone and update the runtime selection
+    expect((globalThis as any).penpot.selection).toHaveLength(1);
+    expect((globalThis as any).penpot.selection[0].id).toBe(cloneId);
+
     const undoResp = await undoLastAction({});
     expect(undoResp.success).toBeTruthy();
     expect(pageShapes).toHaveLength(1);
     expect(pageShapes[0].id).toBe(source.id);
 
+    // Selection should be restored to the source shape after undo
+    expect((globalThis as any).penpot.selection).toHaveLength(1);
+    expect((globalThis as any).penpot.selection[0].id).toBe(source.id);
+
     const redoResp = await redoLastAction({});
     expect(redoResp.success).toBeTruthy();
     expect(pageShapes).toHaveLength(2);
     expect(pageShapes.some(shape => shape.id !== source.id)).toBeTruthy();
+    // After redo the plugin should select the recreated clones
+    expect((globalThis as any).penpot.selection).toHaveLength(1);
+    expect((globalThis as any).penpot.selection[0].id).not.toBe(source.id);
   });
 
   it('skips locked shapes when skipLocked is true', async () => {
@@ -118,6 +129,10 @@ describe('cloneSelectionTool', () => {
     expect(clone).toBeDefined();
     expect(clone?.locked).toBe(false);
     expect(pageShapes).toHaveLength(3);
+
+    // New clone should be selected
+    expect((globalThis as any).penpot.selection).toHaveLength(1);
+    expect((globalThis as any).penpot.selection[0].id).toBe(payload!.createdIds[0]);
 
     const undoResp = await undoLastAction({});
     expect(undoResp.success).toBeTruthy();

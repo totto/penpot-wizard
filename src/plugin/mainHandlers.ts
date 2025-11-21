@@ -3859,11 +3859,35 @@ export async function cloneSelectionTool(payload: CloneSelectionQueryPayload): P
 
     undoStack.push(undoInfo);
 
+    // Try to bring the created clones into view and select them so the user can act on
+    // the copies immediately. We follow the same pattern used by other tools:
+    // 1) center the viewport on the created bounds if viewport API is available
+    // 2) set penpot.selection to the newly-created shapes so the editor shows them
+    // 3) update the internal action-only selection helper so subsequent action tools
+    //    see the new selection
     try {
       centerDocumentOnRect(viewportRect.x, viewportRect.y, viewportRect.width, viewportRect.height);
     } catch (centerErr) {
       console.warn('Failed to center viewport after cloning:', centerErr);
     }
+
+    try {
+      // Assign selection directly when available in the runtime (test harness and penpot host)
+      if ((penpot as any)) {
+        (penpot as any).selection = createdShapes;
+      }
+    } catch (selErr) {
+      console.warn('Failed to set selection after cloning:', selErr);
+    }
+
+    // Update internal selection tracker used by action-only helpers
+    setTimeout(() => {
+      try {
+        updateCurrentSelection(createdIds);
+      } catch (err) {
+        console.warn('Failed to update current selection for clones:', err);
+      }
+    }, 10);
 
     const skippedNote = skipLocked && lockedShapes.length > 0 ? ` Skipped ${lockedShapes.length} locked shape${lockedShapes.length > 1 ? 's' : ''}.` : '';
 
@@ -4575,15 +4599,49 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
           break;
         }
 
+        const removedShapeIds: string[] = [];
         for (const shapeId of cloneData.shapeIds) {
           try {
             const shape = currentPage.getShapeById(shapeId);
             if (!shape) continue;
             shape.remove();
             restoredShapes.push(shape.name || shape.id);
+            removedShapeIds.push(shapeId);
           } catch (error) {
             console.warn(`Failed to remove cloned shape ${shapeId} during undo:`, error);
           }
+        }
+
+        // After undoing clones, try to re-select the original source shapes so the editor
+        // selection reflects the user's prior selection (sourceIds) if available.
+        try {
+          const sourceIds = (cloneData as any).sourceIds as string[] | undefined;
+          const sourceSelection: any[] = [];
+          if (Array.isArray(sourceIds) && currentPage) {
+            for (const sid of sourceIds) {
+              const s = currentPage.getShapeById(sid);
+              if (s) sourceSelection.push(s);
+            }
+          }
+
+          if ((penpot as any) && sourceSelection.length > 0) {
+            (penpot as any).selection = sourceSelection;
+          } else if ((penpot as any)) {
+            // If no source shapes, clear selection
+            (penpot as any).selection = [];
+          }
+
+          if (Array.isArray((cloneData as any).sourceIds)) {
+            setTimeout(() => {
+              try {
+                updateCurrentSelection((cloneData as any).sourceIds ?? []);
+              } catch (err) {
+                console.warn('Failed to update action-selection after undoing clones:', err);
+              }
+            }, 10);
+          }
+        } catch (selErr) {
+          console.warn('Failed to set selection after undoing clones:', selErr);
         }
 
         break;
@@ -5553,6 +5611,31 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             }
 
             cloneData.shapeIds = newCreatedIds;
+
+            // After re-creating the clones, select them and update the internal selection
+            try {
+              const createdSelection: any[] = [];
+              if (Array.isArray(newCreatedIds) && currentPage) {
+                for (const nid of newCreatedIds) {
+                  const s = currentPage.getShapeById(nid);
+                  if (s) createdSelection.push(s);
+                }
+              }
+
+              if ((penpot as any)) {
+                (penpot as any).selection = createdSelection;
+              }
+
+              setTimeout(() => {
+                try {
+                  updateCurrentSelection(newCreatedIds);
+                } catch (err) {
+                  console.warn('Failed to update selection after redoing clone:', err);
+                }
+              }, 10);
+            } catch (selErr) {
+              console.warn('Failed to set selection after redo clone:', selErr);
+            }
             break;
           }
 
