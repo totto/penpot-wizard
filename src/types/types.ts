@@ -501,7 +501,6 @@ export interface CloneSelectionPromptResponsePayload {
 
 export interface CloneSelectionResponsePayload {
   createdIds: string[];
-  createdShapes?: Shape[];
   undoInfo?: UndoInfo;
 }
 
