@@ -38,6 +38,7 @@ export enum ClientQueryType {
   APPLY_LINEAR_GRADIENT = 'APPLY_LINEAR_GRADIENT',
   APPLY_RADIAL_GRADIENT = 'APPLY_RADIAL_GRADIENT',
   APPLY_SHADOW = 'APPLY_SHADOW',
+  SET_SELECTION_OPACITY = 'SET_SELECTION_OPACITY',
   ALIGN_HORIZONTAL = 'ALIGN_HORIZONTAL',
   ALIGN_VERTICAL = 'ALIGN_VERTICAL',
   CENTER_ALIGNMENT = 'CENTER_ALIGNMENT',
@@ -86,6 +87,7 @@ export interface ClientMessage {
   | ApplyLinearGradientQueryPayload 
   | ApplyRadialGradientQueryPayload 
   | ApplyShadowQueryPayload 
+  | SetSelectionOpacityQueryPayload 
   | AlignHorizontalQueryPayload 
   | AlignVerticalQueryPayload 
   | CenterAlignmentQueryPayload 
@@ -173,6 +175,10 @@ export interface ApplyShadowQueryPayload {
   overrideExisting?: boolean; // Whether to override existing shadows without asking
 }
 
+export interface SetSelectionOpacityQueryPayload {
+  opacity?: number;
+}
+
 export interface AlignHorizontalQueryPayload {
   alignment: 'left' | 'center' | 'right';
 }
@@ -224,6 +230,7 @@ export type ClientQueryPayload =
   | ApplyLinearGradientQueryPayload
   | ApplyRadialGradientQueryPayload
   | ApplyShadowQueryPayload
+  | SetSelectionOpacityQueryPayload 
   | AlignHorizontalQueryPayload
   | AlignVerticalQueryPayload
   | CenterAlignmentQueryPayload
@@ -347,6 +354,13 @@ export interface ApplyShadowResponsePayload {
     shadowSpread: number;
     shadowStyle?: string;
   };
+  undoInfo?: UndoInfo;
+}
+
+export interface SetSelectionOpacityResponsePayload {
+  changedShapeIds: string[];
+  appliedOpacity: number;
+  previousOpacities: Array<number | undefined>;
   undoInfo?: UndoInfo;
 }
 
@@ -745,6 +759,7 @@ export type PluginResponsePayload =
   | ApplyLinearGradientResponsePayload
   | ApplyRadialGradientResponsePayload
   | ApplyShadowResponsePayload
+  | SetSelectionOpacityResponsePayload
   | AlignHorizontalResponsePayload
   | AlignVerticalResponsePayload
   | CombineShapesResponsePayload

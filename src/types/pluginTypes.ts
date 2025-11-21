@@ -28,6 +28,7 @@ export enum ClientQueryType {
   ADD_IMAGE = 'ADD_IMAGE',
   ADD_IMAGE_FROM_URL = 'ADD_IMAGE_FROM_URL',
   APPLY_BLUR = 'APPLY_BLUR',
+  SET_SELECTION_OPACITY = 'SET_SELECTION_OPACITY',
   ROTATE = 'ROTATE',
   MOVE = 'MOVE',
   TOGGLE_SELECTION_LOCK = 'TOGGLE_SELECTION_LOCK',
@@ -88,6 +89,10 @@ export interface AddImageFromUrlQueryPayload {
 
 export interface ApplyBlurQueryPayload {
   blurValue?: number;
+}
+
+export interface SetSelectionOpacityQueryPayload {
+  opacity?: number;
 }
 
 export interface RotateQueryPayload {
@@ -169,6 +174,13 @@ export interface ApplyShadowResponsePayload {
     shadowSpread: number;
     shadowStyle?: string;
   };
+  undoInfo?: UndoInfo;
+}
+
+export interface SetSelectionOpacityResponsePayload {
+  changedShapeIds: string[];
+  appliedOpacity: number;
+  previousOpacities: Array<number | undefined>;
   undoInfo?: UndoInfo;
 }
 
@@ -324,6 +336,7 @@ export type ClientQueryPayload =
   | AddImageQueryPayload
   | AddImageFromUrlQueryPayload
   | ApplyBlurQueryPayload
+  | SetSelectionOpacityQueryPayload
   | CreateLibraryFontPayload
   | CreateLibraryComponentPayload
   | CloneSelectionQueryPayload;
@@ -333,6 +346,7 @@ export type PluginResponsePayload =
   | AddImagePayload
   | ApplyBlurResponsePayload
   | ApplyShadowResponsePayload
+  | SetSelectionOpacityResponsePayload
   | ApplyShadowPromptResponsePayload
   | GetUserDataPayload
   | GetProjectDataPayload
