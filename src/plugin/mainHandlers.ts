@@ -27,6 +27,7 @@ import {
   ApplyRadialGradientQueryPayload,
   ApplyShadowQueryPayload,
   SetSelectionOpacityQueryPayload,
+  SetSelectionBlendModeQueryPayload,
   AlignHorizontalQueryPayload,
   AlignVerticalQueryPayload,
   CenterAlignmentQueryPayload,
@@ -65,6 +66,7 @@ import {
   RedoLastActionQueryPayload,
   AddImageQueryPayload,
   SetSelectionOpacityResponsePayload,
+  SetSelectionBlendModeResponsePayload,
 } from "../types/types";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
@@ -77,6 +79,7 @@ import {
 } from './cloneHelpers';
 import type { PlacementFallback, Rect } from './cloneHelpers';
 import type { Shape, Group, Fill, Stroke } from '@penpot/plugin-types';
+import { blendModes } from '../types/shapeTypes';
 
 const pluginResponse: PluginResponseMessage = {
   source: MessageSourceName.Plugin,
@@ -1900,6 +1903,105 @@ export async function setSelectionOpacityTool(payload: SetSelectionOpacityQueryP
       type: ClientQueryType.SET_SELECTION_OPACITY,
       success: false,
       message: `Error setting selection opacity: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function setSelectionBlendModeTool(payload: SetSelectionBlendModeQueryPayload): Promise<PluginResponseMessage> {
+  const requestedBlendMode = typeof payload?.blendMode === 'string' ? payload.blendMode : undefined;
+  if (!requestedBlendMode) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_BLEND_MODE,
+      success: false,
+      message: 'Blend mode must be provided as a valid string.',
+    };
+  }
+
+  if (!blendModes.includes(requestedBlendMode as typeof blendModes[number])) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_BLEND_MODE,
+      success: false,
+      message: `Unsupported blend mode '${requestedBlendMode}'. Supported modes: ${blendModes.join(', ')}.`,
+    };
+  }
+
+  try {
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_SELECTION_BLEND_MODE,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    const allowedBlendMode = requestedBlendMode as typeof blendModes[number];
+    const changedShapeIds: string[] = [];
+    const previousBlendModes: Array<typeof blendModes[number] | undefined> = [];
+    const skippedLocked: string[] = [];
+
+    for (const shape of sel) {
+      const shapeWithBlend = shape as Shape & { locked?: boolean; blendMode?: string; name?: string };
+      if (shapeWithBlend.locked === true) {
+        skippedLocked.push(shapeWithBlend.name || shapeWithBlend.id);
+        continue;
+      }
+
+      changedShapeIds.push(shapeWithBlend.id);
+      previousBlendModes.push(typeof shapeWithBlend.blendMode === 'string' ? shapeWithBlend.blendMode as typeof blendModes[number] : undefined);
+      shapeWithBlend.blendMode = allowedBlendMode;
+    }
+
+    if (changedShapeIds.length === 0) {
+      const message = skippedLocked.length > 0
+        ? `All selected shapes are locked (${skippedLocked.join(', ')}). Unlock them before changing the blend mode.`
+        : 'No shapes were updated.';
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_SELECTION_BLEND_MODE,
+        success: false,
+        message,
+      };
+    }
+
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.SET_SELECTION_BLEND_MODE,
+      actionId: `set_selection_blend_mode_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Set blend mode to ${allowedBlendMode}`,
+      undoData: {
+        shapeIds: changedShapeIds,
+        previousBlendModes,
+        appliedBlendMode: allowedBlendMode,
+      },
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    let responseMessage = `Set blend mode to ${allowedBlendMode} for ${changedShapeIds.length} shape${changedShapeIds.length > 1 ? 's' : ''}`;
+    if (skippedLocked.length > 0) {
+      responseMessage += ` (skipped ${skippedLocked.length} locked shape${skippedLocked.length > 1 ? 's' : ''}: ${skippedLocked.join(', ')})`;
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_BLEND_MODE,
+      message: `${responseMessage}.`,
+      payload: {
+        changedShapeIds,
+        appliedBlendMode: allowedBlendMode,
+        undoInfo,
+      } as SetSelectionBlendModeResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_BLEND_MODE,
+      success: false,
+      message: `Error setting blend mode: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
@@ -4633,6 +4735,33 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.SET_SELECTION_BLEND_MODE: {
+        const blendData = lastAction.undoData as {
+          shapeIds: string[];
+          previousBlendModes: Array<string | undefined>;
+        };
+
+        for (let i = 0; i < blendData.shapeIds.length; i++) {
+          const shapeId = blendData.shapeIds[i];
+          const previousBlendMode = blendData.previousBlendModes[i] as typeof blendModes[number] | undefined;
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            const shapeWithBlend = shape as Shape & { blendMode?: typeof blendModes[number]; name?: string };
+            shapeWithBlend.blendMode = typeof previousBlendMode === 'string' ? previousBlendMode : 'normal';
+            restoredShapes.push(shapeWithBlend.name || shapeWithBlend.id);
+          } catch (error) {
+            console.warn(`Failed to restore blend mode for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
       /* (removed reapply-rotate case; rotate redo belongs to redoLastAction) */
 
       
@@ -5916,6 +6045,29 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to redo opacity for shape ${shapeId}:`, error);
+          }
+        }
+
+        undoStack.push(lastAction);
+        break;
+      }
+
+      case ClientQueryType.SET_SELECTION_BLEND_MODE: {
+        const blendData = lastAction.undoData as { shapeIds: string[]; appliedBlendMode: typeof blendModes[number] };
+
+        for (const shapeId of blendData.shapeIds) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            const shapeWithBlend = shape as Shape & { blendMode?: typeof blendModes[number]; };
+            shapeWithBlend.blendMode = blendData.appliedBlendMode;
+            restoredShapes.push(shapeWithBlend.name || shapeWithBlend.id);
+          } catch (error) {
+            console.warn(`Failed to redo blend mode for shape ${shapeId}:`, error);
           }
         }
 

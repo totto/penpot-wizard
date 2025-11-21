@@ -19,25 +19,7 @@ import type {
 } from '@/types/types';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
-
-const blendModes = [
-  'difference',
-  'normal',
-  'darken',
-  'multiply',
-  'color-burn',
-  'lighten',
-  'screen',
-  'color-dodge',
-  'overlay',
-  'soft-light',
-  'hard-light',
-  'exclusion',
-  'hue',
-  'saturation',
-  'color',
-  'luminosity',
-] as const;
+import { blendModes } from '@/types/shapeTypes';
 
 // Function to get user data - this would typically come from Penpot context
 export const functionTools: FunctionTool[] = [

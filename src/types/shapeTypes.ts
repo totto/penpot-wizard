@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const blendModes = ['difference','normal','darken','multiply','color-burn','lighten','screen','color-dodge','overlay','soft-light','hard-light','exclusion','hue','saturation','color','luminosity'];
+export const blendModes = ['difference','normal','darken','multiply','color-burn','lighten','screen','color-dodge','overlay','soft-light','hard-light','exclusion','hue','saturation','color','luminosity'] as const;
 
 export const baseShapeProperties = z.object({
   name: z.string().describe('The name of the shape, used for visual identification and organization'),
