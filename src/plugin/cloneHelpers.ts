@@ -16,8 +16,8 @@ export interface PlacementOptions {
   maxAttempts?: number;
 }
 
-const DEFAULT_OFFSET = 10; // legacy default (used when caller explicitly sets offsets)
-const MIN_OFFSET = 6; // minimum px offset to keep clones visually separated but on-board
+const DEFAULT_OFFSET = 1; // legacy default (used when caller explicitly sets offsets)
+const MIN_OFFSET = 1; // minimum px offset to keep clones visually separated but on-board
 const DEFAULT_OFFSET_RATIO = 0.06; // default offset as a fraction of selection size when caller doesn't provide one (smaller -> closer clones)
 const DEFAULT_MAX_ATTEMPTS = 3; // fewer attempts before fallback to avoid huge offsets
 
@@ -151,18 +151,41 @@ export function findClonePlacement(selectionRect: Rect, existingBounds: Rect[], 
 function clampToPage(candidate: Rect): Rect {
   try {
     const page = (penpot as unknown as Penpot)?.currentPage;
-    // page may be an object that doesn't expose typed width/height in the test harness
+    // Try to read page bounds first (page objects in different runtimes may
+    // omit typed width/height in tests). If page dims are not available, try
+    // the viewport (host runtime may expose viewport.width/height). As a final
+    // fallback use conservative default page dimensions so clones don't end up
+    // at extremely large coordinates.
     const pageW = page && typeof (page as { width?: number }).width === 'number' ? (page as { width?: number }).width : undefined;
     const pageH = page && typeof (page as { height?: number }).height === 'number' ? (page as { height?: number }).height : undefined;
 
-    if (typeof pageW === 'number') {
-      const maxX = Math.max(0, pageW - candidate.width);
-      candidate.x = Math.min(Math.max(candidate.x, 0), maxX);
+    let finalW = pageW;
+    let finalH = pageH;
+
+    if (typeof finalW !== 'number' || typeof finalH !== 'number') {
+      try {
+        const viewport = (globalThis as unknown as { penpot?: { viewport?: { width?: number; height?: number } } }).penpot?.viewport;
+        if (typeof finalW !== 'number' && viewport && typeof viewport.width === 'number') finalW = viewport.width;
+        if (typeof finalH !== 'number' && viewport && typeof viewport.height === 'number') finalH = viewport.height;
+      } catch {
+        // ignore viewport read errors
+      }
     }
-    if (typeof pageH === 'number') {
-      const maxY = Math.max(0, pageH - candidate.height);
-      candidate.y = Math.min(Math.max(candidate.y, 0), maxY);
-    }
+
+    // last-resort defaults (safe, large enough to keep clones reasonable)
+    const FALLBACK_PAGE_WIDTH = 1000;
+    const FALLBACK_PAGE_HEIGHT = 1000;
+    finalW = typeof finalW === 'number' ? finalW : FALLBACK_PAGE_WIDTH;
+    finalH = typeof finalH === 'number' ? finalH : FALLBACK_PAGE_HEIGHT;
+
+    // Keep a small padding so clones are not flush with the edge
+    const PADDING = 6;
+
+    // clamp to computed finalW/finalH, respect padding so clones remain visible
+    const maxX = Math.max(0, Math.floor(finalW - candidate.width - PADDING));
+    const maxY = Math.max(0, Math.floor(finalH - candidate.height - PADDING));
+    candidate.x = Math.min(Math.max(candidate.x, PADDING), maxX);
+    candidate.y = Math.min(Math.max(candidate.y, PADDING), maxY);
   } catch {
     // Ignore - can't clamp without page info
   }

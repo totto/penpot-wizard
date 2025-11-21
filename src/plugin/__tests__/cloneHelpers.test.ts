@@ -55,4 +55,25 @@ describe('cloneHelpers.findClonePlacement - edge cases', () => {
     expect(placed.x + placed.width).toBeLessThanOrEqual(200);
     expect(placed.y + placed.height).toBeLessThanOrEqual(200);
   });
+
+  it('falls back to viewport dimensions when page dims are missing', () => {
+    // Remove page dims and provide viewport dims
+    // @ts-ignore
+    globalThis.penpot = { currentPage: null, viewport: { width: 120, height: 120 } };
+    const sel: Rect = { x: 80, y: 80, width: 60, height: 60 };
+    const placed = findClonePlacement(sel, []);
+    expect(placed.x + placed.width).toBeLessThanOrEqual(120);
+    expect(placed.y + placed.height).toBeLessThanOrEqual(120);
+  });
+
+  it('falls back to safe defaults when page and viewport are missing', () => {
+    // ensure penpot currentPage and viewport are explicitly absent (no sizes)
+    // @ts-ignore
+    globalThis.penpot = { currentPage: null, viewport: null };
+    const sel: Rect = { x: 900, y: 900, width: 200, height: 200 };
+    const placed = findClonePlacement(sel, []);
+    // defaults are 1000x1000 so the clone should still be contained inside
+    expect(placed.x + placed.width).toBeLessThanOrEqual(1000);
+    expect(placed.y + placed.height).toBeLessThanOrEqual(1000);
+  });
 });
