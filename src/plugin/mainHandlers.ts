@@ -3758,11 +3758,14 @@ export async function cloneSelectionTool(payload: CloneSelectionQueryPayload): P
     }
 
     const { offset, skipLocked = true, keepPosition = false, fallback = 'auto' } = payload ?? {};
+    // keep logs minimal in production
     const selectionCount = selectionInfo.length;
     const isShapeLocked = (shape: Shape) => Boolean((shape as { locked?: boolean }).locked);
     const lockedShapes = selection.filter(isShapeLocked);
     const lockedShapeDetails = lockedShapes.map(shape => ({ id: shape.id, name: shape.name }));
     const actionableShapes = skipLocked ? selection.filter(shape => !isShapeLocked(shape)) : selection;
+
+    // actionable/locked counts kept for debugging when needed
 
     if (lockedShapes.length > 0 && !skipLocked) {
       return {
@@ -3793,6 +3796,7 @@ export async function cloneSelectionTool(payload: CloneSelectionQueryPayload): P
     }
 
     const selectionBounds = getSelectionBounds(actionableShapes);
+    // computed selection bounds
     if (!selectionBounds) {
       return {
         ...pluginResponse,
@@ -3807,12 +3811,26 @@ export async function cloneSelectionTool(payload: CloneSelectionQueryPayload): P
     let viewportRect: Rect = selectionBounds;
 
     if (!keepPosition) {
-      const offsetX = typeof offset?.x === 'number' ? offset.x : 10;
-      const offsetY = typeof offset?.y === 'number' ? offset.y : 10;
+      // If the caller specified explicit offsets use them; otherwise allow
+      // the cloneHelpers to compute a percentage-based offset that stays
+      // on-board for the selection size.
+      const offsetX = typeof offset?.x === 'number' ? offset.x : undefined;
+      const offsetY = typeof offset?.y === 'number' ? offset.y : undefined;
       const fallbackMode = fallback === 'grid' ? 'auto' : (fallback as PlacementFallback);
       const excludeIds = new Set(actionableShapes.map(shape => shape.id));
       const existingBounds = getPageBounds(excludeIds);
-      const placement = findClonePlacement(selectionBounds, existingBounds, { offsetX, offsetY, fallback: fallbackMode });
+      let placement;
+      try {
+        placement = findClonePlacement(selectionBounds, existingBounds, { offsetX, offsetY, fallback: fallbackMode });
+        // placement computed
+      } catch (placementErr) {
+        console.warn('findClonePlacement failed, falling back to small offset:', placementErr);
+        // fallback: place right with a small offset proportional to selection
+        const fallbackX = typeof offsetX === 'number' ? offsetX : Math.max(Math.round(selectionBounds.width * 0.1), 6);
+        const fallbackY = typeof offsetY === 'number' ? offsetY : Math.max(Math.round(selectionBounds.height * 0.1), 6);
+        placement = { x: selectionBounds.x + selectionBounds.width + fallbackX, y: selectionBounds.y + fallbackY, width: selectionBounds.width, height: selectionBounds.height };
+        // fallback placement used
+      }
       deltaX = placement.x - selectionBounds.x;
       deltaY = placement.y - selectionBounds.y;
       viewportRect = unionRects(selectionBounds, placement);
@@ -3834,6 +3852,8 @@ export async function cloneSelectionTool(payload: CloneSelectionQueryPayload): P
         console.warn(`Failed to clone shape ${shape.id}:`, err);
       }
     }
+
+    // createdIds populated
 
     if (createdIds.length === 0) {
       return {
@@ -3897,7 +3917,6 @@ export async function cloneSelectionTool(payload: CloneSelectionQueryPayload): P
       message: `Cloned ${createdIds.length} shape${createdIds.length > 1 ? 's' : ''}.${skippedNote}`,
       payload: {
         createdIds,
-        createdShapes,
         undoInfo,
       } as CloneSelectionResponsePayload,
     };

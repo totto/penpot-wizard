@@ -16,7 +16,9 @@ export interface PlacementOptions {
   maxAttempts?: number;
 }
 
-const DEFAULT_OFFSET = 10;
+const DEFAULT_OFFSET = 10; // legacy default (used when caller explicitly sets offsets)
+const MIN_OFFSET = 6; // minimum px offset to keep clones visually separated but on-board
+const DEFAULT_OFFSET_RATIO = 0.10; // default offset as a fraction of selection size when caller doesn't provide one
 
 function normalizeRect(rect: Rect): Rect {
   const width = Math.max(rect.width, 1);
@@ -108,14 +110,22 @@ function collides(candidate: Rect, existing: Rect[]): boolean {
 
 export function findClonePlacement(selectionRect: Rect, existingBounds: Rect[], options: PlacementOptions = {}): Rect {
   const normalized = normalizeRect(selectionRect);
-  const offsetX = Math.max(options.offsetX ?? DEFAULT_OFFSET, DEFAULT_OFFSET);
-  const offsetY = Math.max(options.offsetY ?? DEFAULT_OFFSET, DEFAULT_OFFSET);
+  // If caller provided explicit offsets use them; otherwise choose a modest offset
+  // based on a percentage of the selection size so clones stay near the original
+  // but remain visually separated. Use a minimum to ensure visibility on very
+  // small shapes.
+  // width/height are defined further below — compute offsets after normalizing
   const fallback = options.fallback ?? 'auto';
   const order = directionOrders[fallback];
   const maxAttempts = Math.max(options.maxAttempts ?? 6, 1);
 
   const width = normalized.width;
   const height = normalized.height;
+
+  const computedOffsetX = Math.max(Math.round(width * DEFAULT_OFFSET_RATIO), MIN_OFFSET);
+  const computedOffsetY = Math.max(Math.round(height * DEFAULT_OFFSET_RATIO), MIN_OFFSET);
+  const offsetX = typeof options.offsetX === 'number' ? options.offsetX : computedOffsetX;
+  const offsetY = typeof options.offsetY === 'number' ? options.offsetY : computedOffsetY;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     for (const direction of order) {
