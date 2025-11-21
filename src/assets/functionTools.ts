@@ -9,6 +9,8 @@ import {
   ToggleSelectionLockResponsePayload,
   ToggleSelectionVisibilityQueryPayload,
   ToggleSelectionVisibilityResponsePayload,
+  SetSelectionOpacityQueryPayload,
+  SetSelectionOpacityResponsePayload,
 } from '@/types/types';
 import type { MoveQueryPayload, MoveResponsePayload } from '@/types/types';
 import { z } from 'zod';
@@ -224,6 +226,29 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
+    {
+      id: 'set-selection-opacity',
+      name: 'setSelectionOpacity',
+      description: `Set the opacity of the currently selected shapes (0 = transparent, 1 = opaque). Call without arguments to just return info about the selection so the UI can prompt for a value.`,
+      inputSchema: z.object({
+        opacity: z.number().min(0).max(1).optional(),
+      }),
+      function: async (args?: SetSelectionOpacityQueryPayload) => {
+        if (!args || typeof args.opacity !== 'number') {
+          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        }
+
+        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+        if (!selectionPayload || selectionPayload.selectionCount === 0) {
+          selectionResp.message = 'Select at least one shape before changing opacity.';
+          return selectionResp;
+        }
+
+        const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_OPACITY, args);
+        return response;
+      },
+    },
     {
       id: "add-image-from-url",
       name: "addImageFromUrl",

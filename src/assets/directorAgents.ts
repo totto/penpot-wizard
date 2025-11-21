@@ -136,6 +136,7 @@ When using the resize-selection tool:
       'toggle-selection-lock',
       'toggle-selection-visibility',
       'clone-selection',
+      'set-selection-opacity',
 
       
     ],
