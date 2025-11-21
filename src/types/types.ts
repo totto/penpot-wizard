@@ -39,6 +39,7 @@ export enum ClientQueryType {
   APPLY_RADIAL_GRADIENT = 'APPLY_RADIAL_GRADIENT',
   APPLY_SHADOW = 'APPLY_SHADOW',
   SET_SELECTION_OPACITY = 'SET_SELECTION_OPACITY',
+  SET_SELECTION_BLEND_MODE = 'SET_SELECTION_BLEND_MODE',
   ALIGN_HORIZONTAL = 'ALIGN_HORIZONTAL',
   ALIGN_VERTICAL = 'ALIGN_VERTICAL',
   CENTER_ALIGNMENT = 'CENTER_ALIGNMENT',
@@ -88,6 +89,7 @@ export interface ClientMessage {
   | ApplyRadialGradientQueryPayload 
   | ApplyShadowQueryPayload 
   | SetSelectionOpacityQueryPayload 
+  | SetSelectionBlendModeQueryPayload 
   | AlignHorizontalQueryPayload 
   | AlignVerticalQueryPayload 
   | CenterAlignmentQueryPayload 
@@ -111,7 +113,7 @@ export interface ClientMessage {
   | GetSelectionInfoQueryPayload 
   | MoveQueryPayload 
   | CloneSelectionQueryPayload 
-   | ToggleSelectionLockQueryPayload;
+  | ToggleSelectionLockQueryPayload;
 
 }
 
@@ -177,6 +179,10 @@ export interface ApplyShadowQueryPayload {
 
 export interface SetSelectionOpacityQueryPayload {
   opacity?: number;
+}
+
+export interface SetSelectionBlendModeQueryPayload {
+  blendMode?: string;
 }
 
 export interface AlignHorizontalQueryPayload {
@@ -361,6 +367,12 @@ export interface SetSelectionOpacityResponsePayload {
   changedShapeIds: string[];
   appliedOpacity: number;
   previousOpacities: Array<number | undefined>;
+  undoInfo?: UndoInfo;
+}
+
+export interface SetSelectionBlendModeResponsePayload {
+  changedShapeIds: string[];
+  appliedBlendMode: string;
   undoInfo?: UndoInfo;
 }
 
@@ -760,6 +772,7 @@ export type PluginResponsePayload =
   | ApplyRadialGradientResponsePayload
   | ApplyShadowResponsePayload
   | SetSelectionOpacityResponsePayload
+  | SetSelectionBlendModeResponsePayload
   | AlignHorizontalResponsePayload
   | AlignVerticalResponsePayload
   | CombineShapesResponsePayload
