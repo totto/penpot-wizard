@@ -10,11 +10,34 @@ import {
   ToggleSelectionVisibilityQueryPayload,
   ToggleSelectionVisibilityResponsePayload,
   SetSelectionOpacityQueryPayload,
-  SetSelectionOpacityResponsePayload,
 } from '@/types/types';
-import type { MoveQueryPayload, MoveResponsePayload } from '@/types/types';
+import type {
+  SetSelectionBlendModeQueryPayload,
+  SetSelectionBlendModeResponsePayload,
+  MoveQueryPayload,
+  MoveResponsePayload,
+} from '@/types/types';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
+
+const blendModes = [
+  'difference',
+  'normal',
+  'darken',
+  'multiply',
+  'color-burn',
+  'lighten',
+  'screen',
+  'color-dodge',
+  'overlay',
+  'soft-light',
+  'hard-light',
+  'exclusion',
+  'hue',
+  'saturation',
+  'color',
+  'luminosity',
+] as const;
 
 // Function to get user data - this would typically come from Penpot context
 export const functionTools: FunctionTool[] = [
@@ -184,7 +207,7 @@ export const functionTools: FunctionTool[] = [
   {
     id: 'clone-selection',
     name: 'cloneSelection',
-    description: `
+      description: `
       Duplicate the current selection to the right with a small offset and automatic collision fallback.
       Locked shapes are skipped unless you explicitly disable skipLocked, and you will be prompted if locked shapes
       would otherwise block the action.
@@ -246,6 +269,33 @@ export const functionTools: FunctionTool[] = [
         }
 
         const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_OPACITY, args);
+        return response;
+      },
+    },
+    {
+      id: 'set-selection-blend-mode',
+      name: 'setSelectionBlendMode',
+      description: `Set the blend mode of the selected shapes. Call without a blend mode to get selection context so the UI can prompt for one.`,
+      inputSchema: z.object({
+        blendMode: z.enum(blendModes).optional(),
+      }),
+      function: async (args?: SetSelectionBlendModeQueryPayload) => {
+        if (!args || typeof args.blendMode !== 'string') {
+          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        }
+
+        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+        if (!selectionPayload || selectionPayload.selectionCount === 0) {
+          selectionResp.message = 'Select at least one shape before changing the blend mode.';
+          return selectionResp;
+        }
+
+        const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_BLEND_MODE, args);
+        const payload = response.payload as SetSelectionBlendModeResponsePayload | undefined;
+        if (payload && payload.changedShapeIds.length === 0) {
+          response.message = 'Blend mode change did not apply to any shapes. Ensure the shapes support blend modes.';
+        }
         return response;
       },
     },

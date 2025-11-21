@@ -237,6 +237,7 @@ export type ClientQueryPayload =
   | ApplyRadialGradientQueryPayload
   | ApplyShadowQueryPayload
   | SetSelectionOpacityQueryPayload 
+  | SetSelectionBlendModeQueryPayload 
   | AlignHorizontalQueryPayload
   | AlignVerticalQueryPayload
   | CenterAlignmentQueryPayload
