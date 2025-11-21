@@ -173,8 +173,8 @@ function clampToPage(candidate: Rect): Rect {
     }
 
     // last-resort defaults (safe, large enough to keep clones reasonable)
-    const FALLBACK_PAGE_WIDTH = 1000;
-    const FALLBACK_PAGE_HEIGHT = 1000;
+    const FALLBACK_PAGE_WIDTH = 500;
+    const FALLBACK_PAGE_HEIGHT = 500;
     finalW = typeof finalW === 'number' ? finalW : FALLBACK_PAGE_WIDTH;
     finalH = typeof finalH === 'number' ? finalH : FALLBACK_PAGE_HEIGHT;
 
