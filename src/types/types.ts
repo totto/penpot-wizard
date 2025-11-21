@@ -359,6 +359,21 @@ export interface ApplyShadowPromptResponsePayload {
   requestedShadow: { shadowColor: string; shadowOffsetX: number; shadowOffsetY: number; shadowBlur: number; shadowSpread: number; shadowStyle?: string };
 }
 
+export type SelectionBlockerType = 'locked' | 'readOnly' | 'unsupportedType' | 'apiError' | 'unknown';
+
+export interface SelectionConfirmationPromptPayload {
+  actionName: string;
+  message: string;
+  defaultsText?: string;
+  examples?: string[];
+  blockerType: SelectionBlockerType;
+  blockerDetails?: string;
+  blockedShapeIds?: string[];
+  blockedShapeNames?: string[];
+  needsConfirmation: boolean;
+  suggestion?: string;
+}
+
 export interface AlignHorizontalResponsePayload {
   alignedShapes: Array<{ id: string; name?: string }>;
   alignment: 'left' | 'center' | 'right';
@@ -724,6 +739,7 @@ export type PluginResponsePayload =
   | AddImagePayload
   | ApplyBlurResponsePayload
   | ApplyShadowPromptResponsePayload
+  | SelectionConfirmationPromptPayload
   | ApplyFillResponsePayload
   | ApplyStrokeResponsePayload
   | ApplyLinearGradientResponsePayload

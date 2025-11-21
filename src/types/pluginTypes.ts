@@ -172,6 +172,21 @@ export interface ApplyShadowResponsePayload {
   undoInfo?: UndoInfo;
 }
 
+export type SelectionBlockerType = 'locked' | 'readOnly' | 'unsupportedType' | 'apiError' | 'unknown';
+
+export interface SelectionConfirmationPromptPayload {
+  actionName: string;
+  message: string;
+  defaultsText?: string;
+  examples?: string[];
+  blockerType: SelectionBlockerType;
+  blockerDetails?: string;
+  blockedShapeIds?: string[];
+  blockedShapeNames?: string[];
+  needsConfirmation: boolean;
+  suggestion?: string;
+}
+
 export interface RotateResponsePayload {
   rotatedShapes: string[];
   angle: number; // Degrees rotated (positive clockwise)
