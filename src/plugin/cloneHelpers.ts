@@ -18,7 +18,8 @@ export interface PlacementOptions {
 
 const DEFAULT_OFFSET = 10; // legacy default (used when caller explicitly sets offsets)
 const MIN_OFFSET = 6; // minimum px offset to keep clones visually separated but on-board
-const DEFAULT_OFFSET_RATIO = 0.10; // default offset as a fraction of selection size when caller doesn't provide one
+const DEFAULT_OFFSET_RATIO = 0.06; // default offset as a fraction of selection size when caller doesn't provide one (smaller -> closer clones)
+const DEFAULT_MAX_ATTEMPTS = 3; // fewer attempts before fallback to avoid huge offsets
 
 function normalizeRect(rect: Rect): Rect {
   const width = Math.max(rect.width, 1);
@@ -117,7 +118,7 @@ export function findClonePlacement(selectionRect: Rect, existingBounds: Rect[], 
   // width/height are defined further below — compute offsets after normalizing
   const fallback = options.fallback ?? 'auto';
   const order = directionOrders[fallback];
-  const maxAttempts = Math.max(options.maxAttempts ?? 6, 1);
+  const maxAttempts = Math.max(options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS, 1);
 
   const width = normalized.width;
   const height = normalized.height;
@@ -131,18 +132,41 @@ export function findClonePlacement(selectionRect: Rect, existingBounds: Rect[], 
     for (const direction of order) {
       const candidate = buildCandidateRect(normalized, direction, offsetX, offsetY, attempt, width, height);
       if (!collides(candidate, existingBounds)) {
-        return candidate;
+        return clampToPage(candidate);
       }
     }
   }
 
-  // Last-resort placement to the right with expanded offset
-  return {
-    x: normalized.x + width + offsetX + maxAttempts * (width + offsetX),
-    y: normalized.y + offsetY,
-    width,
-    height,
-  };
+  // Last-resort placement to the right with small expansion; clamp to page bounds
+  const lastX = normalized.x + width + offsetX + Math.min(maxAttempts, 3) * (width + offsetX);
+  const lastY = normalized.y + offsetY;
+  return clampToPage({ x: lastX, y: lastY, width, height });
+}
+
+/**
+ * Clamp a candidate rect to page bounds when possible so clones remain on the page
+ * and are visible to the user. If the page size isn't available, the rect is
+ * returned unchanged.
+ */
+function clampToPage(candidate: Rect): Rect {
+  try {
+    const page = (penpot as unknown as Penpot)?.currentPage;
+    // page may be an object that doesn't expose typed width/height in the test harness
+    const pageW = page && typeof (page as { width?: number }).width === 'number' ? (page as { width?: number }).width : undefined;
+    const pageH = page && typeof (page as { height?: number }).height === 'number' ? (page as { height?: number }).height : undefined;
+
+    if (typeof pageW === 'number') {
+      const maxX = Math.max(0, pageW - candidate.width);
+      candidate.x = Math.min(Math.max(candidate.x, 0), maxX);
+    }
+    if (typeof pageH === 'number') {
+      const maxY = Math.max(0, pageH - candidate.height);
+      candidate.y = Math.min(Math.max(candidate.y, 0), maxY);
+    }
+  } catch {
+    // Ignore - can't clamp without page info
+  }
+  return candidate;
 }
 
 function buildCandidateRect(

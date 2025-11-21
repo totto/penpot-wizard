@@ -431,23 +431,20 @@ export function handleGetProjectData(): PluginResponseMessage {
       type: ClientQueryType.GET_PROJECT_DATA,
       message: 'Project data successfully retrieved',
       payload: {
-        name: penpot.currentFile?.name,
-        id: penpot.currentFile?.id,
-        pages: penpot.currentFile?.pages.map((page) => ({
-          name: page.name,
-          id: page.id,
-        })),
-      },
-    };
-  } else {
-    return {
-      ...pluginResponse,
-      type: ClientQueryType.GET_PROJECT_DATA,
-      success: false,
-      message: 'Error retrieving project data',
+          name: penpot.currentFile?.name,
+          id: penpot.currentFile?.id,
+          pages: penpot.currentFile?.pages.map((page) => ({ name: page.name, id: page.id })),
+        },
+      };
+    } else {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_PROJECT_DATA,
+        success: false,
+        message: 'Error retrieving project data',
+      }
     }
   }
-}
 
 export function getAvailableFonts(): PluginResponseMessage {
   return {
@@ -638,7 +635,10 @@ export async function handleAddImageFromUrl(payload: AddImageFromUrlQueryPayload
       // Select the newly created image so the user can immediately act on it
       try {
         // Assign penpot.selection where available — test harness and runtime should support this
-        (penpot as any).selection = [imageShape];
+        const hostPenpot = (globalThis as unknown as { penpot?: { selection?: Shape[] } }).penpot;
+        if (hostPenpot) {
+          hostPenpot.selection = [imageShape];
+        }
       } catch (selectErr) {
         console.warn('Failed to set selection on new image (from URL):', selectErr);
       }
@@ -743,7 +743,10 @@ export async function handleAddImage(payload: AddImageQueryPayload): Promise<Plu
 
       // Select the newly created image so the user can immediately act on it
       try {
-        (penpot as any).selection = [imageShape];
+        const hostPenpot = (globalThis as unknown as { penpot?: { selection?: Shape[] } }).penpot;
+        if (hostPenpot) {
+          hostPenpot.selection = [imageShape];
+        }
       } catch (selErr) {
         console.warn('Failed to set selection on new image:', selErr);
       }
@@ -3893,8 +3896,9 @@ export async function cloneSelectionTool(payload: CloneSelectionQueryPayload): P
 
     try {
       // Assign selection directly when available in the runtime (test harness and penpot host)
-      if ((penpot as any)) {
-        (penpot as any).selection = createdShapes;
+      const hostPenpot = (globalThis as unknown as { penpot?: { selection?: Shape[] } }).penpot;
+      if (hostPenpot) {
+        hostPenpot.selection = createdShapes;
       }
     } catch (selErr) {
       console.warn('Failed to set selection after cloning:', selErr);
@@ -4634,8 +4638,9 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         // After undoing clones, try to re-select the original source shapes so the editor
         // selection reflects the user's prior selection (sourceIds) if available.
         try {
-          const sourceIds = (cloneData as any).sourceIds as string[] | undefined;
-          const sourceSelection: any[] = [];
+            const cloneDataTyped = cloneData as { shapeIds: string[]; sourceIds?: string[] };
+            const sourceIds = cloneDataTyped.sourceIds as string[] | undefined;
+            const sourceSelection: Shape[] = [];
           if (Array.isArray(sourceIds) && currentPage) {
             for (const sid of sourceIds) {
               const s = currentPage.getShapeById(sid);
@@ -4643,17 +4648,18 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             }
           }
 
-          if ((penpot as any) && sourceSelection.length > 0) {
-            (penpot as any).selection = sourceSelection;
-          } else if ((penpot as any)) {
+          const hostPenpot = (globalThis as unknown as { penpot?: { selection?: Shape[] } }).penpot;
+          if (sourceSelection.length > 0) {
+            if (hostPenpot) hostPenpot.selection = sourceSelection;
+          } else {
             // If no source shapes, clear selection
-            (penpot as any).selection = [];
+            if (hostPenpot) hostPenpot.selection = [];
           }
 
-          if (Array.isArray((cloneData as any).sourceIds)) {
+          if (Array.isArray(cloneDataTyped.sourceIds)) {
             setTimeout(() => {
               try {
-                updateCurrentSelection((cloneData as any).sourceIds ?? []);
+                updateCurrentSelection(cloneDataTyped.sourceIds ?? []);
               } catch (err) {
                 console.warn('Failed to update action-selection after undoing clones:', err);
               }
@@ -5641,8 +5647,9 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
                 }
               }
 
-              if ((penpot as any)) {
-                (penpot as any).selection = createdSelection;
+              const hostPenpot = (globalThis as unknown as { penpot?: { selection?: Shape[] } }).penpot;
+              if (hostPenpot) {
+                hostPenpot.selection = createdSelection;
               }
 
               setTimeout(() => {
