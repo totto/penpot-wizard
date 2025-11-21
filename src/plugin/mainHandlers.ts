@@ -111,6 +111,26 @@ export function addToUndoStack(undoInfo: UndoInfo) {
   console.log('Added to undo stack:', undoInfo.description);
 }
 
+// ===== Selection wrapper helpers (thin public wrappers) =====
+// These are intentionally exposed from mainHandlers.ts to keep a small
+// public API surface for the plugin while delegating implementation to
+// the specialized helpers in actionSelection.ts and selectionHelpers.ts.
+export function getSelectionForAction(): Shape[] {
+  // Action-only selection getter (delegates to actionSelection helper)
+  return actionGetSelectionForAction();
+}
+
+// Check if there is a valid selection available for actions
+export function hasValidSelection(): boolean {
+  return actionHasValidSelection();
+}
+
+// Read-only selection information for UI/UX and prompts (delegates to selectionHelpers)
+export function getSelectionInfo(): Array<{ id: string; name?: string; type: string; x: number; y: number; width: number; height: number; rotation?: number; opacity?: number }> {
+  return readSelectionInfo();
+}
+
+
 export function handleGetUserData(): PluginResponseMessage {
   if (penpot.currentUser) {
     return {
@@ -471,41 +491,7 @@ export function getCurrentPage(): PluginResponseMessage {
 }
 
 
-// SAFE SELECTION ACCESS PATTERN
-// =============================
-// Always handle selection access directly within action tools, never as general queries.
-// This prevents crashes from interfering with Penpot's internal selection handling.
-//
-// Wrapper to preserve public API — action implementation lives in actionSelection.ts
-export function getSelectionForAction(): Shape[] {
-  // IMPORTANT: This is an action-only helper. Tools in the UI/agent layer
-  // should NOT import this function directly. Instead, they should call the
-  // corresponding plugin endpoint (e.g., RESIZE) via sendMessageToPlugin().
-  // The plugin endpoint will use this helper internally to mutate shapes
-  // safely. This keeps read-only and mutation paths separate and prevents
-  // selection-related crashes.
-  return actionGetSelectionForAction();
-}
-
-// Check if selection exists (safe utility)
-export function hasValidSelection(): boolean {
-  return actionHasValidSelection();
-}
-
-// SAFE SELECTION INFO READING
-// ===========================
-// This function is specifically for READING selection information only.
-// It should NEVER be used for modifying shapes - only for getting properties.
-// Use getSelectionForAction() for any shape modifications.
-export function getSelectionInfo(): Array<{ id: string; name?: string; type: string; x: number; y: number; width: number; height: number; rotation?: number; opacity?: number }> {
-  // NOTE: For UI tools and director agents, call the GET_SELECTION_INFO
-  // plugin endpoint via sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, {})
-  // so all selection reads from the UI go through the plugin endpoint and
-  // remain read-only. Do not import selection helpers from plugin code into
-  // UI-level modules that can mutate shapes.
-  // Wrapper to keep backward compatibility while using a shared helper implementation
-  return readSelectionInfo();
-}
+// (selection wrapper helpers moved to the top of this file)
 
 /**
  * Center the viewport on a rectangle area. Prefer non-mutating viewport API.
