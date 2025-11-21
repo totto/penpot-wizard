@@ -332,6 +332,11 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       responseMessage = await toggleSelectionVisibilityTool(payload as unknown as ToggleSelectionVisibilityQueryPayload);
       break;
 
+    case ClientQueryType.CLONE_SELECTION:
+      responseMessage = await cloneSelectionTool(payload as unknown as CloneSelectionQueryPayload);
+      break;
+      break;
+
     default:
       responseMessage = {
         source: MessageSourceName.Plugin,
