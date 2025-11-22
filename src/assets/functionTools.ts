@@ -10,10 +10,12 @@ import {
   ToggleSelectionVisibilityQueryPayload,
   ToggleSelectionVisibilityResponsePayload,
   SetSelectionOpacityQueryPayload,
+  SetSelectionBorderRadiusQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
   SetSelectionBlendModeResponsePayload,
+  SetSelectionBorderRadiusResponsePayload,
   MoveQueryPayload,
   MoveResponsePayload,
 } from '@/types/types';
@@ -277,6 +279,33 @@ export const functionTools: FunctionTool[] = [
         const payload = response.payload as SetSelectionBlendModeResponsePayload | undefined;
         if (payload && payload.changedShapeIds.length === 0) {
           response.message = 'Blend mode change did not apply to any shapes. Ensure the shapes support blend modes.';
+        }
+        return response;
+      },
+    },
+    {
+      id: 'set-selection-border-radius',
+      name: 'setSelectionBorderRadius',
+      description: `Set the border radius (px) of the selected shapes. Call without a value to get selection context so the UI can prompt for one.`,
+      inputSchema: z.object({
+        borderRadius: z.number().min(0).optional(),
+      }),
+      function: async (args?: SetSelectionBorderRadiusQueryPayload) => {
+        if (!args || typeof args.borderRadius !== 'number') {
+          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        }
+
+        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+        if (!selectionPayload || selectionPayload.selectionCount === 0) {
+          selectionResp.message = 'Select at least one shape before changing the border radius.';
+          return selectionResp;
+        }
+
+        const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_BORDER_RADIUS, args);
+        const payload = response.payload as SetSelectionBorderRadiusResponsePayload | undefined;
+        if (payload && payload.changedShapeIds.length === 0) {
+          response.message = 'Border radius change did not apply to any shapes. Ensure the shapes support borderRadius.';
         }
         return response;
       },
