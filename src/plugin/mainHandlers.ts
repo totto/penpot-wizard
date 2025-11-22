@@ -27,6 +27,7 @@ import {
   ApplyRadialGradientQueryPayload,
   ApplyShadowQueryPayload,
   SetSelectionOpacityQueryPayload,
+  SetSelectionBorderRadiusQueryPayload,
   SetSelectionBlendModeQueryPayload,
   AlignHorizontalQueryPayload,
   AlignVerticalQueryPayload,
@@ -66,7 +67,10 @@ import {
   RedoLastActionQueryPayload,
   AddImageQueryPayload,
   SetSelectionOpacityResponsePayload,
+  SetSelectionBorderRadiusResponsePayload,
   SetSelectionBlendModeResponsePayload,
+  SetSelectionBorderRadiusPromptResponsePayload,
+  SelectionConfirmationPromptPayload,
 } from "../types/types";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
@@ -2002,6 +2006,131 @@ export async function setSelectionBlendModeTool(payload: SetSelectionBlendModeQu
       type: ClientQueryType.SET_SELECTION_BLEND_MODE,
       success: false,
       message: `Error setting blend mode: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function setSelectionBorderRadiusTool(payload: SetSelectionBorderRadiusQueryPayload): Promise<PluginResponseMessage> {
+  const requestedRadius = typeof payload?.borderRadius === 'number' && Number.isFinite(payload.borderRadius) ? payload.borderRadius : undefined;
+  if (requestedRadius !== undefined && requestedRadius < 0) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_BORDER_RADIUS,
+      success: false,
+      message: 'Border radius must be a non-negative number.',
+    };
+  }
+
+  const appliedRadius = requestedRadius ?? 0;
+
+  try {
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_SELECTION_BORDER_RADIUS,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    const changedShapeIds: string[] = [];
+    const previousBorderRadii: Array<number | undefined> = [];
+    const skippedLocked: Array<{ id: string; name?: string }> = [];
+    const shapesWithoutBorderRadius: Array<{ id: string; name?: string }> = [];
+
+    const targetShapes: Shape[] = [];
+    for (const shape of sel) {
+      const s = shape as Shape & { locked?: boolean; borderRadius?: unknown; name?: string };
+      if (s.locked === true) {
+        skippedLocked.push({ id: s.id, name: s.name });
+        continue;
+      }
+
+      if (!Object.prototype.hasOwnProperty.call(s, 'borderRadius')) {
+        shapesWithoutBorderRadius.push({ id: s.id, name: s.name });
+        continue;
+      }
+
+      targetShapes.push(s);
+    }
+
+    if (shapesWithoutBorderRadius.length > 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_SELECTION_BORDER_RADIUS,
+        success: false,
+        message: 'MISSING_BORDER_RADIUS',
+        payload: {
+          shapesWithoutBorderRadius,
+          requestedBorderRadius: appliedRadius,
+        } as SetSelectionBorderRadiusPromptResponsePayload,
+      };
+    }
+
+    for (const s of targetShapes) {
+      changedShapeIds.push(s.id);
+      previousBorderRadii.push(typeof s.borderRadius === 'number' ? s.borderRadius as number : undefined);
+      s.borderRadius = appliedRadius;
+    }
+
+    if (changedShapeIds.length === 0) {
+      const message = skippedLocked.length > 0
+        ? `All selected shapes are locked (${skippedLocked.map(s=> s.name ?? s.id).join(', ')}). Unlock them before changing the border radius.`
+        : 'No shapes were updated.';
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_SELECTION_BORDER_RADIUS,
+        success: false,
+        message,
+      };
+    }
+
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.SET_SELECTION_BORDER_RADIUS,
+      actionId: `set_selection_border_radius_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Set border radius to ${appliedRadius}`,
+      undoData: {
+        shapeIds: changedShapeIds,
+        previousBorderRadii,
+        appliedBorderRadius: appliedRadius,
+      },
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    let responseMessage = `Set border radius to ${appliedRadius} for ${changedShapeIds.length} shape${changedShapeIds.length > 1 ? 's' : ''}`;
+    if (skippedLocked.length > 0) {
+      responseMessage += ` (skipped ${skippedLocked.length} locked shape${skippedLocked.length > 1 ? 's' : ''}: ${skippedLocked.map(s => s.name ?? s.id).join(', ')})`;
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_BORDER_RADIUS,
+      message: `${responseMessage}.`,
+      payload: {
+        changedShapeIds,
+        appliedBorderRadius: appliedRadius,
+        previousBorderRadii,
+        undoInfo,
+        skippedLockedShapes: skippedLocked.length > 0 ? skippedLocked : undefined,
+      } as SetSelectionBorderRadiusResponsePayload,
+    };
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_BORDER_RADIUS,
+      success: false,
+      message: `API_ERROR`,
+      payload: {
+        actionName: 'setSelectionBorderRadius',
+        message: `Error applying border radius: ${errMsg}`,
+        blockerType: 'apiError',
+        blockerDetails: errMsg,
+        needsConfirmation: true,
+      } as SelectionConfirmationPromptPayload,
     };
   }
 }
@@ -4763,6 +4892,39 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.SET_SELECTION_BORDER_RADIUS: {
+        const radiusData = lastAction.undoData as {
+          shapeIds: string[];
+          previousBorderRadii: Array<number | undefined>;
+        };
+
+        for (let i = 0; i < radiusData.shapeIds.length; i++) {
+          const shapeId = radiusData.shapeIds[i];
+          const previousRadius = radiusData.previousBorderRadii[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore previous radius or remove property if undefined
+            if (typeof previousRadius === 'number') {
+              (shape as any).borderRadius = previousRadius;
+            } else {
+              delete (shape as any).borderRadius;
+            }
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore border radius for shape ${shapeId}:`, error);
+          }
+        }
+
+        break;
+      }
+
       /* (removed reapply-rotate case; rotate redo belongs to redoLastAction) */
 
       
@@ -6046,6 +6208,28 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to redo opacity for shape ${shapeId}:`, error);
+          }
+        }
+
+        undoStack.push(lastAction);
+        break;
+      }
+
+      case ClientQueryType.SET_SELECTION_BORDER_RADIUS: {
+        const radiusData = lastAction.undoData as { shapeIds: string[]; appliedBorderRadius: number };
+
+        for (const shapeId of radiusData.shapeIds) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            (shape as any).borderRadius = radiusData.appliedBorderRadius;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo border radius for shape ${shapeId}:`, error);
           }
         }
 
