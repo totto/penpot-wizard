@@ -4753,7 +4753,8 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             if (!shape) continue;
 
             const shapeWithBlend = shape as Shape & { blendMode?: typeof blendModes[number]; name?: string };
-            shapeWithBlend.blendMode = typeof previousBlendMode === 'string' ? previousBlendMode : 'normal';
+            // Restore previous blend mode or remove the property when there was none
+            (shapeWithBlend as any).blendMode = previousBlendMode ?? undefined;
             restoredShapes.push(shapeWithBlend.name || shapeWithBlend.id);
           } catch (error) {
             console.warn(`Failed to restore blend mode for shape ${shapeId}:`, error);
