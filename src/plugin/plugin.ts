@@ -39,6 +39,7 @@ import {
   CloneSelectionQueryPayload,
   GetSelectionInfoQueryPayload,
   SetSelectionBlendModeQueryPayload,
+  SetSelectionBorderRadiusQueryPayload,
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
@@ -85,8 +86,10 @@ import {
   moveSelectionTool,
   cloneSelectionTool,
   toggleSelectionLockTool,
-  toggleSelectionVisibilityTool
-  ,setSelectionBlendModeTool
+  toggleSelectionVisibilityTool,
+  setSelectionBlendModeTool
+  ,
+  setSelectionBorderRadiusTool
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -337,6 +340,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
     case ClientQueryType.CLONE_SELECTION:
       responseMessage = await cloneSelectionTool(payload as unknown as CloneSelectionQueryPayload);
       break;
+    case ClientQueryType.SET_SELECTION_BORDER_RADIUS:
+      responseMessage = await setSelectionBorderRadiusTool(payload as unknown as SetSelectionBorderRadiusQueryPayload);
+      break;
+
     case ClientQueryType.SET_SELECTION_BLEND_MODE:
       responseMessage = await setSelectionBlendModeTool(payload as unknown as SetSelectionBlendModeQueryPayload);
       break;
