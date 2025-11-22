@@ -29,6 +29,7 @@ export enum ClientQueryType {
   ADD_IMAGE_FROM_URL = 'ADD_IMAGE_FROM_URL',
   APPLY_BLUR = 'APPLY_BLUR',
   SET_SELECTION_OPACITY = 'SET_SELECTION_OPACITY',
+  SET_SELECTION_BORDER_RADIUS = 'SET_SELECTION_BORDER_RADIUS',
   SET_SELECTION_BLEND_MODE = 'SET_SELECTION_BLEND_MODE',
   ROTATE = 'ROTATE',
   MOVE = 'MOVE',
@@ -94,6 +95,10 @@ export interface ApplyBlurQueryPayload {
 
 export interface SetSelectionOpacityQueryPayload {
   opacity?: number;
+}
+
+export interface SetSelectionBorderRadiusQueryPayload {
+  borderRadius?: number; // in pixels
 }
 
 export interface SetSelectionBlendModeQueryPayload {
@@ -187,6 +192,19 @@ export interface SetSelectionOpacityResponsePayload {
   appliedOpacity: number;
   previousOpacities: Array<number | undefined>;
   undoInfo?: UndoInfo;
+}
+
+export interface SetSelectionBorderRadiusResponsePayload {
+  changedShapeIds: string[];
+  appliedBorderRadius: number;
+  previousBorderRadii: Array<number | undefined>;
+  undoInfo?: UndoInfo;
+  skippedLockedShapes?: Array<{ id: string; name?: string }>;
+}
+
+export interface SetSelectionBorderRadiusPromptResponsePayload {
+  shapesWithoutBorderRadius: Array<{ id: string; name?: string }>;
+  requestedBorderRadius: number;
 }
 
 export interface SetSelectionBlendModeResponsePayload {
@@ -348,6 +366,7 @@ export type ClientQueryPayload =
   | AddImageFromUrlQueryPayload
   | ApplyBlurQueryPayload
   | SetSelectionOpacityQueryPayload
+  | SetSelectionBorderRadiusQueryPayload
   | SetSelectionBlendModeQueryPayload
   | CreateLibraryFontPayload
   | CreateLibraryComponentPayload
@@ -359,7 +378,9 @@ export type PluginResponsePayload =
   | ApplyBlurResponsePayload
   | ApplyShadowResponsePayload
   | SetSelectionOpacityResponsePayload
+  | SetSelectionBorderRadiusResponsePayload
   | SetSelectionBlendModeResponsePayload
+  | SetSelectionBorderRadiusPromptResponsePayload
   | ApplyShadowPromptResponsePayload
   | GetUserDataPayload
   | GetProjectDataPayload

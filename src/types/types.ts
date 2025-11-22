@@ -39,6 +39,7 @@ export enum ClientQueryType {
   APPLY_RADIAL_GRADIENT = 'APPLY_RADIAL_GRADIENT',
   APPLY_SHADOW = 'APPLY_SHADOW',
   SET_SELECTION_OPACITY = 'SET_SELECTION_OPACITY',
+  SET_SELECTION_BORDER_RADIUS = 'SET_SELECTION_BORDER_RADIUS',
   SET_SELECTION_BLEND_MODE = 'SET_SELECTION_BLEND_MODE',
   ALIGN_HORIZONTAL = 'ALIGN_HORIZONTAL',
   ALIGN_VERTICAL = 'ALIGN_VERTICAL',
@@ -89,6 +90,7 @@ export interface ClientMessage {
   | ApplyRadialGradientQueryPayload 
   | ApplyShadowQueryPayload 
   | SetSelectionOpacityQueryPayload 
+  | SetSelectionBorderRadiusQueryPayload 
   | SetSelectionBlendModeQueryPayload 
   | AlignHorizontalQueryPayload 
   | AlignVerticalQueryPayload 
@@ -181,6 +183,10 @@ export interface SetSelectionOpacityQueryPayload {
   opacity?: number;
 }
 
+export interface SetSelectionBorderRadiusQueryPayload {
+  borderRadius?: number; // in pixels
+}
+
 export interface SetSelectionBlendModeQueryPayload {
   blendMode?: string;
 }
@@ -237,6 +243,7 @@ export type ClientQueryPayload =
   | ApplyRadialGradientQueryPayload
   | ApplyShadowQueryPayload
   | SetSelectionOpacityQueryPayload 
+  | SetSelectionBorderRadiusQueryPayload 
   | SetSelectionBlendModeQueryPayload 
   | AlignHorizontalQueryPayload
   | AlignVerticalQueryPayload
@@ -369,6 +376,19 @@ export interface SetSelectionOpacityResponsePayload {
   appliedOpacity: number;
   previousOpacities: Array<number | undefined>;
   undoInfo?: UndoInfo;
+}
+
+export interface SetSelectionBorderRadiusResponsePayload {
+  changedShapeIds: string[];
+  appliedBorderRadius: number;
+  previousBorderRadii: Array<number | undefined>;
+  undoInfo?: UndoInfo;
+  skippedLockedShapes?: Array<{ id: string; name?: string }>;
+}
+
+export interface SetSelectionBorderRadiusPromptResponsePayload {
+  shapesWithoutBorderRadius: Array<{ id: string; name?: string }>;
+  requestedBorderRadius: number;
 }
 
 export interface SetSelectionBlendModeResponsePayload {
@@ -773,6 +793,7 @@ export type PluginResponsePayload =
   | ApplyRadialGradientResponsePayload
   | ApplyShadowResponsePayload
   | SetSelectionOpacityResponsePayload
+  | SetSelectionBorderRadiusResponsePayload
   | SetSelectionBlendModeResponsePayload
   | AlignHorizontalResponsePayload
   | AlignVerticalResponsePayload
@@ -796,6 +817,7 @@ export type PluginResponsePayload =
   | GetSelectionInfoResponsePayload
   | MoveResponsePayload
   | CloneSelectionPromptResponsePayload
+  | SetSelectionBorderRadiusPromptResponsePayload
   | CloneSelectionResponsePayload
   | ToggleSelectionLockResponsePayload
   | ToggleSelectionVisibilityResponsePayload
