@@ -263,11 +263,25 @@ export const functionTools: FunctionTool[] = [
             const n = Number(percentMatch[1].replace(/,/g, '.'));
             parsedOpacity = Number.isFinite(n) ? n / 100 : undefined;
           } else {
-            // try parsing as a plain number
-            const n = Number(s.replace(/,/g, '.'));
-            if (Number.isFinite(n)) {
-              // Interpret numbers > 1 as percentages (e.g. 50 -> 0.5)
-              parsedOpacity = n > 1 ? n / 100 : n;
+            // Natural-language parsing (common phrases)
+            const norm = s.toLowerCase().replace(/[-_]/g, ' ').trim();
+            if (norm === 'half' || norm === 'half opacity' || norm === 'half-opacity' || norm === 'halfopacity') {
+              parsedOpacity = 0.5;
+            } else if (norm === 'transparent' || norm === 'invisible') {
+              parsedOpacity = 0;
+            } else if (norm === 'opaque' || norm === 'full' || norm === 'fully opaque') {
+              parsedOpacity = 1;
+            } else if (norm === 'quarter' || norm === 'one quarter') {
+              parsedOpacity = 0.25;
+            } else if (norm === 'three quarters' || norm === 'three quarter') {
+              parsedOpacity = 0.75;
+            } else {
+              // try parsing as a plain number
+              const n = Number(s.replace(/,/g, '.'));
+              if (Number.isFinite(n)) {
+                // Interpret numbers > 1 as percentages (e.g. 50 -> 0.5)
+                parsedOpacity = n > 1 ? n / 100 : n;
+              }
             }
           }
         }
