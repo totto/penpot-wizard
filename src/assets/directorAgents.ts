@@ -141,6 +141,8 @@ When using the resize-selection tool:
       'set-selection-border-radius',
       'set-selection-bounds', 
       'toggle-selection-proportion-lock',
+
+      'dump-selection', //Dev tool for debugging
       
     ],
     

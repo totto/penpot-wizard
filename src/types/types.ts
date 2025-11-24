@@ -26,6 +26,7 @@ export enum ClientQueryType {
   GET_ACTIVE_USERS = 'GET_ACTIVE_USERS',
   GET_FILE_VERSIONS = 'GET_FILE_VERSIONS',
   GET_SELECTION_INFO = 'GET_SELECTION_INFO',
+  GET_SELECTION_DUMP = 'GET_SELECTION_DUMP',
   CREATE_LIBRARY_COLOR = 'CREATE_LIBRARY_COLOR',
   CREATE_LIBRARY_FONT = 'CREATE_LIBRARY_FONT',
   CREATE_LIBRARY_COMPONENT = 'CREATE_LIBRARY_COMPONENT',
@@ -272,6 +273,7 @@ export type ClientQueryPayload =
   | RedoLastActionQueryPayload
   | ResizeQueryPayload
   | GetSelectionInfoQueryPayload
+  | GetSelectionDumpQueryPayload
   | CloneSelectionQueryPayload
   | MoveQueryPayload
   | ToggleSelectionLockQueryPayload
@@ -708,6 +710,18 @@ export interface GetCurrentPagePayload {
   name: string;
   id: string;
   shapes: Shape[];
+}
+
+export type GetSelectionDumpQueryPayload = Record<string, never>;
+
+export interface GetSelectionDumpResponsePayload {
+  selectionCount: number;
+  // compact detailed info per selected object — plain serializable fields
+  selectedObjects: Array<Record<string, unknown>>;
+  // currentSelectionIds mirrors the plugin-side actionSelection tracker (if available)
+  currentSelectionIds?: string[];
+  // timestamp in ms when dump was taken
+  timestamp?: number;
 }
 
 

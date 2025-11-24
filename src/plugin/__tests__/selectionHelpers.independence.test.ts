@@ -36,4 +36,20 @@ describe('readSelectionInfo independence', () => {
     expect(result.length).toBe(1);
     expect(before).toEqual(after); // original object unchanged
   });
+
+  it('falls back to currentPage.getSelectedShapes when penpot.selection exists but is empty', () => {
+    (globalThis as any).penpot = {
+      selection: [],
+      currentPage: {
+        getSelectedShapes: () => [
+          { id: 'fallback-1', name: 'Fallback', type: 'ellipse', x: 5, y: 6, width: 12, height: 12 },
+        ],
+      },
+    };
+
+    const result = readSelectionInfo();
+    expect(result.length).toBe(1);
+    expect(result[0].id).toBe('fallback-1');
+    expect(result[0].type).toBe('ellipse');
+  });
 });

@@ -228,6 +228,21 @@ describe('functionTools resize-selection behavior', () => {
     expect((resp.payload as unknown as { lockedShapes?: Array<{ id: string }>} )?.lockedShapes).toEqual([{ id: 'a', name: 'A' }]);
   });
 
+  it('dump-selection returns detailed snapshot when called', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'dump-selection');
+    if (!tool) throw new Error('dump-selection tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockResolvedValueOnce({ success: true, payload: { selectionCount: 1, selectedObjects: [{ id: 'a', type: 'rectangle', x: 10, y: 10, width: 100, height: 50, locked: false, keys: ['id','type'] }], currentSelectionIds: ['a'], timestamp: Date.now() } });
+
+    const resp = await (tool!.function as unknown as () => Promise<Record<string, unknown>>)();
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('GET_SELECTION_DUMP', undefined);
+    expect((resp.payload as any).selectionCount).toBe(1);
+    expect((resp.payload as any).selectedObjects[0].type).toBe('rectangle');
+    expect(Array.isArray((resp.payload as any).currentSelectionIds)).toBe(true);
+    expect(typeof (resp.payload as any).timestamp).toBe('number');
+  });
+
   // NOTE: The plugin handler now always logs a concise diagnostic when toggling
   // proportions. There is no longer a debugDump flag to forward; the wrapper
   // should continue to forward lock/shapeIds only.

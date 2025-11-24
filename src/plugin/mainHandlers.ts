@@ -59,6 +59,8 @@ import {
   ToggleSelectionVisibilityQueryPayload,
   ToggleSelectionVisibilityResponsePayload,
   GetSelectionInfoQueryPayload,
+  GetSelectionDumpQueryPayload,
+  GetSelectionDumpResponsePayload,
   ClientQueryType,
   MessageSourceName,
   PluginResponseMessage,
@@ -5079,6 +5081,65 @@ export async function getSelectionInfoTool(_payload: GetSelectionInfoQueryPayloa
       type: ClientQueryType.GET_SELECTION_INFO,
       success: false,
       message: `Error reading selection information: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function getSelectionDumpTool(_payload: GetSelectionDumpQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Attempt to gather a set of live shape objects for detailed inspection
+    const currentPage = (penpot as any).currentPage as any;
+    const selection = (penpot as any).selection ?? (currentPage && typeof currentPage.getSelectedShapes === 'function' ? currentPage.getSelectedShapes() : undefined);
+
+    if (!selection || !Array.isArray(selection) || selection.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_SELECTION_DUMP,
+        success: false,
+        message: 'No shapes are currently selected. Please select one or more shapes first.',
+      };
+    }
+
+    // Build a compact read-only snapshot per shape
+    const detailed = (selection as any[]).map((shape: any) => {
+      const keys = Object.keys(shape).slice(0, 80);
+      const ratioFlags = [
+        'proportionLock','keepAspectRatio','constrainProportions','lockProportions','preserveAspectRatio','lockRatio','ratioLocked','lockAspectRatio','keepRatio','fixedAspectRatio','constrainAspectRatio','maintainAspect'
+      ].reduce((acc: Record<string, unknown>, k) => { if (k in shape) acc[k] = shape[k]; return acc; }, {} as Record<string, unknown>);
+
+      return {
+        id: String(shape.id ?? ''),
+        name: shape.name ?? undefined,
+        type: String(shape.type ?? 'unknown'),
+        x: typeof shape.x === 'number' ? shape.x : 0,
+        y: typeof shape.y === 'number' ? shape.y : 0,
+        width: typeof shape.width === 'number' ? shape.width : 0,
+        height: typeof shape.height === 'number' ? shape.height : 0,
+        locked: !!shape.locked,
+        blocked: !!shape.blocked,
+        keys,
+        ratioFlags,
+        constraints: shape.constraints ?? undefined,
+      } as Record<string, unknown>;
+    });
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_SELECTION_DUMP,
+      message: `Dumped ${detailed.length} selected shapes`,
+      payload: ({
+        selectionCount: detailed.length,
+        selectedObjects: detailed,
+        currentSelectionIds: Array.isArray(currentSelectionIds) ? [...currentSelectionIds] : undefined,
+        timestamp: Date.now(),
+      } as unknown) as GetSelectionDumpResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_SELECTION_DUMP,
+      success: false,
+      message: `Error creating selection dump: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

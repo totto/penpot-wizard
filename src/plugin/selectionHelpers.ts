@@ -17,10 +17,22 @@ export function readSelectionInfo(): SelectionInfoItem[] {
 
   try {
   // Use penpot.selection for fast access in the host environment.
-  // If it doesn't exist, fallback to current page selected shapes (non-action read-only only).
+  // If it doesn't exist, or if penpot.selection is present but empty, fall back to
+  // currentPage.getSelectedShapes(). Some host runtimes briefly expose an empty
+  // penpot.selection while the page selection APIs still return the selected shapes —
+  // prefer a non-empty selection when possible.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const selection = (penpot as any).selection ?? (penpot.currentPage as any)?.getSelectedShapes?.();
-    if (!selection || !Array.isArray(selection) || selection.length === 0) {
+  let selection = (penpot as any).selection;
+  try {
+    const pageFallback = (penpot.currentPage as any)?.getSelectedShapes?.();
+    if ((!selection || !Array.isArray(selection) || selection.length === 0) && Array.isArray(pageFallback) && pageFallback.length > 0) {
+      selection = pageFallback;
+    }
+  } catch {
+    // silent - fall through to selection as captured
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!selection || !Array.isArray(selection) || selection.length === 0) {
       console.log('❌ No selection available for info reading');
       return [];
     }

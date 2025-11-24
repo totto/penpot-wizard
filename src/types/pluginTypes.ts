@@ -18,6 +18,7 @@ export enum ClientQueryType {
   GET_PROJECT_DATA = 'GET_PROJECT_DATA',
   GET_AVAILABLE_FONTS = 'GET_AVAILABLE_FONTS',
   GET_CURRENT_PAGE = 'GET_CURRENT_PAGE',
+  GET_SELECTION_DUMP = 'GET_SELECTION_DUMP',
   GET_CURRENT_THEME = 'GET_CURRENT_THEME',
   GET_ACTIVE_USERS = 'GET_ACTIVE_USERS',
   GET_FILE_VERSIONS = 'GET_FILE_VERSIONS',
@@ -320,6 +321,15 @@ export interface GetCurrentPagePayload {
   name: string;
   id: string;
   shapes: Shape[];
+}
+
+export type GetSelectionDumpQueryPayload = Record<string, never>;
+
+export interface GetSelectionDumpResponsePayload {
+  selectionCount: number;
+  selectedObjects: Array<Record<string, unknown>>;
+  currentSelectionIds?: string[];
+  timestamp?: number;
 }
 
 export interface GetCurrentThemePayload {

@@ -9,6 +9,8 @@ import {
   ToggleSelectionLockResponsePayload,
   ToggleSelectionProportionLockQueryPayload,
   ToggleSelectionProportionLockResponsePayload,
+  GetSelectionDumpQueryPayload,
+  GetSelectionDumpResponsePayload,
   ToggleSelectionVisibilityQueryPayload,
   ToggleSelectionVisibilityResponsePayload,
   SetSelectionOpacityQueryPayload,
@@ -667,6 +669,20 @@ export const functionTools: FunctionTool[] = [
     inputSchema: z.object({}),
     function: async () => {
       const response = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      return response;
+    },
+  },
+  {
+    id: "dump-selection",
+    name: "dumpSelection",
+    description: `
+      Read-only dump of the current selection as returned by the plugin runtime. This returns a compact
+      but more detailed snapshot of each selected shape (including common lock/proportion-related keys).
+      Useful for debugging and diagnosing inspector mismatches.
+    `,
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_DUMP, undefined);
       return response;
     },
   },

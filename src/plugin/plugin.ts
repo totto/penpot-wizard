@@ -39,6 +39,7 @@ import {
   RotateQueryPayload,
   CloneSelectionQueryPayload,
   GetSelectionInfoQueryPayload,
+  GetSelectionDumpQueryPayload,
   SetSelectionOpacityQueryPayload,
   SetSelectionBlendModeQueryPayload,
   SetSelectionBorderRadiusQueryPayload,
@@ -86,6 +87,7 @@ import {
   resizeTool,
   rotateTool,
   getSelectionInfoTool,
+  getSelectionDumpTool,
   moveSelectionTool,
   cloneSelectionTool,
   toggleSelectionLockTool,
@@ -330,6 +332,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.GET_SELECTION_INFO:
       responseMessage = await getSelectionInfoTool(payload as unknown as GetSelectionInfoQueryPayload);
+      break;
+
+    case ClientQueryType.GET_SELECTION_DUMP:
+      responseMessage = await getSelectionDumpTool(payload as unknown as GetSelectionDumpQueryPayload);
       break;
 
     case ClientQueryType.MOVE:
