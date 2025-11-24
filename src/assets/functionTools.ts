@@ -97,11 +97,19 @@ export const functionTools: FunctionTool[] = [
         return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
       }
 
-      // Read selection first for message tailoring, then call the toggle action
-  await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        // Read selection first for message tailoring, then call the toggle action
+      const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
 
-      // Call plugin to lock/unlock (explicit or inferred)
-  const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_LOCK, args as unknown as ToggleSelectionLockQueryPayload);
+        // Ensure we forward shapeIds to plugin when available so plugin handlers that
+        // rely on explicit shape IDs (instead of relying on penpot.selection) can operate
+        // in environments where the selection proxy isn't available.
+      if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
+      args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) } as unknown as { lock?: boolean; shapeIds?: string[] };
+      }
+
+        // Call plugin to lock/unlock (explicit or inferred)
+      const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_LOCK, args as unknown as ToggleSelectionLockQueryPayload);
 
       // If plugin returned mixed-selection info, surface it in the message
   const payload = response.payload as ToggleSelectionLockResponsePayload | undefined;
@@ -132,7 +140,12 @@ export const functionTools: FunctionTool[] = [
             return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
           }
 
-          await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+          const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+          const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+
+          if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
+            args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) } as unknown as { hide?: boolean; shapeIds?: string[] };
+          }
 
           const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_VISIBILITY, args as unknown as ToggleSelectionVisibilityQueryPayload);
 
@@ -249,7 +262,7 @@ export const functionTools: FunctionTool[] = [
         }
 
         // Normalize opacity to a number between 0 and 1.
-        let raw = args.opacity;
+        const raw = args.opacity;
         let parsedOpacity: number | undefined;
 
         if (typeof raw === 'number') {

@@ -123,7 +123,7 @@ describe('functionTools resize-selection behavior', () => {
     sendMock.mockResolvedValueOnce({ success: false, message: 'MIXED_SELECTION', payload: { lockedShapes: [{ id: 'a', name: 'A' }], unlockedShapes: [{ id: 'b', name: 'B' }] } });
 
   const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>> )({});
-  expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_LOCK', {});
+  expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_LOCK', { shapeIds: ['a', 'b'] });
     expect(resp.message).toMatch(/Locked: A/);
     expect(resp.message).toMatch(/Unlocked: B/);
   });
@@ -154,7 +154,7 @@ describe('functionTools resize-selection behavior', () => {
     sendMock.mockResolvedValueOnce({ success: false, message: 'MIXED_SELECTION', payload: { hiddenShapes: [{ id: 'a', name: 'A' }], unhiddenShapes: [{ id: 'b', name: 'B' }] } });
 
     const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>> )({});
-    expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_VISIBILITY', {});
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_VISIBILITY', { shapeIds: ['a', 'b'] });
     expect(resp.message).toMatch(/Hidden: A/);
     expect(resp.message).toMatch(/Visible: B/);
   });
@@ -169,7 +169,7 @@ describe('functionTools resize-selection behavior', () => {
     sendMock.mockResolvedValueOnce({ success: true, payload: { hiddenShapes: [{ id: 'a', name: 'A' }] }, message: 'Hidden 1 shape' });
 
     const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>> )({ hide: true });
-    expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_VISIBILITY', { hide: true });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_VISIBILITY', { hide: true, shapeIds: ['a'] });
     expect((resp.payload as unknown as { hiddenShapes?: Array<{ id: string }>} )?.hiddenShapes).toEqual([{ id: 'a', name: 'A' }]);
   });
 
@@ -183,7 +183,7 @@ describe('functionTools resize-selection behavior', () => {
     sendMock.mockResolvedValueOnce({ success: true, payload: { lockedShapes: [{ id: 'a', name: 'A' }] }, message: 'Locked 1 shape' });
 
     const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>> )({ lock: true });
-  expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_LOCK', { lock: true });
+  expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_LOCK', { lock: true, shapeIds: ['a'] });
     expect((resp.payload as unknown as { lockedShapes?: Array<{ id: string }>} )?.lockedShapes).toEqual([{ id: 'a', name: 'A' }]);
   });
 
@@ -267,6 +267,78 @@ describe('functionTools resize-selection behavior', () => {
     const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)({ opacity: '0.5' });
     expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_OPACITY', { opacity: 0.5 });
     expect(resp.success).toBe(true);
+  });
+
+  it('set-selection-opacity should parse "half"', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-opacity');
+    if (!tool) throw new Error('set-selection-opacity tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockReset();
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 's4' }] } });
+    sendMock.mockResolvedValueOnce({ success: true, payload: { changedShapeIds: ['s4'], appliedOpacity: 0.5 } });
+
+    const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)({ opacity: 'half' });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_OPACITY', { opacity: 0.5 });
+    expect(resp.success).toBe(true);
+  });
+
+  it('set-selection-opacity should parse "half-opacity"', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-opacity');
+    if (!tool) throw new Error('set-selection-opacity tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockReset();
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 's5' }] } });
+    sendMock.mockResolvedValueOnce({ success: true, payload: { changedShapeIds: ['s5'], appliedOpacity: 0.5 } });
+
+    const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)({ opacity: 'half-opacity' });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_OPACITY', { opacity: 0.5 });
+    expect(resp.success).toBe(true);
+  });
+
+  it('set-selection-opacity should parse "transparent" and "opaque"', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-opacity');
+    if (!tool) throw new Error('set-selection-opacity tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockReset();
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 's6' }] } });
+    sendMock.mockResolvedValueOnce({ success: true, payload: { changedShapeIds: ['s6'], appliedOpacity: 0 } });
+
+    const resp1 = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)({ opacity: 'transparent' });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_OPACITY', { opacity: 0 });
+    expect(resp1.success).toBe(true);
+
+    sendMock.mockReset();
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 's7' }] } });
+    sendMock.mockResolvedValueOnce({ success: true, payload: { changedShapeIds: ['s7'], appliedOpacity: 1 } });
+
+    const resp2 = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)({ opacity: 'opaque' });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_OPACITY', { opacity: 1 });
+    expect(resp2.success).toBe(true);
+  });
+
+  it('set-selection-opacity should parse "quarter" and "three quarters"', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-opacity');
+    if (!tool) throw new Error('set-selection-opacity tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockReset();
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 's8' }] } });
+    sendMock.mockResolvedValueOnce({ success: true, payload: { changedShapeIds: ['s8'], appliedOpacity: 0.25 } });
+
+    const resp1 = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)({ opacity: 'quarter' });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_OPACITY', { opacity: 0.25 });
+    expect(resp1.success).toBe(true);
+
+    sendMock.mockReset();
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 's9' }] } });
+    sendMock.mockResolvedValueOnce({ success: true, payload: { changedShapeIds: ['s9'], appliedOpacity: 0.75 } });
+
+    const resp2 = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)({ opacity: 'three quarters' });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_OPACITY', { opacity: 0.75 });
+    expect(resp2.success).toBe(true);
   });
 
   it('set-selection-bounds calls GET_SELECTION_INFO when no values provided', async () => {
