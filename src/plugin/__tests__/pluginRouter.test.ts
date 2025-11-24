@@ -52,4 +52,55 @@ describe('plugin router integration', () => {
     expect(Array.isArray(resp.payload.changedShapeIds)).toBe(true);
     expect(resp.payload.appliedOpacity).toBe(0.5);
   });
+
+  it('dispatches TOGGLE_SELECTION_LOCK and sends response via penpot.ui.sendMessage', async () => {
+    // Create mocks and a handler capture
+    let handler: any = null;
+    const sendSpy = vi.fn();
+
+    // Provide a minimal penpot global expected by plugin.ts when it registers handlers
+    (globalThis as any).penpot = {
+      on: vi.fn(),
+      theme: 'light',
+      ui: {
+        open: vi.fn(),
+        onMessage: (cb: any) => { handler = cb; },
+        sendMessage: sendSpy,
+      },
+      // Provide a direct selection proxy so the handler's getSelectionForAction finds something
+      selection: [ { id: 'shape-lock-1', name: 'Box', locked: false, type: 'rect' } ],
+      currentPage: {
+        getShapeById: (id: string) => ({ id, name: `shape-${id}`, locked: false, type: 'rect' }),
+      },
+    };
+
+    // Import the plugin module so it registers the onMessage handler
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    await import('@/plugin/plugin');
+    expect(typeof handler).toBe('function');
+
+    // Simulate a client message for TOGGLE_SELECTION_LOCK (force lock)
+    const message = {
+      source: MessageSourceName.Client,
+      type: ClientQueryType.TOGGLE_SELECTION_LOCK,
+      messageId: 'msg-2',
+      payload: { lock: true },
+    } as any;
+
+    // Call handler and wait for it to process
+    await handler(message);
+
+    // We expect the plugin to have sent a response via penpot.ui.sendMessage
+    expect(sendSpy).toHaveBeenCalled();
+
+    const resp = sendSpy.mock.calls[0][0];
+    expect(resp).toBeTruthy();
+    expect(resp.type).toBe(ClientQueryType.TOGGLE_SELECTION_LOCK);
+    expect(resp.success).toBe(true);
+    // plugin should include lockedShapes and undoInfo when locking
+    expect(resp.payload).toBeTruthy();
+    expect(Array.isArray(resp.payload.lockedShapes)).toBe(true);
+    expect(resp.payload.undoInfo).toBeTruthy();
+    expect(Array.isArray(resp.payload.undoInfo.undoData.shapeIds)).toBe(true);
+  });
 });
