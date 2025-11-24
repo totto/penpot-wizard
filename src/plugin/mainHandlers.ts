@@ -4918,7 +4918,33 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
     }
 
     if (affectedIds.length === 0) {
-      return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: false, message: willLock ? 'No shapes to lock (proportions)' : 'No shapes to unlock (proportions)' };
+      // No changes were applied — include a diagnostic snapshot of the selected
+      // targets so callers can inspect the live flags and understand why nothing
+      // changed (e.g., already-unlocked, or inspector mismatch).
+      const currentPage = (penpot as any).currentPage as any;
+      const snapshotSources = (targets && targets.length > 0) ? targets : (currentPage && typeof currentPage.getSelectedShapes === 'function' ? currentPage.getSelectedShapes() : []);
+      const selectionSnapshot = (Array.isArray(snapshotSources) ? snapshotSources : []).map((s: any) => ({
+        id: String(s?.id ?? ''),
+        name: s?.name ?? undefined,
+        finalRatioLocked: !!(s?.proportionLock || s?.keepAspectRatio || (s?.constraints && (s.constraints.proportionLock || s.constraints.lockRatio || s.constraints.ratioLocked || s.constraints.lockAspectRatio || s.constraints.keepRatio || s.constraints.fixedAspectRatio || s.constraints.maintainAspect))),
+        remainingRatioFlags: {
+          proportionLock: !!s?.proportionLock,
+          keepAspectRatio: !!s?.keepAspectRatio,
+          constrainProportions: !!s?.constrainProportions,
+          lockProportions: !!s?.lockProportions,
+          preserveAspectRatio: !!s?.preserveAspectRatio,
+          lockRatio: !!s?.lockRatio,
+          ratioLocked: !!s?.ratioLocked,
+          lockAspectRatio: !!s?.lockAspectRatio,
+          keepRatio: !!s?.keepRatio,
+          fixedAspectRatio: !!s?.fixedAspectRatio,
+          constrainAspectRatio: !!s?.constrainAspectRatio,
+          maintainAspectRatio: !!s?.maintainAspect,
+          constraints: !!s?.constraints,
+        },
+      }));
+
+      return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: false, message: willLock ? 'No shapes to lock (proportions)' : 'No shapes to unlock (proportions)', payload: { selectionSnapshot } as unknown as ToggleSelectionProportionLockResponsePayload };
     }
 
     // After applying changes, verify the final state on fresh shape references

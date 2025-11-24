@@ -212,4 +212,15 @@ describe('toggleSelectionProportionLockTool and undo/redo', () => {
     expect(logSpy.mock.calls.some(c => String(c[0]).includes(`toggleSelectionProportionLockTool: shape=${s.id}`))).toBeTruthy();
     logSpy.mockRestore();
   });
+
+  it('returns selectionSnapshot when no-op unlock (already unlocked)', async () => {
+    const s: any = { id: 'no-op-1', name: 'NoOp', keepAspectRatio: false };
+    (globalThis as any).penpot = { selection: [s], currentPage: { getShapeById: (id: string) => (id === s.id ? s : null) } };
+
+    const resp = await toggleSelectionProportionLockTool({ lock: false });
+    expect(resp.success).toBeFalsy();
+    const payload = resp.payload as any;
+    expect(Array.isArray(payload.selectionSnapshot)).toBeTruthy();
+    expect(payload.selectionSnapshot[0].finalRatioLocked).toBeFalsy();
+  });
 });
