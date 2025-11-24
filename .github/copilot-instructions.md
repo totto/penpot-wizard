@@ -177,6 +177,14 @@ interface UndoInfo {
 
 **The file `codealike.json` should always be untracked and ignored by git in every branch.** It is a personal file added by an extension for tracking coding activity and should never be present in the shared repo.
 
+### Diagnostic-only tools & shared selection-system policy
+
+- ✅ **Diagnostics-only tools (branch-local):** Some tools are intentionally kept on `tools_frank` purely for debugging and diagnostics. Example: `GET_SELECTION_DUMP` / `dump-selection` exists to help diagnose unusual selection and lock-state problems during tool development. These diagnostic helpers must NOT be moved to `main` (or to feature branches that will be released) — they are allowed to remain branch-local to `tools_frank` where developers can use them safely during development and QA.
+
+- 🔒 **Shared selection-system merge policy:** Files that affect the selection safety pattern and read/write selection helpers (notably `src/plugin/selectionHelpers.ts` and `src/plugin/actionSelection.ts`) are part of a shared-selection-system infra. Any edits to these files must be coordinated and merged to `main` only through the dedicated branch `frank_tools/shared-selection-system` and only after prior discussion and explicit approval by the project maintainers. This prevents accidental introduction of unsafe selection queries and avoids cross-branch regressions that can crash Penpot hosts. These changes should be avoided as much as possible as this branch has already been stabilized and merged into `main`. 
+
+- 📣 **Developer practice:** If you need to add or change a diagnostics helper on `tools_frank`, document why it’s branch-local in `.github/copilot-instructions.md` and add a short rationale in your PR description. If your change touches the shared selection helpers, open a separate, small PR against `frank_tools/shared-selection-system` and discuss it with the team before requesting a merge into `main`.
+
 ## Branch Roadmap
 
 This branch keeps all tools together for now. The high-level plan is to eventually pull each tool into its own feature branch that starts from `main` (after the shared-selection-system infrastructure PR merges) and includes only the minimal changes needed for that tool to function. Those feature branches must stay clean, scoped to the tool, and will not start until every tool is finished in this branch. I, the user, will initiate that move when the time comes, but the AI should keep the roadmap in mind while working today.
