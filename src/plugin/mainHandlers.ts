@@ -5011,6 +5011,30 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
           flags = readRatioFlags(freshShape);
         }
 
+        // If final state still shows locked after the second pass, attempt a
+        // more aggressive cleanup: try deleting the known keys and clearing
+        // the constraints map when present. Some host runtimes may store flags
+        // in uncommon properties or proxies; deleting keys is a last resort.
+        if (!willLock && Object.values(flags).some(Boolean)) {
+          try {
+            const deleteKeys = ['proportionLock','keepAspectRatio','constrainProportions','lockProportions','preserveAspectRatio','lockRatio','ratioLocked','lockAspectRatio','keepRatio','fixedAspectRatio','constrainAspectRatio','maintainAspect'];
+            for (const k of deleteKeys) {
+              try { delete (freshShape as any)[k]; } catch { /* swallow */ }
+            }
+            if (freshShape.constraints && typeof freshShape.constraints === 'object') {
+              const constraintKeys = Object.keys(freshShape.constraints);
+              for (const ck of constraintKeys) {
+                try { delete freshShape.constraints[ck]; } catch { /* swallow */ }
+              }
+              // if constraints is now effectively empty, remove it
+              try { if (Object.keys(freshShape.constraints).length === 0) delete freshShape.constraints; } catch { /* swallow */ }
+            }
+          } catch (e) { /* swallow */ }
+
+          // re-evaluate flags one final time
+          flags = readRatioFlags(freshShape);
+        }
+
         selectionSnapshot.push({ id: freshShape.id, name: freshShape.name, finalRatioLocked: Object.values(flags).some(Boolean), remainingRatioFlags: flags });
       } catch (e) {
         try { selectionSnapshot.push({ id, name: undefined, finalRatioLocked: false, remainingRatioFlags: {} }); } catch { /* swallow */ }

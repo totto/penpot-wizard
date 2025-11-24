@@ -247,6 +247,30 @@ describe('functionTools resize-selection behavior', () => {
     expect((resp.payload as any).lockedShapes?.[0].id).toBe('dump-shape');
   });
 
+  it('toggle-selection-proportion-lock retries using dump when initial call returns no-op with remaining locks', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'toggle-selection-proportion-lock');
+    if (!tool) throw new Error('toggle-selection-proportion-lock tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    // First: GET_SELECTION_INFO shows one selected shape
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 'x' }] } });
+    // Second: initial TOGGLE returns a no-op saying 'No shapes to unlock' but snapshot shows still locked
+    sendMock.mockResolvedValueOnce({ success: false, message: 'No shapes to unlock (proportions)', payload: { selectionSnapshot: [{ id: 'x', finalRatioLocked: true, remainingRatioFlags: { proportionLock: true } }] } });
+    // Third: GET_SELECTION_DUMP returns the same shape id
+    sendMock.mockResolvedValueOnce({ success: true, payload: { selectionCount: 1, selectedObjects: [{ id: 'x' }], currentSelectionIds: ['x'], timestamp: Date.now() } });
+    // Fourth: second TOGGLE succeeds
+    sendMock.mockResolvedValueOnce({ success: true, payload: { unlockedShapes: [{ id: 'x', name: 'X' }], selectionSnapshot: [{ id: 'x', finalRatioLocked: false, remainingRatioFlags: {} }] }, message: 'Unlocked 1 shape' });
+
+    const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>> )({ lock: false });
+    // verify the retry happened: called GET_SELECTION_DUMP and a second TOGGLE
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('GET_SELECTION_DUMP', undefined);
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_PROPORTION_LOCK', { lock: false, shapeIds: ['x'] });
+    expect(resp.success).toBeTruthy();
+    const payload = resp.payload as any;
+    expect(Array.isArray(payload.selectionSnapshot)).toBeTruthy();
+    expect(payload.selectionSnapshot[0].finalRatioLocked).toBe(false);
+  });
+
   it('dump-selection returns detailed snapshot when called', async () => {
     const tool = FT.functionTools.find(t => t.id === 'dump-selection');
     if (!tool) throw new Error('dump-selection tool not found');

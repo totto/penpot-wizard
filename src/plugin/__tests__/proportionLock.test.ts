@@ -223,4 +223,17 @@ describe('toggleSelectionProportionLockTool and undo/redo', () => {
     expect(Array.isArray(payload.selectionSnapshot)).toBeTruthy();
     expect(payload.selectionSnapshot[0].finalRatioLocked).toBeFalsy();
   });
+
+  it('force-clears stubborn proportion flags when unlocking', async () => {
+    const s: any = { id: 'force-1', name: 'ForceMe', proportionLock: true, keepAspectRatio: true, constraints: { proportionLock: true, lockRatio: true, keepAspect: true } };
+    (globalThis as any).penpot = { selection: [s], currentPage: { getShapeById: (id: string) => (id === s.id ? s : null) } };
+
+    const resp = await toggleSelectionProportionLockTool({ lock: false, shapeIds: [s.id] });
+    expect(resp.success).toBeTruthy();
+    const payload = resp.payload as any;
+    expect(Array.isArray(payload.selectionSnapshot)).toBeTruthy();
+    expect(payload.selectionSnapshot[0].finalRatioLocked).toBeFalsy();
+    // also expect the mutated object has no obvious flags left
+    expect(s.proportionLock || s.keepAspectRatio || s.constraints).toBeFalsy();
+  });
 });

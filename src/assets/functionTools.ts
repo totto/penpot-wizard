@@ -159,13 +159,41 @@ export const functionTools: FunctionTool[] = [
           }
         }
 
-        const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, args as unknown as ToggleSelectionProportionLockQueryPayload);
+        let response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, args as unknown as ToggleSelectionProportionLockQueryPayload);
 
         const payload = response.payload as ToggleSelectionProportionLockResponsePayload | undefined;
         // If the plugin returned a selectionSnapshot, attach it to the message so
         // the UI can display verification of the final state immediately.
         if (payload && Array.isArray((payload as any).selectionSnapshot)) {
           response.message = `${response.message ?? ''}\n\nVerification:\n` + ((payload as any).selectionSnapshot.map((s:any) => ` • ${s.id} (${s.name ?? s.id}): proportions locked=${s.finalRatioLocked}`).join('\n'));
+        }
+
+        // Auto-retry flow: if the plugin returned no selection or returned a no-op
+        // where selectionSnapshot indicates proportions are still locked, attempt
+        // to fetch a fresh dump and retry the toggle once with resolved ids.
+        const shouldRetry = (() => {
+          const msg = String(response.message ?? '').toUpperCase();
+          if (!response.success && (msg === 'NO_SELECTION' || msg.includes('NO_SHAPES_MATCHED') || msg.includes('NO_SHAPES_TO_UNLOCK') || msg.includes('NO_SHAPES_TO_LOCK'))) return true;
+          // also retry if plugin returned a no-op but snapshot indicates remaining locks
+          if (!response.success && Array.isArray((payload as any)?.selectionSnapshot)) {
+            const snapshot = (payload as any).selectionSnapshot as Array<any>;
+            return snapshot.some(s => !!s.finalRatioLocked);
+          }
+          return false;
+        })();
+
+        if (shouldRetry) {
+          // fetch a dump and try again with explicit ids (one retry only)
+          const dumpResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_DUMP, undefined);
+          const dumpPayload = dumpResp.payload as GetSelectionDumpResponsePayload | undefined;
+          if (dumpPayload && Array.isArray(dumpPayload.selectedObjects) && dumpPayload.selectedObjects.length > 0) {
+            const retryArgs = { ...args, shapeIds: dumpPayload.selectedObjects.map((o:any) => String(o.id)) } as unknown as { lock?: boolean; shapeIds?: string[] };
+            response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, retryArgs as unknown as ToggleSelectionProportionLockQueryPayload);
+            const retryPayload = response.payload as ToggleSelectionProportionLockResponsePayload | undefined;
+            if (retryPayload && Array.isArray((retryPayload as any).selectionSnapshot)) {
+              response.message = `${response.message ?? ''}\n\nVerification:\n` + ((retryPayload as any).selectionSnapshot.map((s:any) => ` • ${s.id} (${s.name ?? s.id}): proportions locked=${s.finalRatioLocked}`).join('\n'));
+            }
+          }
         }
         if (payload && Array.isArray(payload.lockedShapes) && Array.isArray(payload.unlockedShapes) && payload.lockedShapes.length > 0 && payload.unlockedShapes.length > 0) {
           response.message = `The selection contains shapes with locked proportions and free proportions. Locked: ${payload.lockedShapes.map(s => s.name ?? s.id).join(', ')}; Unlocked: ${payload.unlockedShapes.map(s => s.name ?? s.id).join(', ')}. Specify lock=true to lock all unlocked shapes, or lock=false to unlock all locked shapes.`;
