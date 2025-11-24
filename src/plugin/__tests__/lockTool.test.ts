@@ -97,4 +97,28 @@ describe('toggleSelectionLockTool and undo/redo', () => {
     expect(resp.success).toBeTruthy();
     expect(s.locked).toBeTruthy();
   });
+
+  it('handles shapes that expose blocked instead of locked (lock via blocked)', async () => {
+    const s = { id: 's-3', name: 'BlockedShape', blocked: false } as any;
+    (globalThis as any).penpot = {
+      selection: [s],
+      currentPage: { getShapeById: (id: string) => (id === s.id ? s : null) },
+    };
+
+    const resp = await toggleSelectionLockTool({ lock: true });
+    expect(resp.success).toBeTruthy();
+    // plugin now sets both locked and blocked for compatibility
+    expect(s.blocked).toBeTruthy();
+    expect(s.locked).toBeTruthy();
+
+    const undoResp = await undoLastAction({});
+    expect(undoResp.success).toBeTruthy();
+    expect(s.blocked).toBeFalsy();
+    expect(s.locked).toBeFalsy();
+
+    const redoResp = await redoLastAction({});
+    expect(redoResp.success).toBeTruthy();
+    expect(s.blocked).toBeTruthy();
+    expect(s.locked).toBeTruthy();
+  });
 });

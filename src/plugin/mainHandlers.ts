@@ -4613,7 +4613,11 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
     }
 
     // If lock not specified, decide fallback: if all are locked -> unlock all; if all unlocked -> lock all; if mixed -> prompt
-    const lockedStates = targets.map((s: any) => !!s.locked);
+    // Some Penpot host versions expose the lock state as `locked`, others (older/newer)
+    // may expose `blocked`. Treat either as indicating a locked shape and keep both
+    // properties in sync when toggling so the UI will reflect the change regardless
+    // of which property the host UI reads.
+    const lockedStates = targets.map((s: any) => !!s.locked || !!s.blocked);
     const hasLocked = lockedStates.some(Boolean);
     const hasUnlocked = lockedStates.some(v => !v);
 
@@ -4625,8 +4629,8 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
         success: false,
         message: 'MIXED_SELECTION',
         payload: {
-          lockedShapes: targets.filter((s: any) => !!s.locked).map((s: any) => ({ id: s.id, name: s.name })),
-          unlockedShapes: targets.filter((s: any) => !s.locked).map((s: any) => ({ id: s.id, name: s.name })),
+          lockedShapes: targets.filter((s: any) => !!s.locked || !!s.blocked).map((s: any) => ({ id: s.id, name: s.name })),
+          unlockedShapes: targets.filter((s: any) => !s.locked && !s.blocked).map((s: any) => ({ id: s.id, name: s.name })),
   } as unknown as ToggleSelectionLockResponsePayload,
       };
     }
@@ -4639,15 +4643,20 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
 
     for (const shape of targets) {
       try {
-        const prevLocked = !!shape.locked;
+        // Record the prior locked state considering either `locked` or `blocked`.
+        const prevLocked = !!shape.locked || !!shape.blocked;
         // Apply only if needed
-        if (willLock && !shape.locked) {
-          shape.locked = true;
+          if (willLock && !(shape.locked || shape.blocked)) {
+          // Set both fields when possible so host UIs which read either property
+          // will reflect the same state.
+          try { shape.locked = true; } catch (e) { void e; }
+          try { shape.blocked = true; } catch (e) { void e; }
           lockedShapes.push({ id: shape.id, name: shape.name });
           affectedIds.push(shape.id);
           previousStates.push(prevLocked);
-        } else if (!willLock && shape.locked) {
-          shape.locked = false;
+        } else if (!willLock && (shape.locked || shape.blocked)) {
+          try { shape.locked = false; } catch (e) { void e; }
+          try { shape.blocked = false; } catch (e) { void e; }
           unlockedShapes.push({ id: shape.id, name: shape.name });
           affectedIds.push(shape.id);
           previousStates.push(prevLocked);
@@ -5319,9 +5328,11 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             const shape = currentPage.getShapeById(shapeId);
             if (!shape) continue;
 
-            // Restore previous locked state
+            // Restore previous locked state on both properties so hosts that
+            // read either `locked` or `blocked` see the consistent state.
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (shape as any).locked = !!previousLocked;
+            try { (shape as any).blocked = !!previousLocked; } catch {}
 
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
@@ -6311,9 +6322,12 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
                 const shape = currentPage.getShapeById(shapeId);
                 if (!shape) continue;
 
-                // Reapply the original applied state (opposite of previousLocked)
+                // Reapply the original applied state (opposite of previousLocked) to both
+                // locked and blocked properties so hosts that read either reflect the
+                // re-applied state.
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (shape as any).locked = !previousLocked;
+                try { (shape as any).blocked = !previousLocked; } catch (e) { void e; }
 
                 undoStack.push(lastAction);
                 restoredShapes.push(shape.name || shape.id);
