@@ -133,8 +133,8 @@ export const functionTools: FunctionTool[] = [
         - If selection contains both locked and unlocked shapes, it will return a prompt payload
           that the UI can use to ask the user which action to take.
       `,
-      inputSchema: z.object({ lock: z.boolean().optional(), shapeIds: z.array(z.string()).optional(), debugDump: z.boolean().optional() }),
-      function: async (args?: { lock?: boolean; shapeIds?: string[]; debugDump?: boolean }) => {
+      inputSchema: z.object({ lock: z.boolean().optional(), shapeIds: z.array(z.string()).optional() }),
+      function: async (args?: { lock?: boolean; shapeIds?: string[] }) => {
         if (!args) {
           return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
         }

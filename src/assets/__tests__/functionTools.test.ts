@@ -228,18 +228,9 @@ describe('functionTools resize-selection behavior', () => {
     expect((resp.payload as unknown as { lockedShapes?: Array<{ id: string }>} )?.lockedShapes).toEqual([{ id: 'a', name: 'A' }]);
   });
 
-  it('toggle-selection-proportion-lock forwards debugDump flag when provided', async () => {
-    const tool = FT.functionTools.find(t => t.id === 'toggle-selection-proportion-lock');
-    if (!tool) throw new Error('toggle-selection-proportion-lock tool not found');
-
-    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
-    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 'a', name: 'A' }] } });
-    sendMock.mockResolvedValueOnce({ success: true, payload: { lockedShapes: [{ id: 'a', name: 'A' }] }, message: 'Locked 1 shape' });
-
-    const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>> )({ lock: true, debugDump: true });
-    expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_PROPORTION_LOCK', { lock: true, shapeIds: ['a'], debugDump: true });
-    expect((resp.payload as unknown as { lockedShapes?: Array<{ id: string }>} )?.lockedShapes).toEqual([{ id: 'a', name: 'A' }]);
-  });
+  // NOTE: The plugin handler now always logs a concise diagnostic when toggling
+  // proportions. There is no longer a debugDump flag to forward; the wrapper
+  // should continue to forward lock/shapeIds only.
 
   it('set-selection-border-radius calls GET_SELECTION_INFO when no value provided', async () => {
     const tool = FT.functionTools.find(t => t.id === 'set-selection-border-radius');

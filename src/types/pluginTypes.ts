@@ -279,8 +279,6 @@ export interface ToggleSelectionLockResponsePayload {
 export interface ToggleSelectionProportionLockQueryPayload {
   lock?: boolean;
   shapeIds?: string[];
-  // When true, emit a full shape debug dump to the host console for diagnostics
-  debugDump?: boolean;
 }
 
 export interface ToggleSelectionProportionLockResponsePayload {

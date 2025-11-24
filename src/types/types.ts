@@ -566,8 +566,6 @@ export interface ToggleSelectionProportionLockQueryPayload {
   lock?: boolean;
   // Optional shape IDs to apply the change to. If omitted, use current selection.
   shapeIds?: string[];
-  // When true, emit a developer debug dump of the target shape(s) to the host console
-  debugDump?: boolean;
 }
 
 export interface RotateQueryPayload {

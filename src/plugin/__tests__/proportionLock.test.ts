@@ -167,15 +167,15 @@ describe('toggleSelectionProportionLockTool and undo/redo', () => {
     expect(s.keepAspectRatio || s.proportionLock || s.constrainProportions).toBeFalsy();
   });
 
-  it('emits a developer debug dump when debugDump=true', async () => {
+  it('emits a concise diagnostic log when toggling proportions', async () => {
     const s: any = { id: 'p-debug-1', name: 'DebugMe', keepAspectRatio: false, extra: { foo: 'bar' } };
     (globalThis as any).penpot = { selection: [s], currentPage: { getShapeById: (id: string) => (id === s.id ? s : null) } };
 
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const resp = await toggleSelectionProportionLockTool({ lock: true, debugDump: true });
+    const resp = await toggleSelectionProportionLockTool({ lock: true });
     expect(resp.success).toBeTruthy();
-    // We expect at least one console.log call that includes DEBUG DUMP and the shape id
-    expect(logSpy.mock.calls.some(c => String(c[0]).includes(`DEBUG DUMP (${s.id})`))).toBeTruthy();
+    // Expect at least one console.log call that includes the handler label and shape id
+    expect(logSpy.mock.calls.some(c => String(c[0]).includes(`toggleSelectionProportionLockTool: shape=${s.id}`))).toBeTruthy();
     logSpy.mockRestore();
   });
 });

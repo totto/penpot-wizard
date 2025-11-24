@@ -4569,7 +4569,7 @@ export async function moveSelectionTool(payload: MoveQueryPayload): Promise<Plug
 
 export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryPayload): Promise<PluginResponseMessage> {
   try {
-    const { lock, shapeIds, debugDump = false } = payload ?? {};
+    const { lock, shapeIds } = payload ?? {};
 
     // Determine which shapes to apply the lock/unlock to
     let targets: any[] = [];
@@ -4662,17 +4662,17 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
     const unlockedShapes: Array<{ id: string; name?: string }> = [];
 
     for (const shape of targets) {
-      // If developer requested a debug dump, emit a detailed snapshot of the
-      // shape object (best-effort via JSON.stringify to avoid circular errors).
-      if (debugDump) {
-        try {
-          // Keep the dump readable and safe — stringifying may throw on circular refs
-          const dump = JSON.stringify(shape, Object.getOwnPropertyNames(shape), 2);
-          console.log(`toggleSelectionProportionLockTool DEBUG DUMP (${shape.id}): ${dump}`);
-        } catch (err) {
-          // Fall back to listing keys if a full stringify fails
-          try { console.log(`toggleSelectionProportionLockTool DEBUG DUMP (${shape.id}) - keys:`, Object.keys(shape)); } catch { console.log(`toggleSelectionProportionLockTool DEBUG DUMP (${shape.id}) - failed to read keys`); }
-        }
+      // Always emit a short, consistent diagnostic log so live host shape
+      // properties are visible during troubleshooting. Keep the output
+      // concise to avoid huge console noise but include useful keys.
+      try {
+        const keys = Object.keys(shape).slice(0, 40).join(', ');
+        const ratioFlags = [
+          'proportionLock','keepAspectRatio','constrainProportions','lockProportions','preserveAspectRatio','lockRatio','ratioLocked','lockAspectRatio','keepRatio','fixedAspectRatio','constrainAspectRatio','maintainAspectRatio'
+        ].filter(k => (shape as any)[k]);
+        console.log(`toggleSelectionLockTool: shape=${shape.id} locked=${!!shape.locked} blocked=${!!shape.blocked} ratioFlags=[${ratioFlags.join(', ')}] keys=[${keys}]`);
+      } catch (e) {
+        try { console.log(`toggleSelectionProportionLockTool: shape=${shape.id} (failed to read keys)`); } catch { /* swallow */ }
       }
       try {
         // Record the prior locked state considering either `locked` or `blocked`.
@@ -4749,7 +4749,7 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
 
 export async function toggleSelectionProportionLockTool(payload: ToggleSelectionProportionLockQueryPayload): Promise<PluginResponseMessage> {
   try {
-    const { lock, shapeIds, debugDump = false } = payload ?? {};
+    const { lock, shapeIds } = payload ?? {};
 
     // Determine targets (same safe pattern as other tools)
     let targets: any[] = [];
@@ -4829,15 +4829,17 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
     const skippedLockedShapes: Array<{ id: string; name?: string }> = [];
 
     for (const shape of targets) {
-      // If developer requested a debug dump, emit a detailed snapshot of the
-      // shape object (best-effort via JSON.stringify to avoid circular errors).
-      if (debugDump) {
-        try {
-          const dump = JSON.stringify(shape, Object.getOwnPropertyNames(shape), 2);
-          console.log(`toggleSelectionProportionLockTool DEBUG DUMP (${shape.id}): ${dump}`);
-        } catch (err) {
-          try { console.log(`toggleSelectionProportionLockTool DEBUG DUMP (${shape.id}) - keys:`, Object.keys(shape)); } catch { console.log(`toggleSelectionProportionLockTool DEBUG DUMP (${shape.id}) - failed to read keys`); }
-        }
+      // Always emit a short, consistent diagnostic log so live host shape
+      // properties are visible during troubleshooting. Keep the output
+      // concise to avoid huge console noise but include useful keys.
+      try {
+        const keys = Object.keys(shape).slice(0, 40).join(', ');
+        const ratioFlags = [
+          'proportionLock','keepAspectRatio','constrainProportions','lockProportions','preserveAspectRatio','lockRatio','ratioLocked','lockAspectRatio','keepRatio','fixedAspectRatio','constrainAspectRatio','maintainAspect'
+        ].filter(k => (shape as any)[k]);
+        console.log(`toggleSelectionProportionLockTool: shape=${shape.id} locked=${!!shape.locked} blocked=${!!shape.blocked} ratioFlags=[${ratioFlags.join(', ')}] keys=[${keys}]`);
+      } catch (err) {
+        try { console.log(`toggleSelectionProportionLockTool: shape=${shape.id} (failed to read keys)`); } catch { /* swallow */ }
       }
       try {
         // Respect an editor-level lock; skip shapes that are locked/blocked
