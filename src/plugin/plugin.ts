@@ -38,6 +38,7 @@ import {
   RotateQueryPayload,
   CloneSelectionQueryPayload,
   GetSelectionInfoQueryPayload,
+  SetSelectionOpacityQueryPayload,
   SetSelectionBlendModeQueryPayload,
   SetSelectionBorderRadiusQueryPayload,
   SetSelectionBoundsQueryPayload,
@@ -88,6 +89,7 @@ import {
   cloneSelectionTool,
   toggleSelectionLockTool,
   toggleSelectionVisibilityTool,
+  setSelectionOpacityTool,
   setSelectionBlendModeTool,
   setSelectionBorderRadiusTool,
   setSelectionBoundsTool,
@@ -341,6 +343,9 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.CLONE_SELECTION:
       responseMessage = await cloneSelectionTool(payload as unknown as CloneSelectionQueryPayload);
+      break;
+    case ClientQueryType.SET_SELECTION_OPACITY:
+      responseMessage = await setSelectionOpacityTool(payload as unknown as SetSelectionOpacityQueryPayload);
       break;
     case ClientQueryType.SET_SELECTION_BOUNDS:
       responseMessage = await setSelectionBoundsTool(payload as unknown as SetSelectionBoundsQueryPayload);
