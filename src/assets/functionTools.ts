@@ -18,6 +18,8 @@ import type {
   SetSelectionBorderRadiusResponsePayload,
   MoveQueryPayload,
   MoveResponsePayload,
+  SetSelectionBoundsQueryPayload,
+  SetSelectionBoundsResponsePayload,
 } from '@/types/types';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
@@ -310,6 +312,36 @@ export const functionTools: FunctionTool[] = [
         return response;
       },
     },
+      {
+        id: 'set-selection-bounds',
+        name: 'setSelectionBounds',
+        description: `Set the bounds (x, y, width, height) of the selected shapes. Call without any values to get selection context so the UI can prompt for values.`,
+        inputSchema: z.object({
+          x: z.number().optional(),
+          y: z.number().optional(),
+          width: z.number().min(0).optional(),
+          height: z.number().min(0).optional(),
+        }),
+        function: async (args?: SetSelectionBoundsQueryPayload) => {
+          if (!args || (typeof args.x !== 'number' && typeof args.y !== 'number' && typeof args.width !== 'number' && typeof args.height !== 'number')) {
+            return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+          }
+
+          const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+          const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+          if (!selectionPayload || selectionPayload.selectionCount === 0) {
+            selectionResp.message = 'Select at least one shape before changing bounds.';
+            return selectionResp;
+          }
+
+          const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_BOUNDS, args);
+          const payload = response.payload as SetSelectionBoundsResponsePayload | undefined;
+          if (payload && payload.changedShapeIds.length === 0) {
+            response.message = 'Bounds change did not apply to any shapes. Ensure the shapes support bounds.';
+          }
+          return response;
+        },
+      },
     {
       id: "add-image-from-url",
       name: "addImageFromUrl",

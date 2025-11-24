@@ -30,6 +30,7 @@ export enum ClientQueryType {
   APPLY_BLUR = 'APPLY_BLUR',
   SET_SELECTION_OPACITY = 'SET_SELECTION_OPACITY',
   SET_SELECTION_BORDER_RADIUS = 'SET_SELECTION_BORDER_RADIUS',
+  SET_SELECTION_BOUNDS = 'SET_SELECTION_BOUNDS',
   SET_SELECTION_BLEND_MODE = 'SET_SELECTION_BLEND_MODE',
   ROTATE = 'ROTATE',
   MOVE = 'MOVE',
@@ -99,6 +100,13 @@ export interface SetSelectionOpacityQueryPayload {
 
 export interface SetSelectionBorderRadiusQueryPayload {
   borderRadius?: number; // in pixels
+}
+
+export interface SetSelectionBoundsQueryPayload {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface SetSelectionBlendModeQueryPayload {
@@ -200,6 +208,19 @@ export interface SetSelectionBorderRadiusResponsePayload {
   previousBorderRadii: Array<number | undefined>;
   undoInfo?: UndoInfo;
   skippedLockedShapes?: Array<{ id: string; name?: string }>;
+}
+
+export interface SetSelectionBoundsResponsePayload {
+  changedShapeIds: string[];
+  appliedBounds?: { x?: number; y?: number; width?: number; height?: number };
+  previousBounds: Array<{ x?: number; y?: number; width?: number; height?: number } | undefined>;
+  undoInfo?: UndoInfo;
+  skippedLockedShapes?: Array<{ id: string; name?: string }>;
+}
+
+export interface SetSelectionBoundsPromptResponsePayload {
+  shapesWithoutBounds: Array<{ id: string; name?: string }>;
+  requestedBounds: { x?: number; y?: number; width?: number; height?: number };
 }
 
 export interface SetSelectionBorderRadiusPromptResponsePayload {
@@ -368,6 +389,7 @@ export type ClientQueryPayload =
   | SetSelectionOpacityQueryPayload
   | SetSelectionBorderRadiusQueryPayload
   | SetSelectionBlendModeQueryPayload
+  | SetSelectionBoundsQueryPayload
   | CreateLibraryFontPayload
   | CreateLibraryComponentPayload
   | CloneSelectionQueryPayload;
@@ -380,6 +402,8 @@ export type PluginResponsePayload =
   | SetSelectionOpacityResponsePayload
   | SetSelectionBorderRadiusResponsePayload
   | SetSelectionBlendModeResponsePayload
+  | SetSelectionBoundsResponsePayload
+  | SetSelectionBoundsPromptResponsePayload
   | SetSelectionBorderRadiusPromptResponsePayload
   | ApplyShadowPromptResponsePayload
   | GetUserDataPayload

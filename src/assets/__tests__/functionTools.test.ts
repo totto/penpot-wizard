@@ -221,4 +221,45 @@ describe('functionTools resize-selection behavior', () => {
     expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_BORDER_RADIUS', { borderRadius: 8 });
     expect(resp.message).toContain('Border radius change did not apply to any shapes');
   });
+
+  it('set-selection-bounds calls GET_SELECTION_INFO when no values provided', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-bounds');
+    if (!tool) throw new Error('set-selection-bounds tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 'a', name: 'A' }] } });
+
+    const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)();
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('GET_SELECTION_INFO', undefined);
+    // @ts-expect-error payload typing is union - assert fields here
+    expect(resp.payload.selectedObjects[0].id).toBe('a');
+  });
+
+  it('set-selection-bounds warns when no shapes are selected', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-bounds');
+    if (!tool) throw new Error('set-selection-bounds tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    // GET_SELECTION_INFO returns selectionCount 0
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 0, selectedObjects: [] } });
+
+    const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>> )({ width: 5, height: 6 });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('GET_SELECTION_INFO', undefined);
+    expect(resp.message).toContain('Select at least one shape before changing bounds.');
+  });
+
+  it('set-selection-bounds applies and no-op response handled', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-bounds');
+    if (!tool) throw new Error('set-selection-bounds tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    // First GET_SELECTION_INFO indicates shapes selected
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 2, selectedObjects: [{ id: 'a' }, { id: 'b' }] } });
+    // Next call is SET_SELECTION_BOUNDS which returns changedShapeIds empty
+    sendMock.mockResolvedValueOnce({ success: true, payload: { changedShapeIds: [] } });
+
+    const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>> )({ width: 8, height: 9 });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_BOUNDS', { width: 8, height: 9 });
+    expect(resp.message).toContain('Bounds change did not apply to any shapes');
+  });
 });

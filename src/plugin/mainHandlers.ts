@@ -68,8 +68,11 @@ import {
   AddImageQueryPayload,
   SetSelectionOpacityResponsePayload,
   SetSelectionBorderRadiusResponsePayload,
+  SetSelectionBoundsResponsePayload,
   SetSelectionBlendModeResponsePayload,
   SetSelectionBorderRadiusPromptResponsePayload,
+  SetSelectionBoundsPromptResponsePayload,
+  SetSelectionBoundsQueryPayload,
   SelectionConfirmationPromptPayload,
 } from "../types/types";
 /* eslint-disable-next-line no-restricted-imports */
@@ -2127,6 +2130,175 @@ export async function setSelectionBorderRadiusTool(payload: SetSelectionBorderRa
       payload: {
         actionName: 'setSelectionBorderRadius',
         message: `Error applying border radius: ${errMsg}`,
+        blockerType: 'apiError',
+        blockerDetails: errMsg,
+        needsConfirmation: true,
+      } as SelectionConfirmationPromptPayload,
+    };
+  }
+}
+
+export async function setSelectionBoundsTool(payload: SetSelectionBoundsQueryPayload): Promise<PluginResponseMessage> {
+  const provided = payload ?? {};
+
+  // Validate width/height if provided
+  if (typeof provided.width === 'number' && (!Number.isFinite(provided.width) || provided.width < 0)) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_BOUNDS,
+      success: false,
+      message: 'Width must be a non-negative finite number',
+    };
+  }
+
+  if (typeof provided.height === 'number' && (!Number.isFinite(provided.height) || provided.height < 0)) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_BOUNDS,
+      success: false,
+      message: 'Height must be a non-negative finite number',
+    };
+  }
+
+  const appliedBounds = {
+    x: typeof provided.x === 'number' ? provided.x : undefined,
+    y: typeof provided.y === 'number' ? provided.y : undefined,
+    width: typeof provided.width === 'number' ? provided.width : undefined,
+    height: typeof provided.height === 'number' ? provided.height : undefined,
+  };
+
+  try {
+    const sel = getSelectionForAction();
+    if (!sel || sel.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_SELECTION_BOUNDS,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    const changedShapeIds: string[] = [];
+    const previousBounds: Array<{ x?: number; y?: number; width?: number; height?: number } | undefined> = [];
+    const skippedLocked: Array<{ id: string; name?: string }> = [];
+    const shapesWithoutBounds: Array<{ id: string; name?: string }> = [];
+
+    const targetShapes: Shape[] = [];
+    for (const shape of sel) {
+      const s = shape as Shape & { locked?: boolean; name?: string; x?: unknown; y?: unknown; width?: unknown; height?: unknown };
+      if (s.locked === true) {
+        skippedLocked.push({ id: s.id, name: s.name });
+        continue;
+      }
+
+      // Ensure the shape has numeric bounds properties (width/height must exist)
+      if (!Object.prototype.hasOwnProperty.call(s, 'width') || !Object.prototype.hasOwnProperty.call(s, 'height')) {
+        shapesWithoutBounds.push({ id: s.id, name: s.name });
+        continue;
+      }
+
+      targetShapes.push(s as Shape);
+    }
+
+    if (shapesWithoutBounds.length > 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_SELECTION_BOUNDS,
+        success: false,
+        message: 'MISSING_BOUNDS',
+        payload: {
+          shapesWithoutBounds,
+          requestedBounds: appliedBounds,
+        } as SetSelectionBoundsPromptResponsePayload,
+      };
+    }
+
+    for (const s of targetShapes) {
+      changedShapeIds.push(s.id);
+      previousBounds.push({
+        x: typeof s.x === 'number' ? s.x : undefined,
+        y: typeof s.y === 'number' ? s.y : undefined,
+        width: typeof s.width === 'number' ? s.width : undefined,
+        height: typeof s.height === 'number' ? s.height : undefined,
+      });
+
+      // Apply x/y directly where provided
+      if (typeof appliedBounds.x === 'number') s.x = appliedBounds.x;
+      if (typeof appliedBounds.y === 'number') s.y = appliedBounds.y;
+
+      // For width/height, use resize when available
+      if (typeof appliedBounds.width === 'number' || typeof appliedBounds.height === 'number') {
+        const newWidth = typeof appliedBounds.width === 'number' ? appliedBounds.width : (typeof s.width === 'number' ? s.width : undefined);
+        const newHeight = typeof appliedBounds.height === 'number' ? appliedBounds.height : (typeof s.height === 'number' ? s.height : undefined);
+        try {
+          if (typeof newWidth === 'number' && typeof newHeight === 'number' && typeof (s as any).resize === 'function') {
+            (s as any).resize(newWidth, newHeight);
+          } else {
+            // fallback to setting values directly if resize is not available
+            if (typeof newWidth === 'number') (s as any).width = newWidth;
+            if (typeof newHeight === 'number') (s as any).height = newHeight;
+          }
+        } catch (e) {
+          console.warn('Failed to set width/height via resize for shape', s.id, e);
+          if (typeof newWidth === 'number') (s as any).width = newWidth;
+          if (typeof newHeight === 'number') (s as any).height = newHeight;
+        }
+      }
+    }
+
+    if (changedShapeIds.length === 0) {
+      const message = skippedLocked.length > 0
+        ? `All selected shapes are locked (${skippedLocked.map(s => s.name ?? s.id).join(', ')}). Unlock them before changing bounds.`
+        : 'No shapes were updated.';
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_SELECTION_BOUNDS,
+        success: false,
+        message,
+      };
+    }
+
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.SET_SELECTION_BOUNDS,
+      actionId: `set_selection_bounds_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Set bounds ${JSON.stringify(appliedBounds)}`,
+      undoData: {
+        shapeIds: changedShapeIds,
+        previousBounds,
+        appliedBounds,
+      },
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    let message = `Set bounds for ${changedShapeIds.length} shape${changedShapeIds.length > 1 ? 's' : ''}`;
+    if (skippedLocked.length > 0) {
+      message += ` (skipped ${skippedLocked.length} locked shape${skippedLocked.length > 1 ? 's' : ''}: ${skippedLocked.map(s => s.name ?? s.id).join(', ')})`;
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_BOUNDS,
+      message: `${message}.`,
+      payload: {
+        changedShapeIds,
+        appliedBounds,
+        previousBounds,
+        undoInfo,
+        skippedLockedShapes: skippedLocked.length > 0 ? skippedLocked : undefined,
+      } as SetSelectionBoundsResponsePayload,
+    };
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_SELECTION_BOUNDS,
+      success: false,
+      message: `API_ERROR`,
+      payload: {
+        actionName: 'setSelectionBounds',
+        message: `Error applying bounds: ${errMsg}`,
         blockerType: 'apiError',
         blockerDetails: errMsg,
         needsConfirmation: true,
@@ -4972,6 +5144,49 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.SET_SELECTION_BOUNDS: {
+        const boundsData = lastAction.undoData as { shapeIds: string[]; previousBounds: Array<{ x?: number; y?: number; width?: number; height?: number } | undefined> };
+
+        for (let i = 0; i < boundsData.shapeIds.length; i++) {
+          const shapeId = boundsData.shapeIds[i];
+          const previous = boundsData.previousBounds[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore previous bounds
+            if (previous) {
+              if (typeof previous.x === 'number') shape.x = previous.x;
+              else delete (shape as any).x;
+
+              if (typeof previous.y === 'number') shape.y = previous.y;
+              else delete (shape as any).y;
+
+              if (typeof previous.width === 'number' || typeof previous.height === 'number') {
+                const w = typeof previous.width === 'number' ? previous.width : (typeof (shape as any).width === 'number' ? (shape as any).width : undefined);
+                const h = typeof previous.height === 'number' ? previous.height : (typeof (shape as any).height === 'number' ? (shape as any).height : undefined);
+                if (typeof w === 'number' && typeof h === 'number' && typeof (shape as any).resize === 'function') {
+                  (shape as any).resize(w, h);
+                } else {
+                  if (typeof w === 'number') (shape as any).width = w;
+                  if (typeof h === 'number') (shape as any).height = h;
+                }
+              }
+            }
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore bounds for shape ${shapeId}:`, error);
+          }
+        }
+
+        break;
+      }
+
       
 
       
@@ -6208,6 +6423,42 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to redo opacity for shape ${shapeId}:`, error);
+          }
+        }
+
+        undoStack.push(lastAction);
+        break;
+      }
+
+      case ClientQueryType.SET_SELECTION_BOUNDS: {
+        const boundsData = lastAction.undoData as { shapeIds: string[]; appliedBounds?: { x?: number; y?: number; width?: number; height?: number } };
+
+        for (const shapeId of boundsData.shapeIds) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            const ab = boundsData.appliedBounds ?? {};
+            if (typeof ab.x === 'number') shape.x = ab.x;
+            if (typeof ab.y === 'number') shape.y = ab.y;
+
+            if (typeof ab.width === 'number' || typeof ab.height === 'number') {
+              const w = typeof ab.width === 'number' ? ab.width : (typeof (shape as any).width === 'number' ? (shape as any).width : undefined);
+              const h = typeof ab.height === 'number' ? ab.height : (typeof (shape as any).height === 'number' ? (shape as any).height : undefined);
+              if (typeof w === 'number' && typeof h === 'number' && typeof (shape as any).resize === 'function') {
+                (shape as any).resize(w, h);
+              } else {
+                if (typeof w === 'number') (shape as any).width = w;
+                if (typeof h === 'number') (shape as any).height = h;
+              }
+            }
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo bounds for shape ${shapeId}:`, error);
           }
         }
 
