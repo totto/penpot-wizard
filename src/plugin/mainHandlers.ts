@@ -4706,11 +4706,31 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
     }
 
     if (affectedIds.length === 0) {
+      // Provide diagnostic snapshot so callers can see editor vs proportion lock
+      const currentPage = (penpot as any).currentPage as any;
+      const snapshotSources = (targets && targets.length > 0) ? targets : (currentPage && typeof currentPage.getSelectedShapes === 'function' ? currentPage.getSelectedShapes() : []);
+      const selectionSnapshot = (Array.isArray(snapshotSources) ? snapshotSources : []).map((s: any) => ({
+        id: String(s?.id ?? ''),
+        name: s?.name ?? undefined,
+        editorLocked: !!s?.locked,
+        editorBlocked: !!s?.blocked,
+        proportionLocked: !!(s?.proportionLock || s?.keepAspectRatio || (s?.constraints && (s.constraints.proportionLock || s.constraints.lockRatio || s.constraints.ratioLocked || s.constraints.lockAspectRatio || s.constraints.keepRatio || s.constraints.fixedAspectRatio || s.constraints.maintainAspect))),
+        remainingRatioFlags: {
+          proportionLock: !!s?.proportionLock,
+          keepAspectRatio: !!s?.keepAspectRatio,
+          constrainProportions: !!s?.constrainProportions,
+          lockProportions: !!s?.lockProportions,
+          lockRatio: !!s?.lockRatio,
+          ratioLocked: !!s?.ratioLocked,
+        },
+      }));
+      const verification = selectionSnapshot.map(s => `${s.id} (${s.name ?? s.id}): editorLocked=${s.editorLocked} proportionsLocked=${s.proportionLocked}`).join('; ');
       return {
         ...pluginResponse,
         type: ClientQueryType.TOGGLE_SELECTION_LOCK,
         success: false,
-        message: willLock ? 'No shapes to lock' : 'No shapes to unlock',
+        message: `${willLock ? 'No shapes to lock' : 'No shapes to unlock'} — Verification: ${verification}`,
+        payload: { selectionSnapshot } as unknown as ToggleSelectionLockResponsePayload,
       };
     }
 
@@ -4733,6 +4753,19 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
       undoInfo,
     };
 
+  // Attach a diagnostic snapshot of the final editor/proportion states for the affected shapes
+  try {
+    const currentPage = (penpot as any).currentPage as any;
+    const snapshot: Array<any> = [];
+    for (const id of affectedIds) {
+      let fresh: any = undefined;
+      if (currentPage && typeof currentPage.getShapeById === 'function') fresh = currentPage.getShapeById(id);
+      if (!fresh) fresh = targets.find((s: any) => s.id === id);
+      snapshot.push({ id: id, name: fresh?.name, editorLocked: !!fresh?.locked, editorBlocked: !!fresh?.blocked, proportionLocked: !!(fresh?.proportionLock || fresh?.keepAspectRatio) });
+    }
+    if (snapshot.length > 0) respPayload.selectionSnapshot = snapshot;
+  } catch (e) { /* swallow */ }
+
     return {
       ...pluginResponse,
   type: ClientQueryType.TOGGLE_SELECTION_LOCK,
@@ -4752,7 +4785,8 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
 
 export async function toggleSelectionProportionLockTool(payload: ToggleSelectionProportionLockQueryPayload): Promise<PluginResponseMessage> {
   try {
-    const { lock, shapeIds } = payload ?? {};
+    const { lock, proportionLock, shapeIds } = payload ?? {};
+    const desiredLock = typeof proportionLock === 'boolean' ? proportionLock : lock;
 
     // Determine targets (same safe pattern as other tools)
     let resolutionMethod = 'none';
@@ -4825,7 +4859,7 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
     const hasLocked = proportionStates.some(Boolean);
     const hasUnlocked = proportionStates.some(v => !v);
 
-    if (typeof lock === 'undefined' && hasLocked && hasUnlocked) {
+    if (typeof desiredLock === 'undefined' && hasLocked && hasUnlocked) {
       return {
         ...pluginResponse,
         type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK,
@@ -4838,7 +4872,7 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
       };
     }
 
-    const willLock = typeof lock === 'boolean' ? lock : (!hasLocked && !hasUnlocked ? true : !hasLocked);
+    const willLock = typeof desiredLock === 'boolean' ? desiredLock : (!hasLocked && !hasUnlocked ? true : !hasLocked);
 
     const previousStates: boolean[] = [];
     const affectedIds: string[] = [];
@@ -4868,7 +4902,7 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
         }
 
         // Determine prior state checking common top-level names and nested constraints
-        const prevTop = !!shape.keepAspectRatio || !!shape.constrainProportions || !!shape.lockProportions || !!shape.preserveAspectRatio || !!shape.lockRatio || !!shape.ratioLocked || !!shape.lockAspectRatio || !!shape.keepRatio || !!shape.fixedAspectRatio || !!shape.maintainAspectRatio;
+        const prevTop = !!shape.proportionLock || !!shape.keepAspectRatio || !!shape.constrainProportions || !!shape.lockProportions || !!shape.preserveAspectRatio || !!shape.lockRatio || !!shape.ratioLocked || !!shape.lockAspectRatio || !!shape.keepRatio || !!shape.fixedAspectRatio || !!shape.maintainAspectRatio;
         const prevNested = !!(shape.constraints && (shape.constraints.lockRatio || shape.constraints.ratioLocked || shape.constraints.lockAspectRatio || shape.constraints.keepAspect || shape.constraints.keepRatio || shape.constraints.fixedAspectRatio || shape.constraints.maintainAspect));
         const prev = prevTop || prevNested;
 
@@ -4927,6 +4961,8 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
         id: String(s?.id ?? ''),
         name: s?.name ?? undefined,
         finalRatioLocked: !!(s?.proportionLock || s?.keepAspectRatio || (s?.constraints && (s.constraints.proportionLock || s.constraints.lockRatio || s.constraints.ratioLocked || s.constraints.lockAspectRatio || s.constraints.keepRatio || s.constraints.fixedAspectRatio || s.constraints.maintainAspect))),
+        editorLocked: !!s?.locked,
+        editorBlocked: !!s?.blocked,
         remainingRatioFlags: {
           proportionLock: !!s?.proportionLock,
           keepAspectRatio: !!s?.keepAspectRatio,
@@ -4944,12 +4980,14 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
         },
       }));
 
-      return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: false, message: willLock ? 'No shapes to lock (proportions)' : 'No shapes to unlock (proportions)', payload: { selectionSnapshot } as unknown as ToggleSelectionProportionLockResponsePayload };
+      // build a short verification snippet to append to the message
+      const verification = selectionSnapshot.map(s => `${s.id} (${s.name ?? s.id}): editorLocked=${s.editorLocked} proportionsLocked=${s.finalRatioLocked}`).join('; ');
+      return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: false, message: `${willLock ? 'No shapes to lock (proportions)' : 'No shapes to unlock (proportions)'} — Verification: ${verification}`, payload: { selectionSnapshot } as unknown as ToggleSelectionProportionLockResponsePayload };
     }
 
     // After applying changes, verify the final state on fresh shape references
     const currentPage = (penpot as any).currentPage as any;
-    const selectionSnapshot: Array<{ id: string; name?: string; finalRatioLocked: boolean; remainingRatioFlags: Record<string, unknown> }> = [];
+    const selectionSnapshot: Array<{ id: string; name?: string; finalRatioLocked: boolean; remainingRatioFlags: Record<string, unknown>; editorLocked?: boolean; editorBlocked?: boolean }> = [];
 
     for (const id of affectedIds) {
       try {
@@ -5035,7 +5073,7 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
           flags = readRatioFlags(freshShape);
         }
 
-        selectionSnapshot.push({ id: freshShape.id, name: freshShape.name, finalRatioLocked: Object.values(flags).some(Boolean), remainingRatioFlags: flags });
+        selectionSnapshot.push({ id: freshShape.id, name: freshShape.name, finalRatioLocked: Object.values(flags).some(Boolean), remainingRatioFlags: flags, editorLocked: !!freshShape.locked, editorBlocked: !!freshShape.blocked });
       } catch (e) {
         try { selectionSnapshot.push({ id, name: undefined, finalRatioLocked: false, remainingRatioFlags: {} }); } catch { /* swallow */ }
       }
@@ -5061,7 +5099,13 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
       selectionSnapshot: selectionSnapshot.length > 0 ? selectionSnapshot : undefined,
     };
 
-    return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: true, message: `${willLock ? 'Locked' : 'Unlocked'} ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''}`, payload: respPayload };
+    // Build a short verification summary including both editor and proportion lock states
+    let verificationMsg = '';
+    if (Array.isArray(respPayload.selectionSnapshot)) {
+      verificationMsg = '\n\nVerification:\n' + respPayload.selectionSnapshot.map(s => ` • ${s.id} (${s.name ?? s.id}): editorLocked=${s.editorLocked} proportionsLocked=${s.finalRatioLocked}`).join('\n');
+    }
+
+    return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: true, message: `${willLock ? 'Locked' : 'Unlocked'} ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''}${verificationMsg}`, payload: respPayload };
   } catch (err) {
     return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: false, message: `Error toggling proportion lock: ${err instanceof Error ? err.message : String(err)}` };
   }

@@ -275,10 +275,14 @@ export interface ToggleSelectionLockResponsePayload {
   lockedShapes?: Array<{ id: string; name?: string }>;
   unlockedShapes?: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
+  selectionSnapshot?: Array<{ id: string; name?: string | undefined; editorLocked: boolean; editorBlocked: boolean; proportionLocked?: boolean; remainingRatioFlags?: Record<string, unknown> }>;
 }
 
 export interface ToggleSelectionProportionLockQueryPayload {
+  // Backwards-compatible: accept either `lock` or `proportionLock` as the intent
+  // to turn proportion-lock on/off. Prefer `proportionLock` if both are present.
   lock?: boolean;
+  proportionLock?: boolean;
   shapeIds?: string[];
 }
 
@@ -287,7 +291,7 @@ export interface ToggleSelectionProportionLockResponsePayload {
   unlockedShapes?: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
   // Optional snapshot of the affected shapes after toggle (id, name, finalRatioState, remainingRatioFlags)
-  selectionSnapshot?: Array<{ id: string; name?: string | undefined; finalRatioLocked: boolean; remainingRatioFlags: Record<string, unknown> }>;
+  selectionSnapshot?: Array<{ id: string; name?: string | undefined; finalRatioLocked: boolean; remainingRatioFlags: Record<string, unknown>; editorLocked?: boolean; editorBlocked?: boolean }>;
 }
 
 export interface ToggleSelectionVisibilityResponsePayload {

@@ -121,4 +121,20 @@ describe('toggleSelectionLockTool and undo/redo', () => {
     expect(s.blocked).toBeTruthy();
     expect(s.locked).toBeTruthy();
   });
+
+  it('returns selectionSnapshot on no-op editor-unlock when proportions still locked', async () => {
+    const s = { id: 's-prop-only', name: 'PropOnly', locked: false, blocked: false, proportionLock: true } as any;
+    (globalThis as any).penpot = {
+      selection: [s],
+      currentPage: { getShapeById: (id: string) => (id === s.id ? s : null) },
+    };
+
+    const resp = await toggleSelectionLockTool({ lock: false, shapeIds: [s.id] });
+    expect(resp.success).toBeFalsy();
+    const payload = resp.payload as any;
+    expect(Array.isArray(payload.selectionSnapshot)).toBeTruthy();
+    // Ensure snapshot shows proportions locked while editor lock is false
+    expect(payload.selectionSnapshot[0].editorLocked).toBeFalsy();
+    expect(payload.selectionSnapshot[0].proportionLocked).toBeTruthy();
+  });
 });

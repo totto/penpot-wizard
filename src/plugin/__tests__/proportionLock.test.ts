@@ -236,4 +236,16 @@ describe('toggleSelectionProportionLockTool and undo/redo', () => {
     // also expect the mutated object has no obvious flags left
     expect(s.proportionLock || s.keepAspectRatio || s.constraints).toBeFalsy();
   });
+
+  it('accepts proportionLock alias in payload and treats it like lock', async () => {
+    const s: any = { id: 'alias-1', name: 'Alias', proportionLock: true };
+    (globalThis as any).penpot = { selection: [s], currentPage: { getShapeById: (id: string) => (id === s.id ? s : null) } };
+
+    const resp = await toggleSelectionProportionLockTool({ proportionLock: false, shapeIds: [s.id] });
+    expect(resp.success).toBeTruthy();
+    const payload = resp.payload as any;
+    expect(Array.isArray(payload.selectionSnapshot)).toBeTruthy();
+    expect(payload.selectionSnapshot[0].finalRatioLocked).toBeFalsy();
+    expect(s.proportionLock || s.keepAspectRatio).toBeFalsy();
+  });
 });
