@@ -63,6 +63,33 @@ describe('toggleSelectionProportionLockTool and undo/redo', () => {
     expect(b.keepAspectRatio || b.constrainProportions || b.lockProportions || b.preserveAspectRatio).toBeTruthy();
   });
 
+  it('unlocks when explicit shapeIds are provided', async () => {
+    const s: any = { id: 'unlock-shape', name: 'UnlockMe', keepAspectRatio: true };
+    // ensure other shapes remain unaffected
+    const other: any = { id: 'other', name: 'Other', keepAspectRatio: false };
+    (globalThis as any).penpot = { selection: [s, other], currentPage: { getShapeById: (id: string) => (id === s.id ? s : id === other.id ? other : null) } };
+
+    const resp = await toggleSelectionProportionLockTool({ lock: false, shapeIds: [s.id] });
+    expect(resp.success).toBeTruthy();
+    expect(s.keepAspectRatio || s.constrainProportions || s.lockProportions || s.preserveAspectRatio).toBeFalsy();
+    // verify snapshot payload present and final state is unlocked
+    const payload = resp.payload as any;
+    expect(Array.isArray(payload.selectionSnapshot)).toBeTruthy();
+    expect(payload.selectionSnapshot.find((i: any) => i.id === s.id).finalRatioLocked).toBeFalsy();
+    // other unaffected
+    expect(other.keepAspectRatio).toBeFalsy();
+  });
+
+  it('returns clear message when provided shapeIds cannot be resolved', async () => {
+    const deadId = 'not-found-id';
+    // currentPage returns null for this id intentionally
+    (globalThis as any).penpot = { selection: [], currentPage: { getShapeById: (id: string) => null } };
+
+    const resp = await toggleSelectionProportionLockTool({ lock: false, shapeIds: [deadId] });
+    expect(resp.success).toBeFalsy();
+    expect(String(resp.message)).toContain('No shapes matched the provided shapeIds');
+  });
+
   it('falls back to currentSelectionIds when penpot.selection is empty', async () => {
     const s: any = { id: 'p-fallback', name: 'Fallback', keepAspectRatio: false };
     (globalThis as any).penpot = { selection: [], currentPage: { getShapeById: (id: string) => (id === s.id ? s : null) } };

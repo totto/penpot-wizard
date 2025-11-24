@@ -144,13 +144,29 @@ export const functionTools: FunctionTool[] = [
         const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
         const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
 
-        if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
-          args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) } as unknown as { lock?: boolean; shapeIds?: string[] };
+        // If selection info failed to return objects, try the detailed dump which
+        // prefers page fallback and provides currentSelectionIds. Use that as a
+        // robust fallback so our mutation call receives explicit shapeIds.
+        if (!args.shapeIds) {
+          if (selectionPayload && Array.isArray(selectionPayload.selectedObjects) && selectionPayload.selectedObjects.length > 0) {
+            args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) } as unknown as { lock?: boolean; shapeIds?: string[] };
+          } else {
+            const dumpResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_DUMP, undefined);
+            const dumpPayload = dumpResp.payload as GetSelectionDumpResponsePayload | undefined;
+            if (dumpPayload && Array.isArray(dumpPayload.selectedObjects) && dumpPayload.selectedObjects.length > 0) {
+              args = { ...args, shapeIds: dumpPayload.selectedObjects.map((o: any) => String(o.id)) } as unknown as { lock?: boolean; shapeIds?: string[] };
+            }
+          }
         }
 
         const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, args as unknown as ToggleSelectionProportionLockQueryPayload);
 
         const payload = response.payload as ToggleSelectionProportionLockResponsePayload | undefined;
+        // If the plugin returned a selectionSnapshot, attach it to the message so
+        // the UI can display verification of the final state immediately.
+        if (payload && Array.isArray((payload as any).selectionSnapshot)) {
+          response.message = `${response.message ?? ''}\n\nVerification:\n` + ((payload as any).selectionSnapshot.map((s:any) => ` • ${s.id} (${s.name ?? s.id}): proportions locked=${s.finalRatioLocked}`).join('\n'));
+        }
         if (payload && Array.isArray(payload.lockedShapes) && Array.isArray(payload.unlockedShapes) && payload.lockedShapes.length > 0 && payload.unlockedShapes.length > 0) {
           response.message = `The selection contains shapes with locked proportions and free proportions. Locked: ${payload.lockedShapes.map(s => s.name ?? s.id).join(', ')}; Unlocked: ${payload.unlockedShapes.map(s => s.name ?? s.id).join(', ')}. Specify lock=true to lock all unlocked shapes, or lock=false to unlock all locked shapes.`;
         }

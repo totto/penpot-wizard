@@ -228,6 +228,25 @@ describe('functionTools resize-selection behavior', () => {
     expect((resp.payload as unknown as { lockedShapes?: Array<{ id: string }>} )?.lockedShapes).toEqual([{ id: 'a', name: 'A' }]);
   });
 
+  it('toggle-selection-proportion-lock falls back to GET_SELECTION_DUMP when GET_SELECTION_INFO returns no selection', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'toggle-selection-proportion-lock');
+    if (!tool) throw new Error('toggle-selection-proportion-lock tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    // First call: GET_SELECTION_INFO returns empty
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 0, selectedObjects: [] } });
+    // Second call: GET_SELECTION_DUMP returns a selected object
+    sendMock.mockResolvedValueOnce({ success: true, payload: { selectionCount: 1, selectedObjects: [{ id: 'dump-shape', type: 'rectangle', x: 0, y: 0, width: 10, height: 10 }], currentSelectionIds: ['dump-shape'], timestamp: Date.now() } });
+    // Third call: TOGGLE_SELECTION_PROPORTION_LOCK responds
+    sendMock.mockResolvedValueOnce({ success: true, payload: { lockedShapes: [{ id: 'dump-shape', name: 'Dump' }], selectionSnapshot: [{ id: 'dump-shape', finalRatioLocked: true, remainingRatioFlags: { proportionLock: true } }] } });
+
+    const resp = await (tool!.function as unknown as (args: Record<string, unknown>) => Promise<Record<string, unknown>> )({ lock: true });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('GET_SELECTION_INFO', undefined);
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('GET_SELECTION_DUMP', undefined);
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_PROPORTION_LOCK', { lock: true, shapeIds: ['dump-shape'] });
+    expect((resp.payload as any).lockedShapes?.[0].id).toBe('dump-shape');
+  });
+
   it('dump-selection returns detailed snapshot when called', async () => {
     const tool = FT.functionTools.find(t => t.id === 'dump-selection');
     if (!tool) throw new Error('dump-selection tool not found');

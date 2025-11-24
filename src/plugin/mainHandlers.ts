@@ -4767,6 +4767,11 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
         const s = currentPage.getShapeById(id);
         if (s) targets.push(s);
       }
+      // If the caller provided explicit shapeIds but none could be resolved,
+      // return a clear failure message rather than continuing to fallback logic.
+      if (targets.length === 0) {
+        return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: false, message: 'No shapes matched the provided shapeIds' };
+      }
     } else {
       targets = getSelectionForAction() as any[];
     }
