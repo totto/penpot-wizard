@@ -180,4 +180,45 @@ describe('functionTools resize-selection behavior', () => {
   expect(sendMessageToPlugin).toHaveBeenCalledWith('TOGGLE_SELECTION_LOCK', { lock: true });
     expect((resp.payload as unknown as { lockedShapes?: Array<{ id: string }>} )?.lockedShapes).toEqual([{ id: 'a', name: 'A' }]);
   });
+
+  it('set-selection-border-radius calls GET_SELECTION_INFO when no value provided', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-border-radius');
+    if (!tool) throw new Error('set-selection-border-radius tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 'a', name: 'A' }] } });
+
+    const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)();
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('GET_SELECTION_INFO', undefined);
+    // @ts-expect-error ensure payload fields exist
+    expect(resp.payload.selectedObjects.length).toBe(1);
+  });
+
+  it('set-selection-border-radius warns when no shapes are selected', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-border-radius');
+    if (!tool) throw new Error('set-selection-border-radius tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    // GET_SELECTION_INFO returns selectionCount 0
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 0, selectedObjects: [] } });
+
+    const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>> )({ borderRadius: 5 });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('GET_SELECTION_INFO', undefined);
+    expect(resp.message).toContain('Select at least one shape before changing the border radius.');
+  });
+
+  it('set-selection-border-radius applies radius and handles no-op response', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-border-radius');
+    if (!tool) throw new Error('set-selection-border-radius tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    // First GET_SELECTION_INFO indicates shapes selected
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 2, selectedObjects: [{ id: 'a' }, { id: 'b' }] } });
+    // Next call is SET_SELECTION_BORDER_RADIUS which returns changedShapeIds empty
+    sendMock.mockResolvedValueOnce({ success: true, payload: { changedShapeIds: [] } });
+
+    const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>> )({ borderRadius: 8 });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_BORDER_RADIUS', { borderRadius: 8 });
+    expect(resp.message).toContain('Border radius change did not apply to any shapes');
+  });
 });
