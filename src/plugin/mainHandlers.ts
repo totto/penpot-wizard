@@ -4612,6 +4612,17 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
       };
     }
 
+    // Diagnostic: log the current locked/blocked flags on the resolved selection so
+    // we can see why UI reports a different visual state (some hosts use `blocked`).
+    try {
+      console.log('toggleSelectionLockTool - selection states:');
+      for (const s of targets) {
+        try {
+          console.log(`  shape ${s.id} (${s.name || 'unnamed'}): locked=${!!s.locked}, blocked=${!!s.blocked}`);
+        } catch (e) { void e; }
+      }
+    } catch (e) { void e; }
+
     // If lock not specified, decide fallback: if all are locked -> unlock all; if all unlocked -> lock all; if mixed -> prompt
     // Some Penpot host versions expose the lock state as `locked`, others (older/newer)
     // may expose `blocked`. Treat either as indicating a locked shape and keep both
