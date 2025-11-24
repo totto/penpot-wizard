@@ -35,6 +35,7 @@ export enum ClientQueryType {
   ROTATE = 'ROTATE',
   MOVE = 'MOVE',
   TOGGLE_SELECTION_LOCK = 'TOGGLE_SELECTION_LOCK',
+  TOGGLE_SELECTION_PROPORTION_LOCK = 'TOGGLE_SELECTION_PROPORTION_LOCK',
   TOGGLE_SELECTION_VISIBILITY = 'TOGGLE_SELECTION_VISIBILITY',
   CLONE_SELECTION = 'CLONE_SELECTION',
 }
@@ -270,6 +271,19 @@ export interface CloneSelectionResponsePayload {
 }
 
 export interface ToggleSelectionLockResponsePayload {
+  lockedShapes?: Array<{ id: string; name?: string }>;
+  unlockedShapes?: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface ToggleSelectionProportionLockQueryPayload {
+  lock?: boolean;
+  shapeIds?: string[];
+  // When true, emit a full shape debug dump to the host console for diagnostics
+  debugDump?: boolean;
+}
+
+export interface ToggleSelectionProportionLockResponsePayload {
   lockedShapes?: Array<{ id: string; name?: string }>;
   unlockedShapes?: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;

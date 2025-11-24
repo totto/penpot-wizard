@@ -140,6 +140,8 @@ When using the resize-selection tool:
       'set-selection-blend-mode',
       'set-selection-border-radius',
       'set-selection-bounds', 
+      'toggle-selection-proportion-lock',
+      
     ],
     
     specializedAgentIds: ['mobile-projects-coordinator'],

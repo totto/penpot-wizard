@@ -65,6 +65,7 @@ export enum ClientQueryType {
   ROTATE = 'ROTATE',
   MOVE = 'MOVE',
   TOGGLE_SELECTION_LOCK = 'TOGGLE_SELECTION_LOCK',
+  TOGGLE_SELECTION_PROPORTION_LOCK = 'TOGGLE_SELECTION_PROPORTION_LOCK',
   TOGGLE_SELECTION_VISIBILITY = 'TOGGLE_SELECTION_VISIBILITY',
   CLONE_SELECTION = 'CLONE_SELECTION',
 }
@@ -116,7 +117,8 @@ export interface ClientMessage {
   | GetSelectionInfoQueryPayload 
   | MoveQueryPayload 
   | CloneSelectionQueryPayload 
-  | ToggleSelectionLockQueryPayload;
+  | ToggleSelectionLockQueryPayload
+  | ToggleSelectionProportionLockQueryPayload;
 
 }
 
@@ -559,6 +561,15 @@ export interface ToggleSelectionVisibilityQueryPayload {
   shapeIds?: string[];
 }
 
+export interface ToggleSelectionProportionLockQueryPayload {
+  // If provided, force turn on proportion lock (true) or off (false)
+  lock?: boolean;
+  // Optional shape IDs to apply the change to. If omitted, use current selection.
+  shapeIds?: string[];
+  // When true, emit a developer debug dump of the target shape(s) to the host console
+  debugDump?: boolean;
+}
+
 export interface RotateQueryPayload {
   /**
    * Rotation angle in degrees. Positive values rotate clockwise.
@@ -597,6 +608,12 @@ export interface ToggleSelectionLockResponsePayload {
 export interface ToggleSelectionVisibilityResponsePayload {
   hiddenShapes?: Array<{ id: string; name?: string }>;
   unhiddenShapes?: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface ToggleSelectionProportionLockResponsePayload {
+  lockedShapes?: Array<{ id: string; name?: string }>;
+  unlockedShapes?: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
 }
 

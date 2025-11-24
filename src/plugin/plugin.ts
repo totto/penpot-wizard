@@ -29,6 +29,7 @@ import {
   MoveQueryPayload,
   ToggleSelectionLockQueryPayload,
   ToggleSelectionVisibilityQueryPayload,
+  ToggleSelectionProportionLockQueryPayload,
   CreateLibraryFontPayload,
   CreateLibraryComponentPayload,
   UndoLastActionQueryPayload,
@@ -90,6 +91,7 @@ import {
   toggleSelectionLockTool,
   toggleSelectionVisibilityTool,
   setSelectionOpacityTool,
+  toggleSelectionProportionLockTool,
   setSelectionBlendModeTool,
   setSelectionBorderRadiusTool,
   setSelectionBoundsTool,
@@ -336,6 +338,9 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.TOGGLE_SELECTION_LOCK:
       responseMessage = await toggleSelectionLockTool(payload as unknown as ToggleSelectionLockQueryPayload);
+      break;
+    case ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK:
+      responseMessage = await toggleSelectionProportionLockTool(payload as unknown as ToggleSelectionProportionLockQueryPayload);
       break;
     case ClientQueryType.TOGGLE_SELECTION_VISIBILITY:
       responseMessage = await toggleSelectionVisibilityTool(payload as unknown as ToggleSelectionVisibilityQueryPayload);

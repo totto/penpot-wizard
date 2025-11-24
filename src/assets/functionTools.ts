@@ -7,6 +7,8 @@ import {
   GetSelectionInfoResponsePayload,
   ToggleSelectionLockQueryPayload,
   ToggleSelectionLockResponsePayload,
+  ToggleSelectionProportionLockQueryPayload,
+  ToggleSelectionProportionLockResponsePayload,
   ToggleSelectionVisibilityQueryPayload,
   ToggleSelectionVisibilityResponsePayload,
   SetSelectionOpacityQueryPayload,
@@ -120,6 +122,40 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
+    {
+      id: 'toggle-selection-proportion-lock',
+      name: 'toggleSelectionProportionLock',
+      description: `
+        Toggle whether selected shapes keep their proportions (aspect ratio) when resized.
+        If called without an explicit 'lock' boolean the tool will read the selection and:
+        - If all selected shapes are unlocked (proportions free), it will lock proportions.
+        - If all selected shapes are locked (proportions fixed), it will unlock them.
+        - If selection contains both locked and unlocked shapes, it will return a prompt payload
+          that the UI can use to ask the user which action to take.
+      `,
+      inputSchema: z.object({ lock: z.boolean().optional(), shapeIds: z.array(z.string()).optional(), debugDump: z.boolean().optional() }),
+      function: async (args?: { lock?: boolean; shapeIds?: string[]; debugDump?: boolean }) => {
+        if (!args) {
+          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        }
+
+        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+
+        if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
+          args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) } as unknown as { lock?: boolean; shapeIds?: string[] };
+        }
+
+        const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, args as unknown as ToggleSelectionProportionLockQueryPayload);
+
+        const payload = response.payload as ToggleSelectionProportionLockResponsePayload | undefined;
+        if (payload && Array.isArray(payload.lockedShapes) && Array.isArray(payload.unlockedShapes) && payload.lockedShapes.length > 0 && payload.unlockedShapes.length > 0) {
+          response.message = `The selection contains shapes with locked proportions and free proportions. Locked: ${payload.lockedShapes.map(s => s.name ?? s.id).join(', ')}; Unlocked: ${payload.unlockedShapes.map(s => s.name ?? s.id).join(', ')}. Specify lock=true to lock all unlocked shapes, or lock=false to unlock all locked shapes.`;
+        }
+
+        return response;
+      },
+    },
     {
         id: 'toggle-selection-visibility',
         name: 'toggleSelectionVisibility',
