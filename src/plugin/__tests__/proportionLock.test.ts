@@ -38,6 +38,10 @@ describe('toggleSelectionProportionLockTool and undo/redo', () => {
     const resp = await toggleSelectionProportionLockTool({ lock: false });
     expect(resp.success).toBeTruthy();
     expect(s.keepAspectRatio || s.constrainProportions || s.lockProportions || s.preserveAspectRatio).toBeFalsy();
+    // response should include a selection snapshot verifying the final state
+    const payload = resp.payload as any;
+    expect(Array.isArray(payload.selectionSnapshot)).toBeTruthy();
+    expect(payload.selectionSnapshot[0].finalRatioLocked).toBeFalsy();
 
     const undoResp = await undoLastAction({});
     expect(undoResp.success).toBeTruthy();
@@ -69,6 +73,9 @@ describe('toggleSelectionProportionLockTool and undo/redo', () => {
     const resp = await toggleSelectionProportionLockTool({ lock: true });
     expect(resp.success).toBeTruthy();
     expect(s.keepAspectRatio || s.constrainProportions || s.lockProportions || s.preserveAspectRatio).toBeTruthy();
+    const payload = resp.payload as any;
+    expect(Array.isArray(payload.selectionSnapshot)).toBeTruthy();
+    expect(payload.selectionSnapshot[0].finalRatioLocked).toBeTruthy();
   });
 
   it('handles shapes that expose constrainProportions instead of keepAspectRatio', async () => {

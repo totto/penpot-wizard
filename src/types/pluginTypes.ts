@@ -286,6 +286,8 @@ export interface ToggleSelectionProportionLockResponsePayload {
   lockedShapes?: Array<{ id: string; name?: string }>;
   unlockedShapes?: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
+  // Optional snapshot of the affected shapes after toggle (id, name, finalRatioState, remainingRatioFlags)
+  selectionSnapshot?: Array<{ id: string; name?: string | undefined; finalRatioLocked: boolean; remainingRatioFlags: Record<string, unknown> }>;
 }
 
 export interface ToggleSelectionVisibilityResponsePayload {

@@ -4596,6 +4596,7 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
       targets = getSelectionForAction() as any[];
     }
 
+    let resolutionMethod = 'none';
     if (!targets || targets.length === 0) {
       // Try a fallback: if the action-only selection (currentSelectionIds) has ids,
       // resolve shape objects via currentPage.getShapeById and use them as targets.
@@ -4754,6 +4755,7 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
     const { lock, shapeIds } = payload ?? {};
 
     // Determine targets (same safe pattern as other tools)
+    let resolutionMethod = 'none';
     let targets: any[] = [];
     if (shapeIds && Array.isArray(shapeIds) && shapeIds.length > 0) {
       const currentPage = penpot.currentPage as any;
@@ -4789,10 +4791,19 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
             // prefer the returned shapes if they look viable for mutation
             targets = pageSel as any[];
             console.log('toggleSelectionProportionLockTool: resolved selection via currentPage.getSelectedShapes');
+            resolutionMethod = 'page.getSelectedShapes';
           }
         }
       } catch (e) { /* swallow */ }
     }
+
+    // if we still have targets, record how they were resolved
+    if (targets && targets.length > 0 && resolutionMethod === 'none') {
+      // determine if resolution used explicit shapeIds or action-selection
+      resolutionMethod = Array.isArray(shapeIds) && (shapeIds || []).length > 0 ? 'shapeIds' : 'getSelectionForAction';
+    }
+
+    console.log(`toggleSelectionProportionLockTool: resolved targets method=${resolutionMethod} ids=[${targets?.map(t => t?.id).join(', ')}]`);
 
     if (!targets || targets.length === 0) {
       return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: false, message: 'NO_SELECTION' };
@@ -4905,6 +4916,76 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
       return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: false, message: willLock ? 'No shapes to lock (proportions)' : 'No shapes to unlock (proportions)' };
     }
 
+    // After applying changes, verify the final state on fresh shape references
+    const currentPage = (penpot as any).currentPage as any;
+    const selectionSnapshot: Array<{ id: string; name?: string; finalRatioLocked: boolean; remainingRatioFlags: Record<string, unknown> }> = [];
+
+    for (const id of affectedIds) {
+      try {
+        let freshShape: any = undefined;
+        if (currentPage && typeof currentPage.getShapeById === 'function') {
+          freshShape = currentPage.getShapeById(id);
+        }
+
+        // if we couldn't resolve fresh reference, try to keep the previous mutated object via targets
+        if (!freshShape) {
+          freshShape = targets.find((s: any) => s.id === id);
+        }
+
+        if (!freshShape) {
+          selectionSnapshot.push({ id, name: undefined, finalRatioLocked: false, remainingRatioFlags: {} });
+          continue;
+        }
+
+        // helper to read the canonical ratio flags on a shape
+        const readRatioFlags = (s: any) => ({
+          proportionLock: !!s.proportionLock,
+          keepAspectRatio: !!s.keepAspectRatio,
+          constrainProportions: !!s.constrainProportions,
+          lockProportions: !!s.lockProportions,
+          preserveAspectRatio: !!s.preserveAspectRatio,
+          lockRatio: !!s.lockRatio,
+          ratioLocked: !!s.ratioLocked,
+          lockAspectRatio: !!s.lockAspectRatio,
+          keepRatio: !!s.keepRatio,
+          fixedAspectRatio: !!s.fixedAspectRatio,
+          constrainAspectRatio: !!s.constrainAspectRatio,
+          maintainAspectRatio: !!s.maintainAspect,
+          constraints: !!(s.constraints && (s.constraints.proportionLock || s.constraints.lockRatio || s.constraints.ratioLocked || s.constraints.lockAspectRatio || s.constraints.keepRatio || s.constraints.fixedAspectRatio || s.constraints.maintainAspect || s.constraints.keepAspect)),
+        });
+
+        let flags = readRatioFlags(freshShape);
+        const finalLocked = Object.values(flags).some(Boolean);
+
+        // If final state didn't match expected (unlock failed), attempt a second pass
+        if (!willLock && finalLocked) {
+          try {
+            // Clear all known keys again on the fresh reference
+            try { freshShape.proportionLock = false; } catch {}
+            try { freshShape.keepAspectRatio = false; } catch {}
+            try { freshShape.constrainProportions = false; } catch {}
+            try { freshShape.lockProportions = false; } catch {}
+            try { freshShape.preserveAspectRatio = false; } catch {}
+            try { freshShape.lockRatio = false; } catch {}
+            try { freshShape.ratioLocked = false; } catch {}
+            try { freshShape.lockAspectRatio = false; } catch {}
+            try { freshShape.keepRatio = false; } catch {}
+            try { freshShape.fixedAspectRatio = false; } catch {}
+            try { freshShape.constrainAspectRatio = false; } catch {}
+            try { freshShape.maintainAspectRatio = false; } catch {}
+            try { if (freshShape.constraints) { freshShape.constraints.proportionLock = false; freshShape.constraints.lockRatio = false; freshShape.constraints.ratioLocked = false; freshShape.constraints.lockAspectRatio = false; freshShape.constraints.keepRatio = false; freshShape.constraints.maintainAspect = false; } } catch {}
+          } catch (e) { /* swallow second-pass errors */ }
+
+          // re-evaluate flags
+          flags = readRatioFlags(freshShape);
+        }
+
+        selectionSnapshot.push({ id: freshShape.id, name: freshShape.name, finalRatioLocked: Object.values(flags).some(Boolean), remainingRatioFlags: flags });
+      } catch (e) {
+        try { selectionSnapshot.push({ id, name: undefined, finalRatioLocked: false, remainingRatioFlags: {} }); } catch { /* swallow */ }
+      }
+    }
+
     const undoInfo: UndoInfo = {
       actionType: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK,
       actionId: `proportion_lock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -4922,6 +5003,7 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
       lockedShapes: lockedShapes.length > 0 ? lockedShapes : undefined,
       unlockedShapes: unlockedShapes.length > 0 ? unlockedShapes : undefined,
       undoInfo,
+      selectionSnapshot: selectionSnapshot.length > 0 ? selectionSnapshot : undefined,
     };
 
     return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: true, message: `${willLock ? 'Locked' : 'Unlocked'} ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''}`, payload: respPayload };
