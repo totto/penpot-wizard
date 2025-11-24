@@ -100,6 +100,8 @@ describe('functionTools resize-selection behavior', () => {
   if (!tool) throw new Error('toggle-selection-lock tool not found');
 
     const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockReset();
+    sendMock.mockReset();
     sendMock.mockResolvedValueOnce({ payload: { selectionCount: 2, selectedObjects: [{ id: 'a' }, { id: 'b' }] } });
 
   const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)();
@@ -113,6 +115,8 @@ describe('functionTools resize-selection behavior', () => {
   if (!tool) throw new Error('toggle-selection-lock tool not found');
 
     const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockReset();
+    sendMock.mockReset();
     // read selection first
     sendMock.mockResolvedValueOnce({ payload: { selectionCount: 2, selectedObjects: [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }] } });
   // TOGGLE_SELECTION_LOCK returns mixed selection info
@@ -129,6 +133,8 @@ describe('functionTools resize-selection behavior', () => {
     if (!tool) throw new Error('toggle-selection-visibility tool not found');
 
     const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockReset();
+    sendMock.mockReset();
     sendMock.mockResolvedValueOnce({ payload: { selectionCount: 2, selectedObjects: [{ id: 'a' }, { id: 'b' }] } });
 
     const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)();
@@ -220,6 +226,47 @@ describe('functionTools resize-selection behavior', () => {
     const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>> )({ borderRadius: 8 });
     expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_BORDER_RADIUS', { borderRadius: 8 });
     expect(resp.message).toContain('Border radius change did not apply to any shapes');
+  });
+
+  it('set-selection-opacity should parse "50%" and call SET_SELECTION_OPACITY with 0.5', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-opacity');
+    if (!tool) throw new Error('set-selection-opacity tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    // First call returns selection info
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 's1', name: 'Ellipse' }] } });
+    // Second call is the actual SET_SELECTION_OPACITY
+    sendMock.mockResolvedValueOnce({ success: true, payload: { changedShapeIds: ['s1'], appliedOpacity: 0.5 } });
+
+    const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)({ opacity: '50%' });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_OPACITY', { opacity: 0.5 });
+    expect(resp.success).toBe(true);
+  });
+
+  it('set-selection-opacity should parse numeric 50 as 0.5', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-opacity');
+    if (!tool) throw new Error('set-selection-opacity tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 's2' }] } });
+    sendMock.mockResolvedValueOnce({ success: true, payload: { changedShapeIds: ['s2'], appliedOpacity: 0.5 } });
+
+    const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)({ opacity: 50 });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_OPACITY', { opacity: 0.5 });
+    expect(resp.success).toBe(true);
+  });
+
+  it('set-selection-opacity should accept string decimals like "0.5"', async () => {
+    const tool = FT.functionTools.find(t => t.id === 'set-selection-opacity');
+    if (!tool) throw new Error('set-selection-opacity tool not found');
+
+    const sendMock = sendMessageToPlugin as unknown as ReturnType<typeof vi.fn>;
+    sendMock.mockResolvedValueOnce({ payload: { selectionCount: 1, selectedObjects: [{ id: 's3' }] } });
+    sendMock.mockResolvedValueOnce({ success: true, payload: { changedShapeIds: ['s3'], appliedOpacity: 0.5 } });
+
+    const resp = await (tool!.function as unknown as (args?: Record<string, unknown>) => Promise<Record<string, unknown>>)({ opacity: '0.5' });
+    expect(sendMessageToPlugin).toHaveBeenCalledWith('SET_SELECTION_OPACITY', { opacity: 0.5 });
+    expect(resp.success).toBe(true);
   });
 
   it('set-selection-bounds calls GET_SELECTION_INFO when no values provided', async () => {

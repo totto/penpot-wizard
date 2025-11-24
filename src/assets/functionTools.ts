@@ -240,12 +240,50 @@ export const functionTools: FunctionTool[] = [
       name: 'setSelectionOpacity',
       description: `Set the opacity of the currently selected shapes (0 = transparent, 1 = opaque). Call without arguments to just return info about the selection so the UI can prompt for a value.`,
       inputSchema: z.object({
-        opacity: z.number().min(0).max(1).optional(),
+        // Accept numbers or strings (e.g. "50%" or "50"), we'll parse below
+        opacity: z.union([z.number(), z.string()]).optional(),
       }),
-      function: async (args?: SetSelectionOpacityQueryPayload) => {
-        if (!args || typeof args.opacity !== 'number') {
+      function: async (args?: { opacity?: number | string }) => {
+        if (!args || typeof args.opacity === 'undefined') {
           return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
         }
+
+        // Normalize opacity to a number between 0 and 1.
+        let raw = args.opacity;
+        let parsedOpacity: number | undefined;
+
+        if (typeof raw === 'number') {
+          // Treat numbers > 1 as percentages (e.g. 50 -> 0.5)
+          parsedOpacity = raw > 1 ? raw / 100 : raw;
+        } else if (typeof raw === 'string') {
+          const s = raw.trim();
+          // If it's a percent like '50%' remove the % and parse
+          const percentMatch = s.match(/^([0-9,.]+)\s*%$/);
+          if (percentMatch) {
+            const n = Number(percentMatch[1].replace(/,/g, '.'));
+            parsedOpacity = Number.isFinite(n) ? n / 100 : undefined;
+          } else {
+            // try parsing as a plain number
+            const n = Number(s.replace(/,/g, '.'));
+            if (Number.isFinite(n)) {
+              // Interpret numbers > 1 as percentages (e.g. 50 -> 0.5)
+              parsedOpacity = n > 1 ? n / 100 : n;
+            }
+          }
+        }
+
+        if (typeof parsedOpacity !== 'number' || !Number.isFinite(parsedOpacity)) {
+          // Unknown input; return read-only selection to allow UI to prompt
+          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        }
+
+        // Validate final value
+        if (parsedOpacity < 0 || parsedOpacity > 1) {
+          return { success: false, message: 'Opacity must be between 0 and 100% (or 0.0-1.0).', source: 'penpotWizardClient', type: ClientQueryType.SET_SELECTION_OPACITY, messageId: '' } as unknown as Record<string, unknown>;
+        }
+
+        // Pass normalized value to plugin
+        args = { opacity: parsedOpacity } as unknown as SetSelectionOpacityQueryPayload;
 
         const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
         const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
@@ -254,7 +292,7 @@ export const functionTools: FunctionTool[] = [
           return selectionResp;
         }
 
-        const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_OPACITY, args);
+        const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_OPACITY, args as unknown as SetSelectionOpacityQueryPayload);
         return response;
       },
     },
