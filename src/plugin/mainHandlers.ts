@@ -54,6 +54,8 @@ import {
   CloneSelectionPromptResponsePayload,
   ToggleSelectionLockQueryPayload,
   ToggleSelectionLockResponsePayload,
+  ToggleSelectionProportionLockQueryPayload,
+  ToggleSelectionProportionLockResponsePayload,
   ToggleSelectionVisibilityQueryPayload,
   ToggleSelectionVisibilityResponsePayload,
   GetSelectionInfoQueryPayload,
@@ -985,6 +987,8 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
     
     // Add to undo stack
     undoStack.push(undoInfo);
+
+    // Nothing to do here for selection sync in blur; leave UI selection untouched.
     
     return {
       ...pluginResponse,
@@ -4030,7 +4034,12 @@ export async function resizeTool(payload: ResizeQueryPayload): Promise<PluginRes
       let newWidth = prevWidth;
       let newHeight = prevHeight;
 
-      if (maintainAspectRatio) {
+      // Determine whether this particular shape should maintain aspect ratio.
+      // Either the caller requested global maintainAspectRatio, or the shape
+      // itself has a per-shape proportion lock flag (supports many host variants).
+      const perShapeLock = !!(shape as any).proportionLock || !!(shape as any).keepAspectRatio || !!(shape as any).constrainProportions || !!(shape as any).lockProportions || !!(shape as any).preserveAspectRatio || !!(shape as any).lockRatio || !!(shape as any).ratioLocked || !!(shape as any).lockAspectRatio || !!(shape as any).keepRatio || !!(shape as any).fixedAspectRatio || !!(shape as any).constrainAspectRatio || !!(shape as any).maintainAspectRatio || !!((shape as any).constraints && ((shape as any).constraints.proportionLock || (shape as any).constraints.lockRatio || (shape as any).constraints.ratioLocked || (shape as any).constraints.lockAspectRatio || (shape as any).constraints.keepRatio || (shape as any).constraints.fixedAspectRatio || (shape as any).constraints.maintainAspect));
+
+      if (maintainAspectRatio || perShapeLock) {
         // Use scaleX for both dimensions, or scaleY if scaleX not provided
         const scale = scaleX !== undefined ? scaleX : scaleY !== undefined ? scaleY : 1.0;
         newWidth = prevWidth * scale;
@@ -4663,12 +4672,16 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
           try { shape.locked = true; } catch (e) { void e; }
           try { shape.blocked = true; } catch (e) { void e; }
           lockedShapes.push({ id: shape.id, name: shape.name });
+          // Diagnostic: report we set the lock so runtime / host inspector discrepancy can be debugged.
+          console.log(`Shape ${shape.id} locked set to true (locked=${!!shape.locked}, blocked=${!!shape.blocked})`);
           affectedIds.push(shape.id);
           previousStates.push(prevLocked);
         } else if (!willLock && (shape.locked || shape.blocked)) {
           try { shape.locked = false; } catch (e) { void e; }
           try { shape.blocked = false; } catch (e) { void e; }
           unlockedShapes.push({ id: shape.id, name: shape.name });
+          // Diagnostic: report we cleared the lock so runtime / host inspector discrepancy can be debugged.
+          console.log(`Shape ${shape.id} locked set to false (locked=${!!shape.locked}, blocked=${!!shape.blocked})`);
           affectedIds.push(shape.id);
           previousStates.push(prevLocked);
         }
@@ -4719,6 +4732,161 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
       success: false,
       message: `Error locking/unlocking selection: ${err instanceof Error ? err.message : String(err)}`,
     };
+  }
+}
+
+export async function toggleSelectionProportionLockTool(payload: ToggleSelectionProportionLockQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { lock, shapeIds } = payload ?? {};
+
+    // Determine targets (same safe pattern as other tools)
+    let targets: any[] = [];
+    if (shapeIds && Array.isArray(shapeIds) && shapeIds.length > 0) {
+      const currentPage = penpot.currentPage as any;
+      if (!currentPage) {
+        return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: false, message: 'No current page available to modify shapes' };
+      }
+
+      for (const id of shapeIds) {
+        const s = currentPage.getShapeById(id);
+        if (s) targets.push(s);
+      }
+    } else {
+      targets = getSelectionForAction() as any[];
+    }
+
+    if (!targets || targets.length === 0) {
+      // fallback to action-selection IDs if available
+      try {
+        const currentPage = penpot.currentPage as any;
+        if ((currentSelectionIds || []).length > 0 && currentPage && typeof currentPage.getShapeById === 'function') {
+          const resolved = currentSelectionIds.map((id: string) => { try { return currentPage.getShapeById(id); } catch { return null; } }).filter(Boolean);
+          if (resolved.length > 0) targets = resolved as any[];
+        }
+      } catch (e) { /* swallow */ }
+    }
+
+    if (!targets || targets.length === 0) {
+      return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: false, message: 'NO_SELECTION' };
+    }
+
+    // Determine proportion-lock state. Some host versions expose different top-level
+    // names or nest the flag inside a `constraints` object. Check a wide set so
+    // we can handle multiple host versions reliably.
+    const proportionStates = targets.map((s: any) => {
+      const top = !!s.proportionLock || !!s.keepAspectRatio || !!s.constrainProportions || !!s.lockProportions || !!s.preserveAspectRatio || !!s.lockRatio || !!s.ratioLocked || !!s.lockAspectRatio || !!s.keepRatio || !!s.fixedAspectRatio || !!s.constrainAspectRatio || !!s.maintainAspectRatio;
+      const nested = !!(s.constraints && (s.constraints.proportionLock || s.constraints.lockRatio || s.constraints.ratioLocked || s.constraints.lockAspectRatio || s.constraints.keepAspect || s.constraints.keepRatio || s.constraints.fixedAspectRatio || s.constraints.maintainAspect));
+      return top || nested;
+    });
+    const hasLocked = proportionStates.some(Boolean);
+    const hasUnlocked = proportionStates.some(v => !v);
+
+    if (typeof lock === 'undefined' && hasLocked && hasUnlocked) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK,
+        success: false,
+        message: 'MIXED_SELECTION',
+        payload: {
+          lockedShapes: targets.filter((s: any) => !!s.proportionLock || !!s.keepAspectRatio || !!s.constrainProportions || !!s.lockProportions || !!s.preserveAspectRatio).map((s: any) => ({ id: s.id, name: s.name })),
+          unlockedShapes: targets.filter((s: any) => !s.proportionLock && !s.keepAspectRatio && !s.constrainProportions && !s.lockProportions && !s.preserveAspectRatio).map((s: any) => ({ id: s.id, name: s.name })),
+        } as unknown as ToggleSelectionProportionLockResponsePayload,
+      };
+    }
+
+    const willLock = typeof lock === 'boolean' ? lock : (!hasLocked && !hasUnlocked ? true : !hasLocked);
+
+    const previousStates: boolean[] = [];
+    const affectedIds: string[] = [];
+    const lockedShapes: Array<{ id: string; name?: string }> = [];
+    const unlockedShapes: Array<{ id: string; name?: string }> = [];
+    const skippedLockedShapes: Array<{ id: string; name?: string }> = [];
+
+    for (const shape of targets) {
+      try {
+        // Respect an editor-level lock; skip shapes that are locked/blocked
+        if ((shape.locked || shape.blocked)) {
+          console.log(`toggleSelectionProportionLockTool: skipping shape ${shape.id} because locked/blocked`);
+          skippedLockedShapes.push({ id: shape.id, name: shape.name });
+          continue;
+        }
+
+        // Determine prior state checking common top-level names and nested constraints
+        const prevTop = !!shape.keepAspectRatio || !!shape.constrainProportions || !!shape.lockProportions || !!shape.preserveAspectRatio || !!shape.lockRatio || !!shape.ratioLocked || !!shape.lockAspectRatio || !!shape.keepRatio || !!shape.fixedAspectRatio || !!shape.maintainAspectRatio;
+        const prevNested = !!(shape.constraints && (shape.constraints.lockRatio || shape.constraints.ratioLocked || shape.constraints.lockAspectRatio || shape.constraints.keepAspect || shape.constraints.keepRatio || shape.constraints.fixedAspectRatio || shape.constraints.maintainAspect));
+        const prev = prevTop || prevNested;
+
+          if (willLock && !prev) {
+          console.log(`toggleSelectionProportionLockTool: toggling ON proportion lock for shape ${shape.id} (prev=${prev})`);
+          // set common property names used by different hosts
+          // Apply to several top-level names used by different hosts
+          try { shape.proportionLock = true; } catch (e) { void e; }
+          try { shape.keepAspectRatio = true; } catch (e) { void e; }
+          try { shape.constrainProportions = true; } catch (e) { void e; }
+          try { shape.lockProportions = true; } catch (e) { void e; }
+          try { shape.preserveAspectRatio = true; } catch (e) { void e; }
+          try { shape.lockRatio = true; } catch (e) { void e; }
+          try { shape.ratioLocked = true; } catch (e) { void e; }
+          try { shape.lockAspectRatio = true; } catch (e) { void e; }
+          try { shape.keepRatio = true; } catch (e) { void e; }
+          try { shape.fixedAspectRatio = true; } catch (e) { void e; }
+          try { shape.constrainAspectRatio = true; } catch (e) { void e; }
+          try { shape.maintainAspectRatio = true; } catch (e) { void e; }
+          // Also set nested constraints.* variants when present or create them
+          try { shape.constraints = { ...(shape.constraints ?? {}), proportionLock: true, lockRatio: true, ratioLocked: true, lockAspectRatio: true, keepRatio: true, maintainAspect: true }; } catch (e) { void e; }
+          lockedShapes.push({ id: shape.id, name: shape.name });
+          affectedIds.push(shape.id);
+          previousStates.push(prev);
+          } else if (!willLock && prev) {
+          console.log(`toggleSelectionProportionLockTool: toggling OFF proportion lock for shape ${shape.id} (prev=${prev})`);
+          try { shape.proportionLock = false; } catch (e) { void e; }
+          try { shape.keepAspectRatio = false; } catch (e) { void e; }
+          try { shape.constrainProportions = false; } catch (e) { void e; }
+          try { shape.lockProportions = false; } catch (e) { void e; }
+          try { shape.preserveAspectRatio = false; } catch (e) { void e; }
+          try { shape.lockRatio = false; } catch (e) { void e; }
+          try { shape.ratioLocked = false; } catch (e) { void e; }
+          try { shape.lockAspectRatio = false; } catch (e) { void e; }
+          try { shape.keepRatio = false; } catch (e) { void e; }
+          try { shape.fixedAspectRatio = false; } catch (e) { void e; }
+          try { shape.constrainAspectRatio = false; } catch (e) { void e; }
+          try { shape.maintainAspectRatio = false; } catch (e) { void e; }
+          try { if (shape.constraints) { shape.constraints.proportionLock = false; shape.constraints.lockRatio = false; shape.constraints.ratioLocked = false; shape.constraints.lockAspectRatio = false; shape.constraints.keepRatio = false; shape.constraints.maintainAspect = false; } } catch (e) { void e; }
+          unlockedShapes.push({ id: shape.id, name: shape.name });
+          affectedIds.push(shape.id);
+          previousStates.push(prev);
+        }
+      } catch (e) {
+        console.warn(`Failed to toggle proportion lock for shape ${shape.id}:`, e);
+      }
+    }
+
+    if (affectedIds.length === 0) {
+      return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: false, message: willLock ? 'No shapes to lock (proportions)' : 'No shapes to unlock (proportions)' };
+    }
+
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK,
+      actionId: `proportion_lock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `${willLock ? 'Locked proportions for' : 'Unlocked proportions for'} ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''}`,
+      undoData: {
+        shapeIds: affectedIds,
+        previousProportionStates: previousStates,
+      } as any,
+      timestamp: Date.now(),
+    };
+
+    undoStack.push(undoInfo);
+
+    const respPayload: ToggleSelectionProportionLockResponsePayload = {
+      lockedShapes: lockedShapes.length > 0 ? lockedShapes : undefined,
+      unlockedShapes: unlockedShapes.length > 0 ? unlockedShapes : undefined,
+      undoInfo,
+    };
+
+    return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: true, message: `${willLock ? 'Locked' : 'Unlocked'} ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''}`, payload: respPayload };
+  } catch (err) {
+    return { ...pluginResponse, type: ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, success: false, message: `Error toggling proportion lock: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -5025,22 +5193,24 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
           const previousShadow = shadowData.previousShadows[i];
 
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const shape = (penpot as any).currentPage?.findShape(shapeId) as any;
-            if (shape) {
-              // Restore the previous shadow
-              if (previousShadow) {
-                shape.shadows = [{
-                  ...previousShadow,
-                  style: previousShadow.style as 'drop-shadow' | 'inner-shadow' | undefined,
-                }];
-              } else {
-                // If there was no previous shadow, remove shadows
-                shape.shadows = [];
-              }
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
 
-              restoredShapes.push(shape.name || shape.id);
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore the previous shadow
+            if (previousShadow) {
+              shape.shadows = [{
+                ...previousShadow,
+                style: previousShadow.style as 'drop-shadow' | 'inner-shadow' | undefined,
+              }];
+            } else {
+              // If there was no previous shadow, remove shadows
+              shape.shadows = [];
             }
+
+            restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to restore shadow for shape ${shapeId}:`, error);
           }
@@ -5348,6 +5518,58 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
             console.warn(`Failed to restore lock state for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
+  case ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK: {
+        // Restore previous proportion lock state (undo)
+        const propData = lastAction.undoData as { shapeIds: string[]; previousProportionStates: boolean[] };
+
+        for (let i = 0; i < propData.shapeIds.length; i++) {
+          const shapeId = propData.shapeIds[i];
+          const prevLocked = propData.previousProportionStates[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore prior proportion-lock state across common property names/top-level
+            // and nested constraint variants so hosts using different names get restored
+            // to the previous boolean state.
+            const v = !!prevLocked;
+            // Top-level names
+            try { (shape as any).proportionLock = v; } catch (e) { void e; }
+            try { (shape as any).keepAspectRatio = v; } catch (e) { void e; }
+            try { (shape as any).constrainProportions = v; } catch (e) { void e; }
+            try { (shape as any).lockProportions = v; } catch (e) { void e; }
+            try { (shape as any).preserveAspectRatio = v; } catch (e) { void e; }
+            try { (shape as any).lockRatio = v; } catch (e) { void e; }
+            try { (shape as any).ratioLocked = v; } catch (e) { void e; }
+            try { (shape as any).lockAspectRatio = v; } catch (e) { void e; }
+            try { (shape as any).keepRatio = v; } catch (e) { void e; }
+            try { (shape as any).fixedAspectRatio = v; } catch (e) { void e; }
+            try { (shape as any).constrainAspectRatio = v; } catch (e) { void e; }
+            try { (shape as any).maintainAspectRatio = v; } catch (e) { void e; }
+            // Nested constraints object
+            try {
+              if (!(shape as any).constraints) (shape as any).constraints = {};
+              (shape as any).constraints.proportionLock = v;
+              (shape as any).constraints.lockRatio = v;
+              (shape as any).constraints.ratioLocked = v;
+              (shape as any).constraints.lockAspectRatio = v;
+              (shape as any).constraints.keepRatio = v;
+              (shape as any).constraints.fixedAspectRatio = v;
+              (shape as any).constraints.maintainAspect = v;
+            } catch (e) { void e; }
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore proportion lock state for shape ${shapeId}:`, error);
           }
         }
         break;
@@ -6340,13 +6562,56 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
                 (shape as any).locked = !previousLocked;
                 try { (shape as any).blocked = !previousLocked; } catch (e) { void e; }
 
-                undoStack.push(lastAction);
                 restoredShapes.push(shape.name || shape.id);
               } catch (error) {
                 console.warn(`Failed to redo lock/unlock for shape ${shapeId}:`, error);
               }
             }
 
+            // After reapplying locks, push the action back onto the undo stack
+            undoStack.push(lastAction);
+            break;
+          }
+
+          case ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK: {
+            const propData = lastAction.undoData as { shapeIds: string[]; previousProportionStates: boolean[] };
+
+            for (let i = 0; i < propData.shapeIds.length; i++) {
+                const shapeId = propData.shapeIds[i];
+                const previousLocked = propData.previousProportionStates[i];
+
+                try {
+                  const currentPage = penpot.currentPage;
+                  if (!currentPage) continue;
+
+                  const shape = currentPage.getShapeById(shapeId);
+                  if (!shape) continue;
+
+                  // Reapply the original applied state (opposite of previousLocked) across
+                  // a broad set of property names and nested constraints.* variants.
+                  const newV = !previousLocked;
+                  try { (shape as any).proportionLock = newV; } catch (e) { void e; }
+                  try { (shape as any).keepAspectRatio = newV; } catch (e) { void e; }
+                  try { (shape as any).constrainProportions = newV; } catch (e) { void e; }
+                  try { (shape as any).lockProportions = newV; } catch (e) { void e; }
+                  try { (shape as any).preserveAspectRatio = newV; } catch (e) { void e; }
+                  try { (shape as any).lockRatio = newV; } catch (e) { void e; }
+                  try { (shape as any).ratioLocked = newV; } catch (e) { void e; }
+                  try { (shape as any).lockAspectRatio = newV; } catch (e) { void e; }
+                  try { (shape as any).keepRatio = newV; } catch (e) { void e; }
+                  try { (shape as any).fixedAspectRatio = newV; } catch (e) { void e; }
+                  try { (shape as any).constrainAspectRatio = newV; } catch (e) { void e; }
+                  try { (shape as any).maintainAspectRatio = newV; } catch (e) { void e; }
+                  try { if (!(shape as any).constraints) (shape as any).constraints = {}; (shape as any).constraints.proportionLock = newV; (shape as any).constraints.lockRatio = newV; (shape as any).constraints.ratioLocked = newV; (shape as any).constraints.lockAspectRatio = newV; (shape as any).constraints.keepRatio = newV; (shape as any).constraints.fixedAspectRatio = newV; (shape as any).constraints.maintainAspect = newV; } catch (e) { void e; }
+
+                  restoredShapes.push(shape.name || shape.id);
+                } catch (error) {
+                  console.warn(`Failed to redo proportion lock/unlock for shape ${shapeId}:`, error);
+                }
+              }
+
+            // After reapplying proportion locks, push the action back onto the undo stack
+            undoStack.push(lastAction);
             break;
           }
           case ClientQueryType.TOGGLE_SELECTION_VISIBILITY: {
