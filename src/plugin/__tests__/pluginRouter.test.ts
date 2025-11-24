@@ -25,8 +25,9 @@ describe('plugin router integration', () => {
       },
     };
 
+    // Ensure we reset cached modules so the plugin re-registers using our mocked penpot
+    vi.resetModules();
     // Import the plugin module so it registers the onMessage handler
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     await import('@/plugin/plugin');
     expect(typeof handler).toBe('function');
 
@@ -74,8 +75,9 @@ describe('plugin router integration', () => {
       },
     };
 
+    // Ensure we reset cached modules so the plugin re-registers using our mocked penpot
+    vi.resetModules();
     // Import the plugin module so it registers the onMessage handler
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     await import('@/plugin/plugin');
     expect(typeof handler).toBe('function');
 
