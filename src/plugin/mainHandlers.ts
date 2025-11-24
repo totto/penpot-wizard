@@ -4764,6 +4764,20 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
           if (resolved.length > 0) targets = resolved as any[];
         }
       } catch (e) { /* swallow */ }
+      // Final fallback: some host runtimes provide a read-only currentPage.getSelectedShapes
+      // which we can safely use to resolve shape objects for mutation when penpot.selection
+      // is inaccessible and action-selection ids are empty.
+      try {
+        const currentPage = (penpot as any).currentPage;
+        if ((!targets || targets.length === 0) && currentPage && typeof currentPage.getSelectedShapes === 'function') {
+          const pageSel = currentPage.getSelectedShapes();
+          if (Array.isArray(pageSel) && pageSel.length > 0) {
+            // prefer the returned shapes if they look viable for mutation
+            targets = pageSel as any[];
+            console.log('toggleSelectionProportionLockTool: resolved selection via currentPage.getSelectedShapes');
+          }
+        }
+      } catch (e) { /* swallow */ }
     }
 
     if (!targets || targets.length === 0) {
