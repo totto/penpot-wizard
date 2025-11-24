@@ -138,8 +138,8 @@ When using the resize-selection tool:
       'clone-selection',
       'set-selection-opacity',
       'set-selection-blend-mode',
-
-      
+      'set-selection-border-radius',
+      'set-selection-bounds', 
     ],
     
     specializedAgentIds: ['mobile-projects-coordinator'],
