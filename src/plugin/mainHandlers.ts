@@ -77,7 +77,7 @@ import {
 } from "../types/types";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
-import { getSelectionForAction as actionGetSelectionForAction, hasValidSelection as actionHasValidSelection, updateCurrentSelection } from './actionSelection';
+import { getSelectionForAction as actionGetSelectionForAction, hasValidSelection as actionHasValidSelection, updateCurrentSelection, currentSelectionIds } from './actionSelection';
 import {
   findClonePlacement,
   getPageBounds,
@@ -4585,6 +4585,24 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
       targets = getSelectionForAction() as any[];
     }
 
+    if (!targets || targets.length === 0) {
+      // Try a fallback: if the action-only selection (currentSelectionIds) has ids,
+      // resolve shape objects via currentPage.getShapeById and use them as targets.
+      try {
+        const currentPage = penpot.currentPage as any;
+        if ((currentSelectionIds || []).length > 0 && currentPage && typeof currentPage.getShapeById === 'function') {
+          const resolved = currentSelectionIds.map((id: string) => {
+            try { return currentPage.getShapeById(id); } catch { return null; }
+          }).filter(Boolean);
+          if (resolved.length > 0) {
+            targets = resolved as any[];
+          }
+        }
+      } catch (e) {
+        // swallow
+      }
+    }
+    
     if (!targets || targets.length === 0) {
   return {
         ...pluginResponse,

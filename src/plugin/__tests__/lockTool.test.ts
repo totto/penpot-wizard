@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { toggleSelectionLockTool, undoLastAction, redoLastAction } from '../mainHandlers';
+import { updateCurrentSelection } from '../actionSelection';
 
 describe('toggleSelectionLockTool and undo/redo', () => {
   const originalPenpot = (globalThis as any).penpot;
@@ -80,5 +81,20 @@ describe('toggleSelectionLockTool and undo/redo', () => {
     expect(resp.success).toBeTruthy();
     expect(a.locked).toBeFalsy();
     expect(b.locked).toBeTruthy();
+  });
+
+  it('falls back to currentSelectionIds when penpot.selection is empty', async () => {
+    const s = { id: 's-fallback', name: 'Fallback', locked: false };
+    (globalThis as any).penpot = {
+      selection: [],
+      currentPage: { getShapeById: (id: string) => (id === s.id ? s : null) },
+    };
+
+    // populate action-level selection ids
+    updateCurrentSelection([s.id]);
+
+    const resp = await toggleSelectionLockTool({ lock: true });
+    expect(resp.success).toBeTruthy();
+    expect(s.locked).toBeTruthy();
   });
 });
