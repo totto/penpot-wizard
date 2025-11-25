@@ -72,6 +72,7 @@ export enum ClientQueryType {
   FLIP_SELECTION_HORIZONTAL = 'FLIP_SELECTION_HORIZONTAL',
   FLIP_SELECTION_VERTICAL = 'FLIP_SELECTION_VERTICAL',
   REMOVE_SELECTION_FROM_PARENT = 'REMOVE_SELECTION_FROM_PARENT',
+  DETACH_FROM_COMPONENT = 'DETACH_FROM_COMPONENT',
 }
 
 export enum PenpotShapeType {
@@ -261,6 +262,10 @@ export interface FlipSelectionVerticalQueryPayload {
 
 export interface RemoveSelectionFromParentQueryPayload {
   // Optional shape IDs to remove. If omitted, use current selection.
+  shapeIds?: string[];
+}
+
+export interface DetachFromComponentQueryPayload {
   shapeIds?: string[];
 }
 
@@ -661,6 +666,11 @@ export interface FlipSelectionVerticalResponsePayload {
 
 export interface RemoveSelectionFromParentResponsePayload {
   removedShapes: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface DetachFromComponentResponsePayload {
+  detachedShapeIds: string[];
   undoInfo?: UndoInfo;
 }
 

@@ -84,6 +84,8 @@ import {
   FlipSelectionVerticalResponsePayload,
   RemoveSelectionFromParentQueryPayload,
   RemoveSelectionFromParentResponsePayload,
+  DetachFromComponentQueryPayload,
+  DetachFromComponentResponsePayload,
 } from "../types/types";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
@@ -7185,6 +7187,7 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
 
             break;
           }
+
           case ClientQueryType.TOGGLE_SELECTION_VISIBILITY: {
             const visData = lastAction.undoData as { shapeIds: string[]; previousVisibleStates: boolean[] };
 
@@ -7842,6 +7845,17 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
         };
       }
 
+      case ClientQueryType.DETACH_FROM_COMPONENT: {
+         // Redo: Detach again.
+         // Limitation: The restored component instance has a NEW ID.
+         return {
+          ...pluginResponse,
+          type: ClientQueryType.REDO_LAST_ACTION,
+          success: false,
+          message: `Cannot automatically redo "Detach" because the restored component instance has a new ID. Please select it and detach again manually.`,
+        };
+      }
+
       default:
         return {
           ...pluginResponse,
@@ -7964,12 +7978,11 @@ export async function removeSelectionFromParentTool(payload: RemoveSelectionFrom
 
     addToUndoStack(undoInfo);
 
-    const shapeNames = removedShapes.map(s => s.name || s.id).join(', ');
     return {
       ...pluginResponse,
       type: ClientQueryType.REMOVE_SELECTION_FROM_PARENT,
       success: true,
-      message: `Removed ${removedShapes.length} shape${removedShapes.length > 1 ? 's' : ''} from parent: ${shapeNames}.`,
+      message: `Removed ${removedShapes.length} shape${removedShapes.length > 1 ? 's' : ''}.`,
       payload: {
         removedShapes: removedShapes.map(s => ({ id: s.id, name: s.name })),
         undoInfo,
@@ -7985,3 +7998,114 @@ export async function removeSelectionFromParentTool(payload: RemoveSelectionFrom
     };
   }
 }
+
+export async function detachFromComponentTool(payload: DetachFromComponentQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { shapeIds } = payload ?? {};
+
+    // Determine targets
+    let targets: any[] = [];
+    if (shapeIds && Array.isArray(shapeIds) && shapeIds.length > 0) {
+      const currentPage = penpot.currentPage as any;
+      if (!currentPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.DETACH_FROM_COMPONENT,
+          success: false,
+          message: 'No current page found',
+        };
+      }
+      targets = shapeIds.map(id => currentPage.getShapeById(id)).filter(s => !!s);
+    } else {
+      targets = getSelectionForAction();
+    }
+
+    if (!targets || targets.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.DETACH_FROM_COMPONENT,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    const detachedShapeIds: string[] = [];
+    const undoDataItems: any[] = [];
+    const failedShapes: string[] = [];
+
+    for (const shape of targets) {
+      try {
+        // Check if it is a component instance
+        // We can check if `shape.component()` returns something, or `shape.detach` exists.
+        if (typeof shape.detach !== 'function') {
+           failedShapes.push(shape.name || shape.id);
+           continue;
+        }
+
+        const component = shape.component ? shape.component() : null;
+        if (!component) {
+           // Not an instance?
+           failedShapes.push(shape.name || shape.id);
+           continue;
+        }
+
+        // Capture metadata for Undo
+        undoDataItems.push({
+          detachedShapeId: shape.id, // ID usually stays same after detach? Let's assume yes for now.
+          componentId: component.id,
+          name: shape.name,
+          x: shape.x,
+          y: shape.y,
+          width: shape.width,
+          height: shape.height,
+          rotation: shape.rotation,
+        });
+
+        // Detach
+        shape.detach();
+        detachedShapeIds.push(shape.id);
+
+      } catch (error) {
+        console.warn(`Failed to detach shape ${shape.id}:`, error);
+        failedShapes.push(shape.name || shape.id);
+      }
+    }
+
+    // Create Undo Info
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.DETACH_FROM_COMPONENT,
+      actionId: `detach_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Detached ${detachedShapeIds.length} shape${detachedShapeIds.length > 1 ? 's' : ''} from component`,
+      undoData: {
+        items: undoDataItems,
+      },
+      timestamp: Date.now(),
+    };
+
+    addToUndoStack(undoInfo);
+
+    let message = `Detached ${detachedShapeIds.length} shape${detachedShapeIds.length > 1 ? 's' : ''}.`;
+    if (failedShapes.length > 0) {
+      message += `\n\nSkipped/Failed ${failedShapes.length} shape${failedShapes.length > 1 ? 's' : ''} (not component instances): ${failedShapes.join(', ')}.`;
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.DETACH_FROM_COMPONENT,
+      success: true,
+      message,
+      payload: {
+        detachedShapeIds,
+        undoInfo,
+      } as DetachFromComponentResponsePayload,
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.DETACH_FROM_COMPONENT,
+      success: false,
+      message: `Error detaching selection: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+};

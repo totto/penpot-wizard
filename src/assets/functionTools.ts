@@ -16,7 +16,8 @@ import {
   SetSelectionOpacityQueryPayload,
   SetSelectionBorderRadiusQueryPayload,
   RemoveSelectionFromParentQueryPayload,
-  RemoveSelectionFromParentResponsePayload,
+  // RemoveSelectionFromParentResponsePayload, // Unused import
+  DetachFromComponentQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -817,6 +818,27 @@ export const functionTools: FunctionTool[] = [
 
       const response = await sendMessageToPlugin(ClientQueryType.REMOVE_SELECTION_FROM_PARENT, args as unknown as RemoveSelectionFromParentQueryPayload);
       
+      return response;
+    },
+  },
+  {
+    id: 'detach-from-component',
+    name: 'Detach From Component',
+    description: `
+      Detaches the selected component instances, converting them into basic groups/shapes.
+      This uses the 'shape.detach()' API.
+      
+      WARNING: Undoing this action has limitations:
+      1. The restored component instance will have a NEW ID.
+      2. Any overrides applied to the instance might be lost or reset.
+      
+      CRITICAL: You MUST explicitly warn the user about these limitations and obtain their confirmation BEFORE calling this tool.
+    `,
+    inputSchema: z.object({
+      shapeIds: z.array(z.string()).optional(),
+    }),
+    function: async (args: DetachFromComponentQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.DETACH_FROM_COMPONENT, args);
       return response;
     },
   },

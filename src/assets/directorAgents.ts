@@ -144,6 +144,7 @@ When using the resize-selection tool:
       'flip-selection-horizontal',
       'flip-selection-vertical',
       'remove-selection-from-parent',
+    'detach-from-component',
 
 
       'dump-selection', //Dev tool for debugging

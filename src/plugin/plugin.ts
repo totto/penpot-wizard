@@ -47,6 +47,8 @@ import {
   FlipSelectionVerticalQueryPayload,
   FlipSelectionHorizontalQueryPayload,
   RemoveSelectionFromParentQueryPayload,
+  // RemoveSelectionFromParentResponsePayload, // Unused import
+  DetachFromComponentQueryPayload,
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
@@ -103,6 +105,7 @@ import {
   flipSelectionVerticalTool,
   flipSelectionHorizontalTool,
   removeSelectionFromParentTool,
+  detachFromComponentTool,
   
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
@@ -392,6 +395,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.REMOVE_SELECTION_FROM_PARENT:
       responseMessage = await removeSelectionFromParentTool(payload as unknown as RemoveSelectionFromParentQueryPayload);
+      break;
+
+    case ClientQueryType.DETACH_FROM_COMPONENT:
+      responseMessage = await detachFromComponentTool(payload as unknown as DetachFromComponentQueryPayload);
       break;
 
     default:
