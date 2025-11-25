@@ -49,6 +49,7 @@ import {
   DeleteSelectionQueryPayload,
   // RemoveSelectionFromParentResponsePayload, // Unused import
   DetachFromComponentQueryPayload,
+  SetConstraintsHorizontalQueryPayload,
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
@@ -106,6 +107,7 @@ import {
   flipSelectionHorizontalTool,
   deleteSelectionTool,
   detachFromComponentTool,
+  setConstraintsHorizontalTool,
   
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
@@ -399,6 +401,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.DETACH_FROM_COMPONENT:
       responseMessage = await detachFromComponentTool(payload as unknown as DetachFromComponentQueryPayload);
+      break;
+
+    case ClientQueryType.SET_CONSTRAINTS_HORIZONTAL:
+      responseMessage = await setConstraintsHorizontalTool(payload as unknown as SetConstraintsHorizontalQueryPayload);
       break;
 
     default:
