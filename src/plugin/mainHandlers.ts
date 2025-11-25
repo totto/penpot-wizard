@@ -5690,7 +5690,8 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
 
             // Restore the previous shadow
             if (previousShadow) {
-              shape.shadows = [{
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (shape as any).shadows = [{
                 ...previousShadow,
                 style: previousShadow.style as 'drop-shadow' | 'inner-shadow' | undefined,
               }];
