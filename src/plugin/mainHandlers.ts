@@ -82,8 +82,8 @@ import {
   FlipSelectionHorizontalResponsePayload,
   FlipSelectionVerticalQueryPayload,
   FlipSelectionVerticalResponsePayload,
-  RemoveSelectionFromParentQueryPayload,
-  RemoveSelectionFromParentResponsePayload,
+  DeleteSelectionQueryPayload,
+  DeleteSelectionResponsePayload,
   DetachFromComponentQueryPayload,
   DetachFromComponentResponsePayload,
 } from "../types/types";
@@ -7150,7 +7150,7 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             break;
           }
 
-          case ClientQueryType.REMOVE_SELECTION_FROM_PARENT: {
+          case ClientQueryType.DELETE_SELECTION: {
             const removeData = lastAction.undoData as { 
               items: Array<{ originalId: string; name: string; x: number; y: number; svgString: string }> 
             };
@@ -7821,7 +7821,7 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
         break;
       }
 
-      case ClientQueryType.REMOVE_SELECTION_FROM_PARENT: {
+      case ClientQueryType.DELETE_SELECTION: {
         // Redo: Just remove them again
         // Note: The shapes we restored have NEW IDs, so we can't use the original IDs from undoData.
         // However, since we just restored them, they should be in the selection if we selected them.
@@ -7889,7 +7889,7 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
   }
 }
 
-export async function removeSelectionFromParentTool(payload: RemoveSelectionFromParentQueryPayload): Promise<PluginResponseMessage> {
+export async function deleteSelectionTool(payload: DeleteSelectionQueryPayload): Promise<PluginResponseMessage> {
   try {
     const { shapeIds } = payload ?? {};
 
@@ -7900,7 +7900,7 @@ export async function removeSelectionFromParentTool(payload: RemoveSelectionFrom
       if (!currentPage) {
         return {
           ...pluginResponse,
-          type: ClientQueryType.REMOVE_SELECTION_FROM_PARENT,
+          type: ClientQueryType.DELETE_SELECTION,
           success: false,
           message: 'No current page found',
         };
@@ -7913,7 +7913,7 @@ export async function removeSelectionFromParentTool(payload: RemoveSelectionFrom
     if (!targets || targets.length === 0) {
       return {
         ...pluginResponse,
-        type: ClientQueryType.REMOVE_SELECTION_FROM_PARENT,
+        type: ClientQueryType.DELETE_SELECTION,
         success: false,
         message: 'NO_SELECTION',
       };
@@ -7967,9 +7967,9 @@ export async function removeSelectionFromParentTool(payload: RemoveSelectionFrom
 
     // Create Undo Info
     const undoInfo: UndoInfo = {
-      actionType: ClientQueryType.REMOVE_SELECTION_FROM_PARENT,
-      actionId: `remove_parent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      description: `Removed ${removedShapes.length} shape${removedShapes.length > 1 ? 's' : ''} from parent`,
+      actionType: ClientQueryType.DELETE_SELECTION,
+      actionId: `delete_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Deleted ${removedShapes.length} shape${removedShapes.length > 1 ? 's' : ''}`,
       undoData: {
         items: undoDataItems,
       },
@@ -7980,21 +7980,21 @@ export async function removeSelectionFromParentTool(payload: RemoveSelectionFrom
 
     return {
       ...pluginResponse,
-      type: ClientQueryType.REMOVE_SELECTION_FROM_PARENT,
+      type: ClientQueryType.DELETE_SELECTION,
       success: true,
-      message: `Removed ${removedShapes.length} shape${removedShapes.length > 1 ? 's' : ''}.`,
+      message: `Deleted ${removedShapes.length} shape${removedShapes.length > 1 ? 's' : ''}.`,
       payload: {
-        removedShapes: removedShapes.map(s => ({ id: s.id, name: s.name })),
+        deletedShapes: removedShapes.map(s => ({ id: s.id, name: s.name })),
         undoInfo,
-      } as RemoveSelectionFromParentResponsePayload,
+      } as DeleteSelectionResponsePayload,
     };
 
   } catch (error) {
     return {
       ...pluginResponse,
-      type: ClientQueryType.REMOVE_SELECTION_FROM_PARENT,
+      type: ClientQueryType.DELETE_SELECTION,
       success: false,
-      message: `Error removing selection: ${error instanceof Error ? error.message : String(error)}`,
+      message: `Error deleting selection: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
