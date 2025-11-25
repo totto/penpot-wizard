@@ -86,6 +86,8 @@ import {
   DeleteSelectionResponsePayload,
   DetachFromComponentQueryPayload,
   DetachFromComponentResponsePayload,
+  SetConstraintsHorizontalQueryPayload,
+  SetConstraintsHorizontalResponsePayload,
 } from "../types/types";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
@@ -6902,6 +6904,33 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.SET_CONSTRAINTS_HORIZONTAL: {
+        const constraintData = lastAction.undoData as {
+          shapeIds: string[];
+          previousConstraints: string[];
+        };
+
+        for (let i = 0; i < constraintData.shapeIds.length; i++) {
+          const shapeId = constraintData.shapeIds[i];
+          const previousConstraint = constraintData.previousConstraints[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Restore previous constraint
+            shape.constraintsHorizontal = previousConstraint as any;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore horizontal constraint for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
       default:
         return {
           ...pluginResponse,
@@ -7894,6 +7923,31 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
         };
       }
 
+      case ClientQueryType.SET_CONSTRAINTS_HORIZONTAL: {
+        const constraintData = lastAction.undoData as {
+          shapeIds: string[];
+          newConstraint: string;
+        };
+
+        for (const shapeId of constraintData.shapeIds) {
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Reapply the constraint
+            shape.constraintsHorizontal = constraintData.newConstraint as any;
+            undoStack.push(lastAction);
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo horizontal constraint for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+
       default:
         return {
           ...pluginResponse,
@@ -8147,3 +8201,94 @@ export async function detachFromComponentTool(payload: DetachFromComponentQueryP
     };
   }
 };
+
+export async function setConstraintsHorizontalTool(payload: SetConstraintsHorizontalQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { shapeIds, constraint } = payload ?? {};
+
+    if (!constraint) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_CONSTRAINTS_HORIZONTAL,
+        success: false,
+        message: 'No constraint value provided',
+      };
+    }
+
+    // Determine targets
+    let targets: any[] = [];
+    if (shapeIds && Array.isArray(shapeIds) && shapeIds.length > 0) {
+      const currentPage = penpot.currentPage as any;
+      if (!currentPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.SET_CONSTRAINTS_HORIZONTAL,
+          success: false,
+          message: 'No current page found',
+        };
+      }
+      targets = shapeIds.map(id => currentPage.getShapeById(id)).filter(s => !!s);
+    } else {
+      targets = getSelectionForAction();
+    }
+
+    if (!targets || targets.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_CONSTRAINTS_HORIZONTAL,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    const updatedShapeIds: string[] = [];
+    const previousConstraints: string[] = [];
+
+    for (const shape of targets) {
+      try {
+        // Store previous value for undo
+        previousConstraints.push(shape.constraintsHorizontal || 'left');
+        
+        // Set new constraint
+        shape.constraintsHorizontal = constraint;
+        updatedShapeIds.push(shape.id);
+      } catch (error) {
+        console.warn(`Failed to set constraint for shape ${shape.id}:`, error);
+      }
+    }
+
+    // Create Undo Info
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.SET_CONSTRAINTS_HORIZONTAL,
+      actionId: `set_h_constraints_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Set horizontal constraints to "${constraint}" for ${updatedShapeIds.length} shape${updatedShapeIds.length > 1 ? 's' : ''}`,
+      undoData: {
+        shapeIds: updatedShapeIds,
+        previousConstraints,
+        newConstraint: constraint,
+      },
+      timestamp: Date.now(),
+    };
+
+    addToUndoStack(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_CONSTRAINTS_HORIZONTAL,
+      success: true,
+      message: `Set horizontal constraints to "${constraint}" for ${updatedShapeIds.length} shape${updatedShapeIds.length > 1 ? 's' : ''}.`,
+      payload: {
+        updatedShapeIds,
+        undoInfo,
+      } as SetConstraintsHorizontalResponsePayload,
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.SET_CONSTRAINTS_HORIZONTAL,
+      success: false,
+      message: `Error setting horizontal constraints: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
