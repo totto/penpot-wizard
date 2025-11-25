@@ -69,6 +69,8 @@ export enum ClientQueryType {
   TOGGLE_SELECTION_PROPORTION_LOCK = 'TOGGLE_SELECTION_PROPORTION_LOCK',
   TOGGLE_SELECTION_VISIBILITY = 'TOGGLE_SELECTION_VISIBILITY',
   CLONE_SELECTION = 'CLONE_SELECTION',
+  FLIP_SELECTION_HORIZONTAL = 'FLIP_SELECTION_HORIZONTAL',
+  FLIP_SELECTION_VERTICAL = 'FLIP_SELECTION_VERTICAL',
 }
 
 export enum PenpotShapeType {
@@ -119,7 +121,9 @@ export interface ClientMessage {
   | MoveQueryPayload 
   | CloneSelectionQueryPayload 
   | ToggleSelectionLockQueryPayload
-  | ToggleSelectionProportionLockQueryPayload;
+  | ToggleSelectionProportionLockQueryPayload
+  | FlipSelectionHorizontalQueryPayload
+  | FlipSelectionVerticalQueryPayload;
 
 }
 
@@ -244,6 +248,16 @@ export interface RedoLastActionQueryPayload {
   actionId?: string; // Optional: specify which action to redo, otherwise redo the last undone one
 }
 
+export interface FlipSelectionHorizontalQueryPayload {
+  // Optional shape IDs to flip. If omitted, use current selection.
+  shapeIds?: string[];
+}
+
+export interface FlipSelectionVerticalQueryPayload {
+  // Optional shape IDs to flip. If omitted, use current selection.
+  shapeIds?: string[];
+}
+
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
   | AddImageQueryPayload
@@ -277,7 +291,9 @@ export type ClientQueryPayload =
   | CloneSelectionQueryPayload
   | MoveQueryPayload
   | ToggleSelectionLockQueryPayload
-  | ToggleSelectionVisibilityQueryPayload;
+  | ToggleSelectionVisibilityQueryPayload
+  | FlipSelectionHorizontalQueryPayload
+  | FlipSelectionVerticalQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -622,6 +638,16 @@ export interface ToggleSelectionProportionLockResponsePayload {
   selectionSnapshot?: Array<{ id: string; name?: string | undefined; finalRatioLocked: boolean; remainingRatioFlags: Record<string, unknown>; editorLocked?: boolean; editorBlocked?: boolean }>;
 }
 
+export interface FlipSelectionHorizontalResponsePayload {
+  flippedShapes: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface FlipSelectionVerticalResponsePayload {
+  flippedShapes: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
 export type GetSelectionInfoQueryPayload = Record<string, never>;
 
 export interface SelectionInfoItem {
@@ -880,7 +906,9 @@ export type PluginResponsePayload =
   | ToggleSelectionLockResponsePayload
   | ToggleSelectionVisibilityResponsePayload
   | UngroupResponsePayload
-  | GroupResponsePayload;
+  | GroupResponsePayload
+  | FlipSelectionHorizontalResponsePayload
+  | FlipSelectionVerticalResponsePayload;
 
 // Response for ungrouping shapes
 export interface UngroupResponsePayload {
