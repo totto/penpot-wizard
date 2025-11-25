@@ -6864,6 +6864,44 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.DELETE_SELECTION: {
+        const removeData = lastAction.undoData as { 
+          items: Array<{ originalId: string; name: string; x: number; y: number; svgString: string }> 
+        };
+        
+        const restoredIds: string[] = [];
+
+        for (const item of removeData.items) {
+          try {
+            if (!item.svgString) {
+              console.warn(`Cannot restore shape ${item.originalId}: No SVG data`);
+              continue;
+            }
+
+            // Re-create from SVG
+            const createdShape = penpot.createShapeFromSvg(item.svgString);
+            if (createdShape) {
+              // Restore properties
+              createdShape.name = item.name;
+              createdShape.x = item.x;
+              createdShape.y = item.y;
+              
+              restoredIds.push(createdShape.id);
+              restoredShapes.push(createdShape.name || createdShape.id);
+            }
+          } catch (error) {
+            console.warn(`Failed to restore shape ${item.originalId} from SVG:`, error);
+          }
+        }
+        
+        // Select restored shapes
+        if (restoredIds.length > 0) {
+           setTimeout(() => updateCurrentSelection(restoredIds), 10);
+        }
+
+        break;
+      }
+
       default:
         return {
           ...pluginResponse,
