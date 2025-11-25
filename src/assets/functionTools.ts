@@ -15,7 +15,7 @@ import {
   ToggleSelectionVisibilityResponsePayload,
   SetSelectionOpacityQueryPayload,
   SetSelectionBorderRadiusQueryPayload,
-  RemoveSelectionFromParentQueryPayload,
+  DeleteSelectionQueryPayload,
   // RemoveSelectionFromParentResponsePayload, // Unused import
   DetachFromComponentQueryPayload,
 } from '@/types/types';
@@ -788,10 +788,10 @@ export const functionTools: FunctionTool[] = [
     },
   },
   {
-    id: "remove-selection-from-parent",
-    name: "removeSelectionFromParent",
+    id: 'delete-selection',
+    name: 'Delete Selection',
     description: `
-      Removes the currently selected shapes from their parent.
+      Deletes the currently selected shapes from the canvas.
       This uses the strict 'shape.remove()' API.
       
       WARNING: Undoing this action has limitations:
@@ -816,7 +816,7 @@ export const functionTools: FunctionTool[] = [
         args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) };
       }
 
-      const response = await sendMessageToPlugin(ClientQueryType.REMOVE_SELECTION_FROM_PARENT, args as unknown as RemoveSelectionFromParentQueryPayload);
+      const response = await sendMessageToPlugin(ClientQueryType.DELETE_SELECTION, args as unknown as DeleteSelectionQueryPayload);
       
       return response;
     },
