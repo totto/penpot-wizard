@@ -46,7 +46,7 @@ import {
   SetSelectionBoundsQueryPayload,
   FlipSelectionVerticalQueryPayload,
   FlipSelectionHorizontalQueryPayload,
-  RemoveSelectionFromParentQueryPayload,
+  DeleteSelectionQueryPayload,
   // RemoveSelectionFromParentResponsePayload, // Unused import
   DetachFromComponentQueryPayload,
 } from '../types/types';
@@ -104,7 +104,7 @@ import {
   setSelectionBoundsTool,
   flipSelectionVerticalTool,
   flipSelectionHorizontalTool,
-  removeSelectionFromParentTool,
+  deleteSelectionTool,
   detachFromComponentTool,
   
 } from './mainHandlers';
@@ -393,8 +393,8 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       responseMessage = await setSelectionBlendModeTool(payload as unknown as SetSelectionBlendModeQueryPayload);
       break;
 
-    case ClientQueryType.REMOVE_SELECTION_FROM_PARENT:
-      responseMessage = await removeSelectionFromParentTool(payload as unknown as RemoveSelectionFromParentQueryPayload);
+    case ClientQueryType.DELETE_SELECTION:
+      responseMessage = await deleteSelectionTool(payload as unknown as DeleteSelectionQueryPayload);
       break;
 
     case ClientQueryType.DETACH_FROM_COMPONENT:
