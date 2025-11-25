@@ -143,8 +143,8 @@ When using the resize-selection tool:
       'toggle-selection-proportion-lock',
       'flip-selection-horizontal',
       'flip-selection-vertical',
-      'remove-selection-from-parent',
-    'detach-from-component',
+      'delete-selection',
+      'detach-from-component',
 
 
       'dump-selection', //Dev tool for debugging
