@@ -135,6 +135,7 @@ When using the resize-selection tool:
       'move-selection',
       'toggle-selection-lock',
       'toggle-selection-visibility',
+      'flip-selection-horizontal',
       'clone-selection',
       'set-selection-opacity',
       'set-selection-blend-mode',

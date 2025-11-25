@@ -240,6 +240,33 @@ export const functionTools: FunctionTool[] = [
         },
     },
     {
+      id: 'flip-selection-horizontal',
+      name: 'flipSelectionHorizontal',
+      description: `
+        Flip the currently selected shapes horizontally (mirror across vertical axis).
+        This tool works on all selectable objects including shapes, boards, images, paths, and groups.
+        The flip operation toggles the flipX property of each shape.
+      `,
+      inputSchema: z.object({
+        shapeIds: z.array(z.string()).optional(),
+      }),
+      function: async (args?: { shapeIds?: string[] }) => {
+        if (!args) {
+          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        }
+
+        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+        const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+
+        if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
+          args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) };
+        }
+
+        const response = await sendMessageToPlugin(ClientQueryType.FLIP_SELECTION_HORIZONTAL, args);
+        return response;
+      },
+    },
+    {
       id: 'flip-selection-vertical',
       name: 'flipSelectionVertical',
       description: `

@@ -78,6 +78,8 @@ import {
   SetSelectionBoundsPromptResponsePayload,
   SetSelectionBoundsQueryPayload,
   SelectionConfirmationPromptPayload,
+  FlipSelectionHorizontalQueryPayload,
+  FlipSelectionHorizontalResponsePayload,
   FlipSelectionVerticalQueryPayload,
   FlipSelectionVerticalResponsePayload,
 } from "../types/types";
@@ -5233,6 +5235,127 @@ export async function toggleSelectionVisibilityTool(payload: ToggleSelectionVisi
   }
 }
 
+export async function flipSelectionHorizontalTool(payload: FlipSelectionHorizontalQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { shapeIds } = payload ?? {};
+
+    // Determine which shapes to flip
+    let targets: any[] = [];
+    if (shapeIds && Array.isArray(shapeIds) && shapeIds.length > 0) {
+      // Use currentPage to fetch shapes by id
+      const currentPage = penpot.currentPage as any;
+      if (!currentPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.FLIP_SELECTION_HORIZONTAL,
+          success: false,
+          message: 'No current page available to modify shapes',
+        };
+      }
+
+      for (const id of shapeIds) {
+        const s = currentPage.getShapeById(id);
+        if (s) targets.push(s);
+      }
+    } else {
+      // Use the action-only selection getter for safe mutations
+      targets = getSelectionForAction() as any[];
+    }
+
+    if (!targets || targets.length === 0) {
+      // Try fallback using currentSelectionIds
+      try {
+        const currentPage = penpot.currentPage as any;
+        if ((currentSelectionIds || []).length > 0 && currentPage && typeof currentPage.getShapeById === 'function') {
+          const resolved = currentSelectionIds.map((id: string) => {
+            try { return currentPage.getShapeById(id); } catch { return null; }
+          }).filter(Boolean);
+          if (resolved.length > 0) {
+            targets = resolved as any[];
+          }
+        }
+      } catch (e) {
+        // swallow
+      }
+    }
+
+    if (!targets || targets.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.FLIP_SELECTION_HORIZONTAL,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    const previousFlipStates: boolean[] = [];
+    const affectedIds: string[] = [];
+    const flippedShapes: Array<{ id: string; name?: string }> = [];
+
+    for (const shape of targets) {
+      try {
+        // Record previous flipX state
+        const prevFlipX = !!shape.flipX;
+        previousFlipStates.push(prevFlipX);
+
+        // Toggle flipX
+        shape.flipX = !prevFlipX;
+
+        flippedShapes.push({ id: shape.id, name: shape.name });
+        affectedIds.push(shape.id);
+
+        console.log(`Shape ${shape.id} (${shape.name || 'unnamed'}) flipX toggled: ${prevFlipX} -> ${shape.flipX}`);
+      } catch (err) {
+        console.warn(`Failed to flip shape ${shape.id}:`, err);
+      }
+    }
+
+    if (affectedIds.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.FLIP_SELECTION_HORIZONTAL,
+        success: false,
+        message: 'No shapes could be flipped',
+      };
+    }
+
+    // Create undo info
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.FLIP_SELECTION_HORIZONTAL,
+      actionId: `flip_horizontal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Flipped ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''} horizontally`,
+      undoData: {
+        shapeIds: affectedIds,
+        previousFlipStates,
+      },
+      timestamp: Date.now(),
+    };
+
+    addToUndoStack(undoInfo);
+
+    const respPayload: FlipSelectionHorizontalResponsePayload = {
+      flippedShapes,
+      undoInfo,
+    };
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.FLIP_SELECTION_HORIZONTAL,
+      success: true,
+      message: `Flipped ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''} horizontally`,
+      payload: respPayload,
+    };
+  } catch (err) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.FLIP_SELECTION_HORIZONTAL,
+      success: false,
+      message: `Error flipping selection horizontally: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
+
 export async function flipSelectionVerticalTool(payload: FlipSelectionVerticalQueryPayload): Promise<PluginResponseMessage> {
   try {
     const { shapeIds } = payload ?? {};
@@ -5963,7 +6086,30 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         }
         break;
       }
-      case ClientQueryType.FLIP_SELECTION_VERTICAL: {
+      case ClientQueryType.FLIP_SELECTION_HORIZONTAL: {
+        // Restore previous flipX states
+        const flipData = lastAction.undoData as { shapeIds: string[]; previousFlipStates: boolean[] };
+
+        for (let i = 0; i < flipData.shapeIds.length; i++) {
+          const shapeId = flipData.shapeIds[i];
+          const previousFlipX = flipData.previousFlipStates[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            (shape as any).flipX = !!previousFlipX;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to restore flipX for shape ${shapeId}:`, error);
+          }
+        }
+        break;
+      }
+            case ClientQueryType.FLIP_SELECTION_VERTICAL: {
         const flipData = lastAction.undoData as { shapeIds: string[]; previousFlipStates: boolean[] };
         for (let i = 0; i < flipData.shapeIds.length; i++) {
           const shapeId = flipData.shapeIds[i];
@@ -7024,7 +7170,32 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
 
             break;
           }
-          case ClientQueryType.FLIP_SELECTION_VERTICAL: {
+          case ClientQueryType.FLIP_SELECTION_HORIZONTAL: {
+            const flipData = lastAction.undoData as { shapeIds: string[]; previousFlipStates: boolean[] };
+
+            for (let i = 0; i < flipData.shapeIds.length; i++) {
+              const shapeId = flipData.shapeIds[i];
+              const previousFlipX = flipData.previousFlipStates[i];
+
+              try {
+                const currentPage = penpot.currentPage;
+                if (!currentPage) continue;
+
+                const shape = currentPage.getShapeById(shapeId);
+                if (!shape) continue;
+
+                (shape as any).flipX = !previousFlipX;
+                restoredShapes.push(shape.name || shape.id);
+              } catch (error) {
+                console.warn(`Failed to redo flipX change for shape ${shapeId}:`, error);
+              }
+            }
+
+            undoStack.push(lastAction);
+            break;
+          }
+
+                    case ClientQueryType.FLIP_SELECTION_VERTICAL: {
             const flipData = lastAction.undoData as { shapeIds: string[]; previousFlipStates: boolean[] };
             for (let i = 0; i < flipData.shapeIds.length; i++) {
               const shapeId = flipData.shapeIds[i];

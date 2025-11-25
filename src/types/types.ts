@@ -589,6 +589,11 @@ export interface ToggleSelectionProportionLockQueryPayload {
   shapeIds?: string[];
 }
 
+export interface FlipSelectionHorizontalQueryPayload {
+  // Optional shape IDs to flip. If omitted, use current selection.
+  shapeIds?: string[];
+}
+
 export interface RotateQueryPayload {
   /**
    * Rotation angle in degrees. Positive values rotate clockwise.
@@ -897,6 +902,20 @@ export type PluginResponsePayload =
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload
   | ResizeResponsePayload
+  | RotateResponsePayload
+  | GetSelectionInfoResponsePayload
+  | MoveResponsePayload
+  | CloneSelectionPromptResponsePayload
+  | SetSelectionBorderRadiusPromptResponsePayload
+  | CloneSelectionResponsePayload
+  | ToggleSelectionLockResponsePayload
+  | ToggleSelectionVisibilityResponsePayload
+  | UngroupResponsePayload
+  | GroupResponsePayload
+  | FlipSelectionHorizontalResponsePayload
+  | FlipSelectionVerticalResponsePayload;
+  | FlipSelectionHorizontalResponsePayload;
+
   | RotateResponsePayload
   | GetSelectionInfoResponsePayload
   | MoveResponsePayload
