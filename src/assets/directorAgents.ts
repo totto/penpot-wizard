@@ -135,14 +135,15 @@ When using the resize-selection tool:
       'move-selection',
       'toggle-selection-lock',
       'toggle-selection-visibility',
-      'flip-selection-horizontal',
       'clone-selection',
       'set-selection-opacity',
       'set-selection-blend-mode',
       'set-selection-border-radius',
       'set-selection-bounds', 
       'toggle-selection-proportion-lock',
+      'flip-selection-horizontal',
       'flip-selection-vertical',
+      'remove-selection-from-parent',
 
 
       'dump-selection', //Dev tool for debugging

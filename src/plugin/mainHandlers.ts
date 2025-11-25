@@ -82,6 +82,8 @@ import {
   FlipSelectionHorizontalResponsePayload,
   FlipSelectionVerticalQueryPayload,
   FlipSelectionVerticalResponsePayload,
+  RemoveSelectionFromParentQueryPayload,
+  RemoveSelectionFromParentResponsePayload,
 } from "../types/types";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
@@ -7145,6 +7147,44 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             undoStack.push(lastAction);
             break;
           }
+
+          case ClientQueryType.REMOVE_SELECTION_FROM_PARENT: {
+            const removeData = lastAction.undoData as { 
+              items: Array<{ originalId: string; name: string; x: number; y: number; svgString: string }> 
+            };
+            
+            const restoredIds: string[] = [];
+
+            for (const item of removeData.items) {
+              try {
+                if (!item.svgString) {
+                  console.warn(`Cannot restore shape ${item.originalId}: No SVG data`);
+                  continue;
+                }
+
+                // Re-create from SVG
+                const createdShape = penpot.createShapeFromSvg(item.svgString);
+                if (createdShape) {
+                  // Restore properties
+                  createdShape.name = item.name;
+                  createdShape.x = item.x;
+                  createdShape.y = item.y;
+                  
+                  restoredIds.push(createdShape.id);
+                  restoredShapes.push(createdShape.name || createdShape.id);
+                }
+              } catch (error) {
+                console.warn(`Failed to restore shape ${item.originalId} from SVG:`, error);
+              }
+            }
+            
+            // Select restored shapes
+            if (restoredIds.length > 0) {
+               setTimeout(() => updateCurrentSelection(restoredIds), 10);
+            }
+
+            break;
+          }
           case ClientQueryType.TOGGLE_SELECTION_VISIBILITY: {
             const visData = lastAction.undoData as { shapeIds: string[]; previousVisibleStates: boolean[] };
 
@@ -7778,6 +7818,30 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.REMOVE_SELECTION_FROM_PARENT: {
+        // Redo: Just remove them again
+        // Note: The shapes we restored have NEW IDs, so we can't use the original IDs from undoData.
+        // However, since we just restored them, they should be in the selection if we selected them.
+        // But `redoLastAction` logic usually relies on `undoData` to know what to act on.
+        // Since we can't easily track the *new* IDs of the restored shapes across undo/redo cycles without complex mapping,
+        // we might have to rely on the user selecting them again, OR we try to find them by some other means.
+        //
+        // LIMITATION: For now, Redo of "Remove from Parent" might fail if we can't find the shapes.
+        // But wait! When we UNDO, we push the action back to `redoStack`. 
+        // If we want to REDO, we need to know what to remove.
+        // The `undoData` has `originalId`, but that shape is gone and replaced by a new one.
+        //
+        // Strategy: We can't easily Redo this perfectly without persistent IDs. 
+        // We will warn the user.
+        
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.REDO_LAST_ACTION,
+          success: false,
+          message: `Cannot automatically redo "Remove from Parent" because the restored shapes have new IDs (due to Penpot limitations). Please select the restored shapes and remove them again manually.`,
+        };
+      }
+
       default:
         return {
           ...pluginResponse,
@@ -7806,7 +7870,118 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
       ...pluginResponse,
       type: ClientQueryType.REDO_LAST_ACTION,
       success: false,
-      message: `Error redoing action: ${error instanceof Error ? error.message : String(error)}`,
+      message: `Error redoing last action: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function removeSelectionFromParentTool(payload: RemoveSelectionFromParentQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { shapeIds } = payload ?? {};
+
+    // Determine targets
+    let targets: any[] = [];
+    if (shapeIds && Array.isArray(shapeIds) && shapeIds.length > 0) {
+      const currentPage = penpot.currentPage as any;
+      if (!currentPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.REMOVE_SELECTION_FROM_PARENT,
+          success: false,
+          message: 'No current page found',
+        };
+      }
+      targets = shapeIds.map(id => currentPage.getShapeById(id)).filter(s => !!s);
+    } else {
+      targets = getSelectionForAction();
+    }
+
+    if (!targets || targets.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.REMOVE_SELECTION_FROM_PARENT,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    const removedShapes: any[] = [];
+    const undoDataItems: any[] = [];
+
+    // Process each shape: Serialize to SVG -> Remove
+    for (const shape of targets) {
+      try {
+        // 1. Serialize to SVG for Undo
+        let svgString = '';
+        if (typeof shape.export === 'function') {
+          try {
+            const uint8Array = await shape.export({ type: 'svg' });
+            svgString = String.fromCharCode(...Array.from(uint8Array) as number[]);
+          } catch (exportErr) {
+            console.warn(`Failed to export shape ${shape.id} for undo:`, exportErr);
+          }
+        }
+
+        // 2. Capture metadata
+        undoDataItems.push({
+          originalId: shape.id,
+          name: shape.name,
+          x: shape.x,
+          y: shape.y,
+          svgString: svgString,
+        });
+
+        // 3. Remove from parent (API Requirement)
+        shape.remove();
+        removedShapes.push(shape);
+
+      } catch (error) {
+        console.warn(`Failed to remove shape ${shape.id}:`, error);
+      }
+    }
+
+    // Deselect removed shapes
+    try {
+      const hostPenpot = (globalThis as unknown as { penpot?: { selection?: Shape[] } }).penpot;
+      if (hostPenpot) {
+        hostPenpot.selection = [];
+      }
+      updateCurrentSelection([]);
+    } catch (e) {
+      console.warn('Failed to clear selection after removal:', e);
+    }
+
+    // Create Undo Info
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.REMOVE_SELECTION_FROM_PARENT,
+      actionId: `remove_parent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Removed ${removedShapes.length} shape${removedShapes.length > 1 ? 's' : ''} from parent`,
+      undoData: {
+        items: undoDataItems,
+      },
+      timestamp: Date.now(),
+    };
+
+    addToUndoStack(undoInfo);
+
+    const shapeNames = removedShapes.map(s => s.name || s.id).join(', ');
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.REMOVE_SELECTION_FROM_PARENT,
+      success: true,
+      message: `Removed ${removedShapes.length} shape${removedShapes.length > 1 ? 's' : ''} from parent: ${shapeNames}.`,
+      payload: {
+        removedShapes: removedShapes.map(s => ({ id: s.id, name: s.name })),
+        undoInfo,
+      } as RemoveSelectionFromParentResponsePayload,
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.REMOVE_SELECTION_FROM_PARENT,
+      success: false,
+      message: `Error removing selection: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

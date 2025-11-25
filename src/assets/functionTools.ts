@@ -15,6 +15,8 @@ import {
   ToggleSelectionVisibilityResponsePayload,
   SetSelectionOpacityQueryPayload,
   SetSelectionBorderRadiusQueryPayload,
+  RemoveSelectionFromParentQueryPayload,
+  RemoveSelectionFromParentResponsePayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -781,6 +783,40 @@ export const functionTools: FunctionTool[] = [
     inputSchema: z.object({}),
     function: async () => {
       const response = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_DUMP, undefined);
+      return response;
+    },
+  },
+  {
+    id: "remove-selection-from-parent",
+    name: "removeSelectionFromParent",
+    description: `
+      Removes the currently selected shapes from their parent.
+      This uses the strict 'shape.remove()' API.
+      
+      WARNING: Undoing this action has limitations:
+      1. Restored shapes will have NEW IDs (original IDs are lost).
+      2. Some complex properties or nested structures might not be fully restored.
+      
+      CRITICAL: You MUST explicitly warn the user about these limitations and obtain their confirmation BEFORE calling this tool.
+      Do not assume consent even if they asked to "delete". Explain the risk first.
+    `,
+    inputSchema: z.object({
+      shapeIds: z.array(z.string()).optional(),
+    }),
+    function: async (args?: { shapeIds?: string[] }) => {
+      if (!args) {
+        return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      }
+
+      const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+
+      if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
+        args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) };
+      }
+
+      const response = await sendMessageToPlugin(ClientQueryType.REMOVE_SELECTION_FROM_PARENT, args as unknown as RemoveSelectionFromParentQueryPayload);
+      
       return response;
     },
   },

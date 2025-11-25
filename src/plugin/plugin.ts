@@ -46,6 +46,7 @@ import {
   SetSelectionBoundsQueryPayload,
   FlipSelectionVerticalQueryPayload,
   FlipSelectionHorizontalQueryPayload,
+  RemoveSelectionFromParentQueryPayload,
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
@@ -101,6 +102,7 @@ import {
   setSelectionBoundsTool,
   flipSelectionVerticalTool,
   flipSelectionHorizontalTool,
+  removeSelectionFromParentTool,
   
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
@@ -387,6 +389,9 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
     case ClientQueryType.SET_SELECTION_BLEND_MODE:
       responseMessage = await setSelectionBlendModeTool(payload as unknown as SetSelectionBlendModeQueryPayload);
       break;
+
+    case ClientQueryType.REMOVE_SELECTION_FROM_PARENT:
+      responseMessage = await removeSelectionFromParentTool(payload as unknown as RemoveSelectionFromParentQueryPayload);
       break;
 
     default:
