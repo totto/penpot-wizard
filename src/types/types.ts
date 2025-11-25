@@ -74,6 +74,7 @@ export enum ClientQueryType {
   DELETE_SELECTION = 'DELETE_SELECTION',
   DETACH_FROM_COMPONENT = 'DETACH_FROM_COMPONENT',
   SET_CONSTRAINTS_HORIZONTAL = 'SET_CONSTRAINTS_HORIZONTAL',
+  SET_CONSTRAINTS_VERTICAL = 'SET_CONSTRAINTS_VERTICAL',
 }
 
 export enum PenpotShapeType {
@@ -275,6 +276,11 @@ export interface SetConstraintsHorizontalQueryPayload {
   constraint: 'left' | 'right' | 'leftright' | 'center' | 'scale';
 }
 
+export interface SetConstraintsVerticalQueryPayload {
+  shapeIds?: string[];
+  constraint: 'top' | 'bottom' | 'topbottom' | 'center' | 'scale';
+}
+
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
   | AddImageQueryPayload
@@ -308,6 +314,7 @@ export type ClientQueryPayload =
   | DeleteSelectionQueryPayload
   | DetachFromComponentQueryPayload
   | SetConstraintsHorizontalQueryPayload
+  | SetConstraintsVerticalQueryPayload
   | CloneSelectionQueryPayload
   | MoveQueryPayload
   | ToggleSelectionLockQueryPayload
@@ -684,6 +691,11 @@ export interface DetachFromComponentResponsePayload {
 }
 
 export interface SetConstraintsHorizontalResponsePayload {
+  updatedShapeIds: string[];
+  undoInfo?: UndoInfo;
+}
+
+export interface SetConstraintsVerticalResponsePayload {
   updatedShapeIds: string[];
   undoInfo?: UndoInfo;
 }
