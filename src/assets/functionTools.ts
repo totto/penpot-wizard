@@ -19,6 +19,8 @@ import {
   // RemoveSelectionFromParentResponsePayload, // Unused import
   DetachFromComponentQueryPayload,
   SetConstraintsHorizontalQueryPayload,
+  SetConstraintsVerticalQueryPayload,
+  SetConstraintsVerticalResponsePayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -864,6 +866,30 @@ export const functionTools: FunctionTool[] = [
     }),
     function: async (args: SetConstraintsHorizontalQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.SET_CONSTRAINTS_HORIZONTAL, args);
+      return response;
+    },
+  },
+  {
+    id: 'set-constraints-vertical',
+    name: 'Set Constraints Vertical',
+    description: `
+      Sets the vertical constraint for selected shapes.
+      
+      Constraints control how a shape behaves when its parent container is resized.
+      
+      Options:
+      - 'top': Pin to top edge
+      - 'bottom': Pin to bottom edge
+      - 'topbottom': Stretch between top and bottom
+      - 'center': Stay centered vertically
+      - 'scale': Scale with parent height
+    `,
+    inputSchema: z.object({
+      shapeIds: z.array(z.string()).optional(),
+      constraint: z.enum(['top', 'bottom', 'topbottom', 'center', 'scale']),
+    }),
+    function: async (args: SetConstraintsVerticalQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.SET_CONSTRAINTS_VERTICAL, args);
       return response;
     },
   },

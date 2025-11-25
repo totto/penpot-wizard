@@ -144,7 +144,7 @@ When using the resize-selection tool:
       'flip-selection-horizontal',
       'flip-selection-vertical',
       'delete-selection',
-      'detach-from-component',
+      'set-constraints-vertical',
       'set-constraints-horizontal',
 
 
