@@ -18,6 +18,7 @@ import {
   DeleteSelectionQueryPayload,
   // RemoveSelectionFromParentResponsePayload, // Unused import
   DetachFromComponentQueryPayload,
+  SetConstraintsHorizontalQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -839,6 +840,30 @@ export const functionTools: FunctionTool[] = [
     }),
     function: async (args: DetachFromComponentQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.DETACH_FROM_COMPONENT, args);
+      return response;
+    },
+  },
+  {
+    id: 'set-constraints-horizontal',
+    name: 'Set Constraints Horizontal',
+    description: `
+      Sets the horizontal constraint for selected shapes.
+      
+      Constraints control how a shape behaves when its parent container is resized.
+      
+      Options:
+      - 'left': Pin to left edge
+      - 'right': Pin to right edge
+      - 'leftright': Stretch between left and right
+      - 'center': Stay centered horizontally
+      - 'scale': Scale with parent width
+    `,
+    inputSchema: z.object({
+      shapeIds: z.array(z.string()).optional(),
+      constraint: z.enum(['left', 'right', 'leftright', 'center', 'scale']),
+    }),
+    function: async (args: SetConstraintsHorizontalQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.SET_CONSTRAINTS_HORIZONTAL, args);
       return response;
     },
   },
