@@ -914,20 +914,6 @@ export type PluginResponsePayload =
   | GroupResponsePayload
   | FlipSelectionHorizontalResponsePayload
   | FlipSelectionVerticalResponsePayload;
-  | FlipSelectionHorizontalResponsePayload;
-
-  | RotateResponsePayload
-  | GetSelectionInfoResponsePayload
-  | MoveResponsePayload
-  | CloneSelectionPromptResponsePayload
-  | SetSelectionBorderRadiusPromptResponsePayload
-  | CloneSelectionResponsePayload
-  | ToggleSelectionLockResponsePayload
-  | ToggleSelectionVisibilityResponsePayload
-  | UngroupResponsePayload
-  | GroupResponsePayload
-  | FlipSelectionHorizontalResponsePayload
-  | FlipSelectionVerticalResponsePayload;
 
 // Response for ungrouping shapes
 export interface UngroupResponsePayload {
