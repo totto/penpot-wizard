@@ -44,6 +44,7 @@ import {
   SetSelectionBlendModeQueryPayload,
   SetSelectionBorderRadiusQueryPayload,
   SetSelectionBoundsQueryPayload,
+  FlipSelectionHorizontalQueryPayload,
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
@@ -97,6 +98,7 @@ import {
   setSelectionBlendModeTool,
   setSelectionBorderRadiusTool,
   setSelectionBoundsTool,
+  flipSelectionHorizontalTool,
   
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
@@ -350,6 +352,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       break;
     case ClientQueryType.TOGGLE_SELECTION_VISIBILITY:
       responseMessage = await toggleSelectionVisibilityTool(payload as unknown as ToggleSelectionVisibilityQueryPayload);
+      break;
+
+    case ClientQueryType.FLIP_SELECTION_HORIZONTAL:
+      responseMessage = await flipSelectionHorizontalTool(payload as unknown as FlipSelectionHorizontalQueryPayload);
       break;
 
     case ClientQueryType.CLONE_SELECTION:

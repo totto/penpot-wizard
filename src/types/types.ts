@@ -69,6 +69,7 @@ export enum ClientQueryType {
   TOGGLE_SELECTION_PROPORTION_LOCK = 'TOGGLE_SELECTION_PROPORTION_LOCK',
   TOGGLE_SELECTION_VISIBILITY = 'TOGGLE_SELECTION_VISIBILITY',
   CLONE_SELECTION = 'CLONE_SELECTION',
+  FLIP_SELECTION_HORIZONTAL = 'FLIP_SELECTION_HORIZONTAL',
 }
 
 export enum PenpotShapeType {
@@ -119,7 +120,8 @@ export interface ClientMessage {
   | MoveQueryPayload 
   | CloneSelectionQueryPayload 
   | ToggleSelectionLockQueryPayload
-  | ToggleSelectionProportionLockQueryPayload;
+  | ToggleSelectionProportionLockQueryPayload
+  | FlipSelectionHorizontalQueryPayload;
 
 }
 
@@ -277,7 +279,8 @@ export type ClientQueryPayload =
   | CloneSelectionQueryPayload
   | MoveQueryPayload
   | ToggleSelectionLockQueryPayload
-  | ToggleSelectionVisibilityQueryPayload;
+  | ToggleSelectionVisibilityQueryPayload
+  | FlipSelectionHorizontalQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -573,6 +576,11 @@ export interface ToggleSelectionProportionLockQueryPayload {
   shapeIds?: string[];
 }
 
+export interface FlipSelectionHorizontalQueryPayload {
+  // Optional shape IDs to flip. If omitted, use current selection.
+  shapeIds?: string[];
+}
+
 export interface RotateQueryPayload {
   /**
    * Rotation angle in degrees. Positive values rotate clockwise.
@@ -620,6 +628,11 @@ export interface ToggleSelectionProportionLockResponsePayload {
   unlockedShapes?: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
   selectionSnapshot?: Array<{ id: string; name?: string | undefined; finalRatioLocked: boolean; remainingRatioFlags: Record<string, unknown>; editorLocked?: boolean; editorBlocked?: boolean }>;
+}
+
+export interface FlipSelectionHorizontalResponsePayload {
+  flippedShapes: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
 }
 
 export type GetSelectionInfoQueryPayload = Record<string, never>;
@@ -880,7 +893,8 @@ export type PluginResponsePayload =
   | ToggleSelectionLockResponsePayload
   | ToggleSelectionVisibilityResponsePayload
   | UngroupResponsePayload
-  | GroupResponsePayload;
+  | GroupResponsePayload
+  | FlipSelectionHorizontalResponsePayload;
 
 // Response for ungrouping shapes
 export interface UngroupResponsePayload {
