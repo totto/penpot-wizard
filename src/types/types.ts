@@ -71,7 +71,7 @@ export enum ClientQueryType {
   CLONE_SELECTION = 'CLONE_SELECTION',
   FLIP_SELECTION_HORIZONTAL = 'FLIP_SELECTION_HORIZONTAL',
   FLIP_SELECTION_VERTICAL = 'FLIP_SELECTION_VERTICAL',
-  REMOVE_SELECTION_FROM_PARENT = 'REMOVE_SELECTION_FROM_PARENT',
+  DELETE_SELECTION = 'DELETE_SELECTION',
   DETACH_FROM_COMPONENT = 'DETACH_FROM_COMPONENT',
 }
 
@@ -260,8 +260,8 @@ export interface FlipSelectionVerticalQueryPayload {
   shapeIds?: string[];
 }
 
-export interface RemoveSelectionFromParentQueryPayload {
-  // Optional shape IDs to remove. If omitted, use current selection.
+export interface DeleteSelectionQueryPayload {
+  // Optional shape IDs to delete. If omitted, use current selection.
   shapeIds?: string[];
 }
 
@@ -664,8 +664,8 @@ export interface FlipSelectionVerticalResponsePayload {
   undoInfo?: UndoInfo;
 }
 
-export interface RemoveSelectionFromParentResponsePayload {
-  removedShapes: Array<{ id: string; name?: string }>;
+export interface DeleteSelectionResponsePayload {
+  deletedShapes: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
 }
 
