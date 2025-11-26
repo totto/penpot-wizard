@@ -8695,7 +8695,39 @@ export async function openPageTool(payload: OpenPageQueryPayload): Promise<Plugi
     const previousPageName = previousPage?.name || '';
 
     // Navigate to the target page
-    penpot.openPage(targetPage);
+    // Navigate to the target page
+    console.log(`[DEBUG] Current page ID: ${penpot.currentPage?.id}`);
+    console.log(`[DEBUG] Target page found: ${targetPage ? 'YES' : 'NO'}`);
+    if (targetPage) {
+      console.log(`[DEBUG] Target page details: ID=${targetPage.id}, Name=${targetPage.name}`);
+    }
+
+    if (penpot.currentPage?.id === targetPage.id) {
+      console.log(`[DEBUG] Already on target page`);
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.OPEN_PAGE,
+        success: true,
+        message: `Already on page "${targetPage.name}"`,
+        payload: {
+          pageId: targetPage.id,
+          pageName: targetPage.name,
+        } as OpenPageResponsePayload,
+      };
+    }
+
+    console.log(`[DEBUG] Calling penpot.openPage(targetPage)...`);
+    try {
+      // Try calling openPage
+      penpot.openPage(targetPage);
+      console.log(`[DEBUG] penpot.openPage returned`);
+      
+      // Check if page actually changed (might be async, so this check might be too early)
+      console.log(`[DEBUG] Page after call: ${penpot.currentPage?.id}`);
+    } catch (e) {
+      console.error(`[DEBUG] Error calling penpot.openPage:`, e);
+      throw e;
+    }
 
     // Create undo info
     const undoInfo: UndoInfo = {

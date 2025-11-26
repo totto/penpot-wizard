@@ -79,6 +79,7 @@ export enum ClientQueryType {
   CREATE_PAGE = 'CREATE_PAGE',
   CHANGE_PAGE_BACKGROUND = 'CHANGE_PAGE_BACKGROUND',
   RENAME_PAGE = 'RENAME_PAGE',
+  Z_INDEX_ACTION = 'Z_INDEX_ACTION',
 }
 
 export enum PenpotShapeType {
@@ -131,7 +132,8 @@ export interface ClientMessage {
   | ToggleSelectionLockQueryPayload
   | ToggleSelectionProportionLockQueryPayload
   | FlipSelectionHorizontalQueryPayload
-  | FlipSelectionVerticalQueryPayload;
+  | FlipSelectionVerticalQueryPayload
+  | ZIndexQueryPayload;
 
 }
 
@@ -305,6 +307,13 @@ export interface RenamePageQueryPayload {
   newName: string;
 }
 
+export type ZIndexAction = 'bring-to-front' | 'send-to-back' | 'bring-forward' | 'send-backward';
+
+export interface ZIndexQueryPayload {
+  action: ZIndexAction;
+  shapeIds?: string[];
+}
+
 
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
@@ -349,7 +358,8 @@ export type ClientQueryPayload =
   | OpenPageQueryPayload
   | CreatePageQueryPayload
   | ChangePageBackgroundQueryPayload
-  | RenamePageQueryPayload;
+  | RenamePageQueryPayload
+  | ZIndexQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
