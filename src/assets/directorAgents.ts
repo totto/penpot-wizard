@@ -161,6 +161,7 @@ When using the resize-selection tool:
       'read-library-context',
       'read-plugin-local-storage',
       'read-viewport-settings',
+      'upload-media-from-data',
       'dump-selection', //Dev tool for debugging
 
     ],

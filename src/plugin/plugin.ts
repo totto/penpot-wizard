@@ -62,7 +62,8 @@ import {
   ReadShapeColorsQueryPayload,
   ReadLibraryContextQueryPayload,
   ReadPluginLocalStorageQueryPayload,
-  ReadViewportSettingsQueryPayload
+  ReadViewportSettingsQueryPayload,
+  UploadMediaFromDataQueryPayload
 } from '../types/pluginTypes';
 
 import { handleDrawShape } from './drawHandlers';
@@ -131,6 +132,7 @@ import {
   readLibraryContext,
   readPluginLocalStorage,
   readViewportSettings,
+  uploadMediaFromData,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -466,6 +468,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.READ_VIEWPORT_SETTINGS:
       responseMessage = await readViewportSettings(payload as unknown as ReadViewportSettingsQueryPayload);
+      break;
+
+    case ClientQueryType.UPLOAD_MEDIA_FROM_DATA:
+      responseMessage = await uploadMediaFromData(payload as unknown as UploadMediaFromDataQueryPayload);
       break;
 
     default:

@@ -56,13 +56,13 @@ export interface ReadViewportSettingsResponsePayload {
   center: { x: number; y: number };
 }
 
-// UploadMediaData Types
-export interface UploadMediaDataQueryPayload {
+// UploadMediaFromData Types
+export interface UploadMediaFromDataQueryPayload {
   url: string; // URL to fetch the image from
   name?: string; // Optional name for the uploaded image
 }
 
-export interface UploadMediaDataResponsePayload {
+export interface UploadMediaFromDataResponsePayload {
   imageData: {
     id: string;
     name: string;
@@ -112,7 +112,7 @@ export enum ClientQueryType {
   READ_LIBRARY_CONTEXT = 'READ_LIBRARY_CONTEXT',
   READ_PLUGIN_LOCAL_STORAGE = 'READ_PLUGIN_LOCAL_STORAGE',
   READ_VIEWPORT_SETTINGS = 'READ_VIEWPORT_SETTINGS',
-  UPLOAD_MEDIA_DATA = 'UPLOAD_MEDIA_DATA',
+  UPLOAD_MEDIA_FROM_DATA = 'UPLOAD_MEDIA_FROM_DATA',
 }
 
 // Plugin-specific enums and types
@@ -500,7 +500,7 @@ export type ClientQueryPayload =
   | ReadLibraryContextQueryPayload
   | ReadPluginLocalStorageQueryPayload
   | ReadViewportSettingsQueryPayload
-  | UploadMediaDataQueryPayload;
+  | UploadMediaFromDataQueryPayload;
 
 export type PluginResponsePayload =
   | DrawShapeResponsePayload
@@ -531,4 +531,5 @@ export type PluginResponsePayload =
   | ReadShapeColorsResponsePayload
   | ReadLibraryContextResponsePayload
   | ReadPluginLocalStorageResponsePayload
-  | ReadViewportSettingsResponsePayload;
+  | ReadViewportSettingsResponsePayload
+  | UploadMediaFromDataResponsePayload;

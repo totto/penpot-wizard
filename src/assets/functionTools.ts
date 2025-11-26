@@ -37,7 +37,7 @@ import type {
   SetConstraintsVerticalResponsePayload,
   PluginResponseMessage,
 } from '@/types/types';
-import { ReadShapeColorsQueryPayload, ReadPluginLocalStorageQueryPayload, ReadViewportSettingsQueryPayload } from '@/types/pluginTypes';
+import { ReadShapeColorsQueryPayload, ReadPluginLocalStorageQueryPayload, ReadViewportSettingsQueryPayload, UploadMediaFromDataQueryPayload } from '@/types/pluginTypes';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 import { blendModes } from '@/types/shapeTypes';
@@ -1069,6 +1069,23 @@ export const functionTools: FunctionTool[] = [
     inputSchema: z.object({}),
     function: async (args: ReadViewportSettingsQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.READ_VIEWPORT_SETTINGS, args as any);
+      return response;
+    },
+  },
+  {
+    id: 'upload-media-from-data',
+    name: 'Upload Media From Data',
+    description: `
+      Uploads an image to Penpot from a URL.
+      Fetches the image from the provided URL and uploads it to the current file's media library.
+      Returns the uploaded image data including id, name, width, and height.
+    `,
+    inputSchema: z.object({
+      url: z.string().describe('URL to fetch the image from'),
+      name: z.string().optional().describe('Optional name for the uploaded image'),
+    }),
+    function: async (args: UploadMediaFromDataQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.UPLOAD_MEDIA_FROM_DATA, args as any);
       return response;
     },
   },

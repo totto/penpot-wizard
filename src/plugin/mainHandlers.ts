@@ -109,7 +109,9 @@ import {
   ReadPluginLocalStorageQueryPayload,
   ReadPluginLocalStorageResponsePayload,
   ReadViewportSettingsQueryPayload,
-  ReadViewportSettingsResponsePayload
+  ReadViewportSettingsResponsePayload,
+  UploadMediaFromDataQueryPayload,
+  UploadMediaFromDataResponsePayload
 } from "../types/pluginTypes";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
