@@ -159,6 +159,7 @@ When using the resize-selection tool:
       'set-layout-z-index',
       'read-shape-colors',
       'read-library-context',
+      'read-plugin-local-storage',
       'dump-selection', //Dev tool for debugging
 
     ],

@@ -37,7 +37,7 @@ import type {
   SetConstraintsVerticalResponsePayload,
   PluginResponseMessage,
 } from '@/types/types';
-import { ReadShapeColorsQueryPayload } from '@/types/pluginTypes';
+import { ReadShapeColorsQueryPayload, ReadPluginLocalStorageQueryPayload } from '@/types/pluginTypes';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 import { blendModes } from '@/types/shapeTypes';
@@ -1039,6 +1039,22 @@ export const functionTools: FunctionTool[] = [
     inputSchema: z.object({}),
     function: async (args: any) => {
       const response = await sendMessageToPlugin(ClientQueryType.READ_LIBRARY_CONTEXT, args);
+      return response;
+    },
+  },
+  {
+    id: 'read-plugin-local-storage',
+    name: 'Read Plugin Local Storage',
+    description: `
+      Reads data stored in the plugin's local storage (document-level persistence).
+      Can read a specific key. If no key is provided, it currently returns an empty object as listing all keys is not supported.
+      Useful for retrieving saved plugin settings or state.
+    `,
+    inputSchema: z.object({
+      key: z.string().optional().describe('The key to read data for. If omitted, returns empty.'),
+    }),
+    function: async (args: ReadPluginLocalStorageQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.READ_PLUGIN_LOCAL_STORAGE, args as any);
       return response;
     },
   },

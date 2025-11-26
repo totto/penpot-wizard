@@ -37,6 +37,15 @@ export interface ReadLibraryContextResponsePayload {
   }>;
 }
 
+// ReadPluginLocalStorage Types
+export interface ReadPluginLocalStorageQueryPayload {
+  key?: string; // Optional key to read specific data. If omitted, reads all keys.
+}
+
+export interface ReadPluginLocalStorageResponsePayload {
+  data: Record<string, string>;
+}
+
 // Shared enums between UI and plugin
 export enum MessageSourceName {
   Plugin = 'penpotWizardPlugin',
@@ -76,6 +85,7 @@ export enum ClientQueryType {
   CLONE_SELECTION = 'CLONE_SELECTION',
   READ_SHAPE_COLORS = 'READ_SHAPE_COLORS',
   READ_LIBRARY_CONTEXT = 'READ_LIBRARY_CONTEXT',
+  READ_PLUGIN_LOCAL_STORAGE = 'READ_PLUGIN_LOCAL_STORAGE',
 }
 
 // Plugin-specific enums and types
@@ -460,7 +470,8 @@ export type ClientQueryPayload =
   | CreateLibraryComponentPayload
   | CloneSelectionQueryPayload
   | ReadShapeColorsQueryPayload
-  | ReadLibraryContextQueryPayload;
+  | ReadLibraryContextQueryPayload
+  | ReadPluginLocalStorageQueryPayload;
 
 export type PluginResponsePayload =
   | DrawShapeResponsePayload
@@ -489,4 +500,5 @@ export type PluginResponsePayload =
   | RotateResponsePayload
   | CloneSelectionResponsePayload
   | ReadShapeColorsResponsePayload
-  | ReadLibraryContextResponsePayload;
+  | ReadLibraryContextResponsePayload
+  | ReadPluginLocalStorageResponsePayload;
