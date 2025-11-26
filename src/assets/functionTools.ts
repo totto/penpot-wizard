@@ -24,6 +24,7 @@ import {
   RenamePageQueryPayload,
   ChangePageBackgroundQueryPayload,
   CreatePageQueryPayload,
+  ZIndexQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -52,7 +53,7 @@ export const functionTools: FunctionTool[] = [
       const response = await sendMessageToPlugin(ClientQueryType.GET_USER_DATA, undefined);
       return response;
     },
-  },{
+  }, {
     id: "get-project-data",
     name: "getProjectData",
     description: `
@@ -64,7 +65,7 @@ export const functionTools: FunctionTool[] = [
       const response = await sendMessageToPlugin(ClientQueryType.GET_PROJECT_DATA, undefined);
       return response;
     },
-  },{
+  }, {
     id: "get-available-fonts",
     name: "getAvailableFonts",
     description: `
@@ -75,7 +76,7 @@ export const functionTools: FunctionTool[] = [
       const response = await sendMessageToPlugin(ClientQueryType.GET_AVAILABLE_FONTS, undefined);
       return response;
     },
-  },{
+  }, {
     id: "get-current-page",
     name: "getCurrentPage",
     description: `
@@ -89,8 +90,8 @@ export const functionTools: FunctionTool[] = [
     },
   },
   {
-  id: 'toggle-selection-lock',
-  name: 'toggleSelectionLock',
+    id: 'toggle-selection-lock',
+    name: 'toggleSelectionLock',
     description: `
       Lock or unlock the currently selected shapes. If called without an explicit 'lock' boolean
       the tool will read the selection and:
@@ -110,22 +111,22 @@ export const functionTools: FunctionTool[] = [
         return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
       }
 
-        // Read selection first for message tailoring, then call the toggle action
+      // Read selection first for message tailoring, then call the toggle action
       const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
       const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
 
-        // Ensure we forward shapeIds to plugin when available so plugin handlers that
-        // rely on explicit shape IDs (instead of relying on penpot.selection) can operate
-        // in environments where the selection proxy isn't available.
+      // Ensure we forward shapeIds to plugin when available so plugin handlers that
+      // rely on explicit shape IDs (instead of relying on penpot.selection) can operate
+      // in environments where the selection proxy isn't available.
       if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
-      args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) } as unknown as { lock?: boolean; shapeIds?: string[] };
+        args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) } as unknown as { lock?: boolean; shapeIds?: string[] };
       }
 
-        // Call plugin to lock/unlock (explicit or inferred)
+      // Call plugin to lock/unlock (explicit or inferred)
       const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_LOCK, args as unknown as ToggleSelectionLockQueryPayload);
 
       // If plugin returned mixed-selection info, surface it in the message
-  const payload = response.payload as ToggleSelectionLockResponsePayload | undefined;
+      const payload = response.payload as ToggleSelectionLockResponsePayload | undefined;
       if (payload && Array.isArray(payload.lockedShapes) && Array.isArray(payload.unlockedShapes) && payload.lockedShapes.length > 0 && payload.unlockedShapes.length > 0) {
         response.message = `The selection contains locked and unlocked shapes. Locked: ${payload.lockedShapes.map(s => s.name ?? s.id).join(', ')}; Unlocked: ${payload.unlockedShapes.map(s => s.name ?? s.id).join(', ')}. Specify lock=true to lock all unlocked shapes, or lock=false to unlock all locked shapes.`;
       }
@@ -133,10 +134,10 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
-    {
-      id: 'toggle-selection-proportion-lock',
-      name: 'toggleSelectionProportionLock',
-      description: `
+  {
+    id: 'toggle-selection-proportion-lock',
+    name: 'toggleSelectionProportionLock',
+    description: `
         Toggle whether selected shapes keep their proportions (aspect ratio) when resized.
         If called without an explicit 'lock' boolean the tool will read the selection and:
         - If all selected shapes are unlocked (proportions free), it will lock proportions.
@@ -144,77 +145,77 @@ export const functionTools: FunctionTool[] = [
         - If selection contains both locked and unlocked shapes, it will return a prompt payload
           that the UI can use to ask the user which action to take.
       `,
-      inputSchema: z.object({ lock: z.boolean().optional(), shapeIds: z.array(z.string()).optional() }),
-      function: async (args?: { lock?: boolean; shapeIds?: string[] }) => {
-        if (!args) {
-          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        }
+    inputSchema: z.object({ lock: z.boolean().optional(), shapeIds: z.array(z.string()).optional() }),
+    function: async (args?: { lock?: boolean; shapeIds?: string[] }) => {
+      if (!args) {
+        return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      }
 
-        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+      const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
 
-        // If selection info failed to return objects, try the detailed dump which
-        // prefers page fallback and provides currentSelectionIds. Use that as a
-        // robust fallback so our mutation call receives explicit shapeIds.
-        if (!args.shapeIds) {
-          if (selectionPayload && Array.isArray(selectionPayload.selectedObjects) && selectionPayload.selectedObjects.length > 0) {
-            args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) } as unknown as { lock?: boolean; shapeIds?: string[] };
-          } else {
-            const dumpResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_DUMP, undefined);
-            const dumpPayload = dumpResp.payload as GetSelectionDumpResponsePayload | undefined;
-            if (dumpPayload && Array.isArray(dumpPayload.selectedObjects) && dumpPayload.selectedObjects.length > 0) {
-              args = { ...args, shapeIds: dumpPayload.selectedObjects.map((o: any) => String(o.id)) } as unknown as { lock?: boolean; shapeIds?: string[] };
-            }
-          }
-        }
-
-        let response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, args as unknown as ToggleSelectionProportionLockQueryPayload);
-
-        const payload = response.payload as ToggleSelectionProportionLockResponsePayload | undefined;
-        // If the plugin returned a selectionSnapshot, attach it to the message so
-        // the UI can display verification of the final state immediately.
-        if (payload && Array.isArray((payload as any).selectionSnapshot)) {
-          response.message = `${response.message ?? ''}\n\nVerification:\n` + ((payload as any).selectionSnapshot.map((s:any) => ` • ${s.id} (${s.name ?? s.id}): proportions locked=${s.finalRatioLocked}`).join('\n'));
-        }
-
-        // Auto-retry flow: if the plugin returned no selection or returned a no-op
-        // where selectionSnapshot indicates proportions are still locked, attempt
-        // to fetch a fresh dump and retry the toggle once with resolved ids.
-        const shouldRetry = (() => {
-          const msg = String(response.message ?? '').toUpperCase();
-          if (!response.success && (msg === 'NO_SELECTION' || msg.includes('NO_SHAPES_MATCHED') || msg.includes('NO_SHAPES_TO_UNLOCK') || msg.includes('NO_SHAPES_TO_LOCK'))) return true;
-          // also retry if plugin returned a no-op but snapshot indicates remaining locks
-          if (!response.success && Array.isArray((payload as any)?.selectionSnapshot)) {
-            const snapshot = (payload as any).selectionSnapshot as Array<any>;
-            return snapshot.some(s => !!s.finalRatioLocked);
-          }
-          return false;
-        })();
-
-        if (shouldRetry) {
-          // fetch a dump and try again with explicit ids (one retry only)
+      // If selection info failed to return objects, try the detailed dump which
+      // prefers page fallback and provides currentSelectionIds. Use that as a
+      // robust fallback so our mutation call receives explicit shapeIds.
+      if (!args.shapeIds) {
+        if (selectionPayload && Array.isArray(selectionPayload.selectedObjects) && selectionPayload.selectedObjects.length > 0) {
+          args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) } as unknown as { lock?: boolean; shapeIds?: string[] };
+        } else {
           const dumpResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_DUMP, undefined);
           const dumpPayload = dumpResp.payload as GetSelectionDumpResponsePayload | undefined;
           if (dumpPayload && Array.isArray(dumpPayload.selectedObjects) && dumpPayload.selectedObjects.length > 0) {
-            const retryArgs = { ...args, shapeIds: dumpPayload.selectedObjects.map((o:any) => String(o.id)) } as unknown as { lock?: boolean; shapeIds?: string[] };
-            response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, retryArgs as unknown as ToggleSelectionProportionLockQueryPayload);
-            const retryPayload = response.payload as ToggleSelectionProportionLockResponsePayload | undefined;
-            if (retryPayload && Array.isArray((retryPayload as any).selectionSnapshot)) {
-              response.message = `${response.message ?? ''}\n\nVerification:\n` + ((retryPayload as any).selectionSnapshot.map((s:any) => ` • ${s.id} (${s.name ?? s.id}): proportions locked=${s.finalRatioLocked}`).join('\n'));
-            }
+            args = { ...args, shapeIds: dumpPayload.selectedObjects.map((o: any) => String(o.id)) } as unknown as { lock?: boolean; shapeIds?: string[] };
           }
         }
-        if (payload && Array.isArray(payload.lockedShapes) && Array.isArray(payload.unlockedShapes) && payload.lockedShapes.length > 0 && payload.unlockedShapes.length > 0) {
-          response.message = `The selection contains shapes with locked proportions and free proportions. Locked: ${payload.lockedShapes.map(s => s.name ?? s.id).join(', ')}; Unlocked: ${payload.unlockedShapes.map(s => s.name ?? s.id).join(', ')}. Specify lock=true to lock all unlocked shapes, or lock=false to unlock all locked shapes.`;
-        }
+      }
 
-        return response;
-      },
+      let response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, args as unknown as ToggleSelectionProportionLockQueryPayload);
+
+      const payload = response.payload as ToggleSelectionProportionLockResponsePayload | undefined;
+      // If the plugin returned a selectionSnapshot, attach it to the message so
+      // the UI can display verification of the final state immediately.
+      if (payload && Array.isArray((payload as any).selectionSnapshot)) {
+        response.message = `${response.message ?? ''}\n\nVerification:\n` + ((payload as any).selectionSnapshot.map((s: any) => ` • ${s.id} (${s.name ?? s.id}): proportions locked=${s.finalRatioLocked}`).join('\n'));
+      }
+
+      // Auto-retry flow: if the plugin returned no selection or returned a no-op
+      // where selectionSnapshot indicates proportions are still locked, attempt
+      // to fetch a fresh dump and retry the toggle once with resolved ids.
+      const shouldRetry = (() => {
+        const msg = String(response.message ?? '').toUpperCase();
+        if (!response.success && (msg === 'NO_SELECTION' || msg.includes('NO_SHAPES_MATCHED') || msg.includes('NO_SHAPES_TO_UNLOCK') || msg.includes('NO_SHAPES_TO_LOCK'))) return true;
+        // also retry if plugin returned a no-op but snapshot indicates remaining locks
+        if (!response.success && Array.isArray((payload as any)?.selectionSnapshot)) {
+          const snapshot = (payload as any).selectionSnapshot as Array<any>;
+          return snapshot.some(s => !!s.finalRatioLocked);
+        }
+        return false;
+      })();
+
+      if (shouldRetry) {
+        // fetch a dump and try again with explicit ids (one retry only)
+        const dumpResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_DUMP, undefined);
+        const dumpPayload = dumpResp.payload as GetSelectionDumpResponsePayload | undefined;
+        if (dumpPayload && Array.isArray(dumpPayload.selectedObjects) && dumpPayload.selectedObjects.length > 0) {
+          const retryArgs = { ...args, shapeIds: dumpPayload.selectedObjects.map((o: any) => String(o.id)) } as unknown as { lock?: boolean; shapeIds?: string[] };
+          response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK, retryArgs as unknown as ToggleSelectionProportionLockQueryPayload);
+          const retryPayload = response.payload as ToggleSelectionProportionLockResponsePayload | undefined;
+          if (retryPayload && Array.isArray((retryPayload as any).selectionSnapshot)) {
+            response.message = `${response.message ?? ''}\n\nVerification:\n` + ((retryPayload as any).selectionSnapshot.map((s: any) => ` • ${s.id} (${s.name ?? s.id}): proportions locked=${s.finalRatioLocked}`).join('\n'));
+          }
+        }
+      }
+      if (payload && Array.isArray(payload.lockedShapes) && Array.isArray(payload.unlockedShapes) && payload.lockedShapes.length > 0 && payload.unlockedShapes.length > 0) {
+        response.message = `The selection contains shapes with locked proportions and free proportions. Locked: ${payload.lockedShapes.map(s => s.name ?? s.id).join(', ')}; Unlocked: ${payload.unlockedShapes.map(s => s.name ?? s.id).join(', ')}. Specify lock=true to lock all unlocked shapes, or lock=false to unlock all locked shapes.`;
+      }
+
+      return response;
     },
-    {
-        id: 'toggle-selection-visibility',
-        name: 'toggleSelectionVisibility',
-        description: `
+  },
+  {
+    id: 'toggle-selection-visibility',
+    name: 'toggleSelectionVisibility',
+    description: `
           Hide or unhide the currently selected shapes. If called without an explicit 'hide' boolean
           the tool will read the selection and:
           - If all selected shapes are visible, it will hide them.
@@ -222,86 +223,86 @@ export const functionTools: FunctionTool[] = [
           - If selection contains both visible and hidden shapes, it will return a prompt payload
             that the UI can use to ask the user whether to hide the visible shapes or unhide the hidden shapes.
         `,
-        inputSchema: z.object({
-          hide: z.boolean().optional(),
-          shapeIds: z.array(z.string()).optional(),
-        }),
-        function: async (args?: { hide?: boolean; shapeIds?: string[] }) => {
-          if (!args) {
-            return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-          }
+    inputSchema: z.object({
+      hide: z.boolean().optional(),
+      shapeIds: z.array(z.string()).optional(),
+    }),
+    function: async (args?: { hide?: boolean; shapeIds?: string[] }) => {
+      if (!args) {
+        return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      }
 
-          const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-          const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+      const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
 
-          if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
-            args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) } as unknown as { hide?: boolean; shapeIds?: string[] };
-          }
+      if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
+        args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) } as unknown as { hide?: boolean; shapeIds?: string[] };
+      }
 
-          const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_VISIBILITY, args as unknown as ToggleSelectionVisibilityQueryPayload);
+      const response = await sendMessageToPlugin(ClientQueryType.TOGGLE_SELECTION_VISIBILITY, args as unknown as ToggleSelectionVisibilityQueryPayload);
 
-          const payload = response.payload as ToggleSelectionVisibilityResponsePayload | undefined;
-          if (payload && Array.isArray(payload.hiddenShapes) && Array.isArray(payload.unhiddenShapes) && payload.hiddenShapes.length > 0 && payload.unhiddenShapes.length > 0) {
-            response.message = `The selection contains hidden and visible shapes. Hidden: ${payload.hiddenShapes.map(s => s.name ?? s.id).join(', ')}; Visible: ${payload.unhiddenShapes.map(s => s.name ?? s.id).join(', ')}. Specify hide=true to hide visible shapes, or hide=false to unhide the hidden shapes.`;
-          }
+      const payload = response.payload as ToggleSelectionVisibilityResponsePayload | undefined;
+      if (payload && Array.isArray(payload.hiddenShapes) && Array.isArray(payload.unhiddenShapes) && payload.hiddenShapes.length > 0 && payload.unhiddenShapes.length > 0) {
+        response.message = `The selection contains hidden and visible shapes. Hidden: ${payload.hiddenShapes.map(s => s.name ?? s.id).join(', ')}; Visible: ${payload.unhiddenShapes.map(s => s.name ?? s.id).join(', ')}. Specify hide=true to hide visible shapes, or hide=false to unhide the hidden shapes.`;
+      }
 
-          return response;
-        },
+      return response;
     },
-    {
-      id: 'flip-selection-horizontal',
-      name: 'flipSelectionHorizontal',
-      description: `
+  },
+  {
+    id: 'flip-selection-horizontal',
+    name: 'flipSelectionHorizontal',
+    description: `
         Flip the currently selected shapes horizontally (mirror across vertical axis).
         This tool works on all selectable objects including shapes, boards, images, paths, and groups.
         The flip operation toggles the flipX property of each shape.
       `,
-      inputSchema: z.object({
-        shapeIds: z.array(z.string()).optional(),
-      }),
-      function: async (args?: { shapeIds?: string[] }) => {
-        if (!args) {
-          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        }
+    inputSchema: z.object({
+      shapeIds: z.array(z.string()).optional(),
+    }),
+    function: async (args?: { shapeIds?: string[] }) => {
+      if (!args) {
+        return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      }
 
-        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+      const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
 
-        if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
-          args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) };
-        }
+      if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
+        args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) };
+      }
 
-        const response = await sendMessageToPlugin(ClientQueryType.FLIP_SELECTION_HORIZONTAL, args);
-        return response;
-      },
+      const response = await sendMessageToPlugin(ClientQueryType.FLIP_SELECTION_HORIZONTAL, args);
+      return response;
     },
-    {
-      id: 'flip-selection-vertical',
-      name: 'flipSelectionVertical',
-      description: `
+  },
+  {
+    id: 'flip-selection-vertical',
+    name: 'flipSelectionVertical',
+    description: `
         Flip the currently selected shapes vertically (mirror across horizontal axis).
         This tool works on all selectable objects including shapes, boards, images, paths, and groups.
         The flip operation toggles the flipY property of each shape.
       `,
-      inputSchema: z.object({
-        shapeIds: z.array(z.string()).optional(),
-      }),
-      function: async (args?: { shapeIds?: string[] }) => {
-        if (!args) {
-          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        }
+    inputSchema: z.object({
+      shapeIds: z.array(z.string()).optional(),
+    }),
+    function: async (args?: { shapeIds?: string[] }) => {
+      if (!args) {
+        return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      }
 
-        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+      const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
 
-        if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
-          args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) };
-        }
+      if (!args.shapeIds && selectionPayload && Array.isArray(selectionPayload.selectedObjects)) {
+        args = { ...args, shapeIds: selectionPayload.selectedObjects.map(o => o.id) };
+      }
 
-        const response = await sendMessageToPlugin(ClientQueryType.FLIP_SELECTION_VERTICAL, args);
-        return response;
-      },
+      const response = await sendMessageToPlugin(ClientQueryType.FLIP_SELECTION_VERTICAL, args);
+      return response;
     },
+  },
   {
     id: 'move-selection',
     name: 'moveSelection',
@@ -331,7 +332,7 @@ export const functionTools: FunctionTool[] = [
       const payload = response.payload as MoveResponsePayload | undefined;
       if (payload?.skippedLockedNames && payload.skippedLockedNames.length > 0) {
         const skipped = payload.skippedLockedNames;
-  const selectionCount = ((selectionResp.payload as unknown) as { selectionCount?: number })?.selectionCount ?? 0;
+        const selectionCount = ((selectionResp.payload as unknown) as { selectionCount?: number })?.selectionCount ?? 0;
 
         if (skipped.length === 1) {
           const name = skipped[0];
@@ -351,7 +352,7 @@ export const functionTools: FunctionTool[] = [
   {
     id: 'clone-selection',
     name: 'cloneSelection',
-      description: `
+    description: `
       Duplicate the current selection to the right with a small offset and automatic collision fallback.
       Locked shapes are skipped unless you explicitly disable skipLocked, and you will be prompted if locked shapes
       would otherwise block the action.
@@ -393,183 +394,183 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
-    {
-      id: 'set-selection-opacity',
-      name: 'setSelectionOpacity',
-      description: `Set the opacity of the currently selected shapes (0 = transparent, 1 = opaque). Call without arguments to just return info about the selection so the UI can prompt for a value.`,
-      inputSchema: z.object({
-        // Accept numbers or strings (e.g. "50%" or "50"), we'll parse below
-        opacity: z.union([z.number(), z.string()]).optional(),
-      }),
-      function: async (args?: { opacity?: number | string }) => {
-        if (!args || typeof args.opacity === 'undefined') {
-          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        }
+  {
+    id: 'set-selection-opacity',
+    name: 'setSelectionOpacity',
+    description: `Set the opacity of the currently selected shapes (0 = transparent, 1 = opaque). Call without arguments to just return info about the selection so the UI can prompt for a value.`,
+    inputSchema: z.object({
+      // Accept numbers or strings (e.g. "50%" or "50"), we'll parse below
+      opacity: z.union([z.number(), z.string()]).optional(),
+    }),
+    function: async (args?: { opacity?: number | string }) => {
+      if (!args || typeof args.opacity === 'undefined') {
+        return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      }
 
-        // Normalize opacity to a number between 0 and 1.
-        const raw = args.opacity;
-        let parsedOpacity: number | undefined;
+      // Normalize opacity to a number between 0 and 1.
+      const raw = args.opacity;
+      let parsedOpacity: number | undefined;
 
-        if (typeof raw === 'number') {
-          // Treat numbers > 1 as percentages (e.g. 50 -> 0.5)
-          parsedOpacity = raw > 1 ? raw / 100 : raw;
-        } else if (typeof raw === 'string') {
-          const s = raw.trim();
-          // If it's a percent like '50%' remove the % and parse
-          const percentMatch = s.match(/^([0-9,.]+)\s*%$/);
-          if (percentMatch) {
-            const n = Number(percentMatch[1].replace(/,/g, '.'));
-            parsedOpacity = Number.isFinite(n) ? n / 100 : undefined;
+      if (typeof raw === 'number') {
+        // Treat numbers > 1 as percentages (e.g. 50 -> 0.5)
+        parsedOpacity = raw > 1 ? raw / 100 : raw;
+      } else if (typeof raw === 'string') {
+        const s = raw.trim();
+        // If it's a percent like '50%' remove the % and parse
+        const percentMatch = s.match(/^([0-9,.]+)\s*%$/);
+        if (percentMatch) {
+          const n = Number(percentMatch[1].replace(/,/g, '.'));
+          parsedOpacity = Number.isFinite(n) ? n / 100 : undefined;
+        } else {
+          // Natural-language parsing (common phrases)
+          const norm = s.toLowerCase().replace(/[-_]/g, ' ').trim();
+          if (norm === 'half' || norm === 'half opacity' || norm === 'half-opacity' || norm === 'halfopacity') {
+            parsedOpacity = 0.5;
+          } else if (norm === 'transparent' || norm === 'invisible') {
+            parsedOpacity = 0;
+          } else if (norm === 'opaque' || norm === 'full' || norm === 'fully opaque') {
+            parsedOpacity = 1;
+          } else if (norm === 'quarter' || norm === 'one quarter') {
+            parsedOpacity = 0.25;
+          } else if (norm === 'three quarters' || norm === 'three quarter') {
+            parsedOpacity = 0.75;
           } else {
-            // Natural-language parsing (common phrases)
-            const norm = s.toLowerCase().replace(/[-_]/g, ' ').trim();
-            if (norm === 'half' || norm === 'half opacity' || norm === 'half-opacity' || norm === 'halfopacity') {
-              parsedOpacity = 0.5;
-            } else if (norm === 'transparent' || norm === 'invisible') {
-              parsedOpacity = 0;
-            } else if (norm === 'opaque' || norm === 'full' || norm === 'fully opaque') {
-              parsedOpacity = 1;
-            } else if (norm === 'quarter' || norm === 'one quarter') {
-              parsedOpacity = 0.25;
-            } else if (norm === 'three quarters' || norm === 'three quarter') {
-              parsedOpacity = 0.75;
-            } else {
-              // try parsing as a plain number
-              const n = Number(s.replace(/,/g, '.'));
-              if (Number.isFinite(n)) {
-                // Interpret numbers > 1 as percentages (e.g. 50 -> 0.5)
-                parsedOpacity = n > 1 ? n / 100 : n;
-              }
+            // try parsing as a plain number
+            const n = Number(s.replace(/,/g, '.'));
+            if (Number.isFinite(n)) {
+              // Interpret numbers > 1 as percentages (e.g. 50 -> 0.5)
+              parsedOpacity = n > 1 ? n / 100 : n;
             }
           }
         }
+      }
 
-        if (typeof parsedOpacity !== 'number' || !Number.isFinite(parsedOpacity)) {
-          // Unknown input; return read-only selection to allow UI to prompt
-          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        }
+      if (typeof parsedOpacity !== 'number' || !Number.isFinite(parsedOpacity)) {
+        // Unknown input; return read-only selection to allow UI to prompt
+        return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      }
 
-        // Validate final value
-        if (parsedOpacity < 0 || parsedOpacity > 1) {
-          return { success: false, message: 'Opacity must be between 0 and 100% (or 0.0-1.0).', source: 'penpotWizardClient', type: ClientQueryType.SET_SELECTION_OPACITY, messageId: '' } as unknown as Record<string, unknown>;
-        }
+      // Validate final value
+      if (parsedOpacity < 0 || parsedOpacity > 1) {
+        return { success: false, message: 'Opacity must be between 0 and 100% (or 0.0-1.0).', source: 'penpotWizardClient', type: ClientQueryType.SET_SELECTION_OPACITY, messageId: '' } as unknown as Record<string, unknown>;
+      }
 
-        // Pass normalized value to plugin
-        args = { opacity: parsedOpacity } as unknown as SetSelectionOpacityQueryPayload;
+      // Pass normalized value to plugin
+      args = { opacity: parsedOpacity } as unknown as SetSelectionOpacityQueryPayload;
 
-        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
-        if (!selectionPayload || selectionPayload.selectionCount === 0) {
-          selectionResp.message = 'Select at least one shape before changing opacity.';
-          return selectionResp;
-        }
+      const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+      if (!selectionPayload || selectionPayload.selectionCount === 0) {
+        selectionResp.message = 'Select at least one shape before changing opacity.';
+        return selectionResp;
+      }
 
-        const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_OPACITY, args as unknown as SetSelectionOpacityQueryPayload);
-        return response;
-      },
+      const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_OPACITY, args as unknown as SetSelectionOpacityQueryPayload);
+      return response;
     },
-    {
-      id: 'set-selection-blend-mode',
-      name: 'setSelectionBlendMode',
-      description: `Set the blend mode of the selected shapes. Call without a blend mode to get selection context so the UI can prompt for one.`,
-      inputSchema: z.object({
-        blendMode: z.enum(blendModes).optional(),
-      }),
-      function: async (args?: SetSelectionBlendModeQueryPayload) => {
-        if (!args || typeof args.blendMode !== 'string') {
-          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        }
+  },
+  {
+    id: 'set-selection-blend-mode',
+    name: 'setSelectionBlendMode',
+    description: `Set the blend mode of the selected shapes. Call without a blend mode to get selection context so the UI can prompt for one.`,
+    inputSchema: z.object({
+      blendMode: z.enum(blendModes).optional(),
+    }),
+    function: async (args?: SetSelectionBlendModeQueryPayload) => {
+      if (!args || typeof args.blendMode !== 'string') {
+        return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      }
 
-        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
-        if (!selectionPayload || selectionPayload.selectionCount === 0) {
-          selectionResp.message = 'Select at least one shape before changing the blend mode.';
-          return selectionResp;
-        }
+      const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+      if (!selectionPayload || selectionPayload.selectionCount === 0) {
+        selectionResp.message = 'Select at least one shape before changing the blend mode.';
+        return selectionResp;
+      }
 
-        const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_BLEND_MODE, args);
-        const payload = response.payload as SetSelectionBlendModeResponsePayload | undefined;
-        if (payload && payload.changedShapeIds.length === 0) {
-          response.message = 'Blend mode change did not apply to any shapes. Ensure the shapes support blend modes.';
-        }
-        return response;
-      },
+      const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_BLEND_MODE, args);
+      const payload = response.payload as SetSelectionBlendModeResponsePayload | undefined;
+      if (payload && payload.changedShapeIds.length === 0) {
+        response.message = 'Blend mode change did not apply to any shapes. Ensure the shapes support blend modes.';
+      }
+      return response;
     },
-    {
-      id: 'set-selection-border-radius',
-      name: 'setSelectionBorderRadius',
-      description: `Set the border radius (px) of the selected shapes. Call without a value to get selection context so the UI can prompt for one.`,
-      inputSchema: z.object({
-        borderRadius: z.number().min(0).optional(),
-      }),
-      function: async (args?: SetSelectionBorderRadiusQueryPayload) => {
-        if (!args || typeof args.borderRadius !== 'number') {
-          return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        }
+  },
+  {
+    id: 'set-selection-border-radius',
+    name: 'setSelectionBorderRadius',
+    description: `Set the border radius (px) of the selected shapes. Call without a value to get selection context so the UI can prompt for one.`,
+    inputSchema: z.object({
+      borderRadius: z.number().min(0).optional(),
+    }),
+    function: async (args?: SetSelectionBorderRadiusQueryPayload) => {
+      if (!args || typeof args.borderRadius !== 'number') {
+        return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      }
 
-        const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-        const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
-        if (!selectionPayload || selectionPayload.selectionCount === 0) {
-          selectionResp.message = 'Select at least one shape before changing the border radius.';
-          return selectionResp;
-        }
+      const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+      if (!selectionPayload || selectionPayload.selectionCount === 0) {
+        selectionResp.message = 'Select at least one shape before changing the border radius.';
+        return selectionResp;
+      }
 
-        const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_BORDER_RADIUS, args);
-        const payload = response.payload as SetSelectionBorderRadiusResponsePayload | undefined;
-        if (payload && payload.changedShapeIds.length === 0) {
-          response.message = 'Border radius change did not apply to any shapes. Ensure the shapes support borderRadius.';
-        }
-        return response;
-      },
+      const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_BORDER_RADIUS, args);
+      const payload = response.payload as SetSelectionBorderRadiusResponsePayload | undefined;
+      if (payload && payload.changedShapeIds.length === 0) {
+        response.message = 'Border radius change did not apply to any shapes. Ensure the shapes support borderRadius.';
+      }
+      return response;
     },
-      {
-        id: 'set-selection-bounds',
-        name: 'setSelectionBounds',
-        description: `Set the bounds (x, y, width, height) of the selected shapes. Call without any values to get selection context so the UI can prompt for values.`,
-        inputSchema: z.object({
-          x: z.number().optional(),
-          y: z.number().optional(),
-          width: z.number().min(0).optional(),
-          height: z.number().min(0).optional(),
-        }),
-        function: async (args?: SetSelectionBoundsQueryPayload) => {
-          if (!args || (typeof args.x !== 'number' && typeof args.y !== 'number' && typeof args.width !== 'number' && typeof args.height !== 'number')) {
-            return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-          }
+  },
+  {
+    id: 'set-selection-bounds',
+    name: 'setSelectionBounds',
+    description: `Set the bounds (x, y, width, height) of the selected shapes. Call without any values to get selection context so the UI can prompt for values.`,
+    inputSchema: z.object({
+      x: z.number().optional(),
+      y: z.number().optional(),
+      width: z.number().min(0).optional(),
+      height: z.number().min(0).optional(),
+    }),
+    function: async (args?: SetSelectionBoundsQueryPayload) => {
+      if (!args || (typeof args.x !== 'number' && typeof args.y !== 'number' && typeof args.width !== 'number' && typeof args.height !== 'number')) {
+        return sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      }
 
-          const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
-          const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
-          if (!selectionPayload || selectionPayload.selectionCount === 0) {
-            selectionResp.message = 'Select at least one shape before changing bounds.';
-            return selectionResp;
-          }
+      const selectionResp = await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+      const selectionPayload = selectionResp.payload as GetSelectionInfoResponsePayload | undefined;
+      if (!selectionPayload || selectionPayload.selectionCount === 0) {
+        selectionResp.message = 'Select at least one shape before changing bounds.';
+        return selectionResp;
+      }
 
-          const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_BOUNDS, args);
-          const payload = response.payload as SetSelectionBoundsResponsePayload | undefined;
-          if (payload && payload.changedShapeIds.length === 0) {
-            response.message = 'Bounds change did not apply to any shapes. Ensure the shapes support bounds.';
-          }
-          return response;
-        },
-      },
-    {
-      id: "add-image-from-url",
-      name: "addImageFromUrl",
-      description: `
+      const response = await sendMessageToPlugin(ClientQueryType.SET_SELECTION_BOUNDS, args);
+      const payload = response.payload as SetSelectionBoundsResponsePayload | undefined;
+      if (payload && payload.changedShapeIds.length === 0) {
+        response.message = 'Bounds change did not apply to any shapes. Ensure the shapes support bounds.';
+      }
+      return response;
+    },
+  },
+  {
+    id: "add-image-from-url",
+    name: "addImageFromUrl",
+    description: `
         Upload an image from a URL and place it on the Penpot canvas.
         Provide either a name (optional) and a fully-qualified URL to the image.
         The plugin will download the URL and add a rectangle with the uploaded image as a fill.
       `,
-      inputSchema: z.object({
-        name: z.string().optional(),
-        url: z.string().url(),
-      }),
-      function: async (input: { name?: string; url: string }) => {
-        const response = await sendMessageToPlugin(ClientQueryType.ADD_IMAGE_FROM_URL, input as unknown as AddImageFromUrlQueryPayload);
-        return response;
-      },
+    inputSchema: z.object({
+      name: z.string().optional(),
+      url: z.string().url(),
+    }),
+    function: async (input: { name?: string; url: string }) => {
+      const response = await sendMessageToPlugin(ClientQueryType.ADD_IMAGE_FROM_URL, input as unknown as AddImageFromUrlQueryPayload);
+      return response;
     },
-    {
+  },
+  {
     id: "get-current-theme",
     name: "getCurrentTheme",
     description: `
@@ -582,7 +583,7 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
-   {
+  {
     id: "get-active-users",
     name: "getActiveUsers",
     description: `
@@ -640,7 +641,8 @@ export const functionTools: FunctionTool[] = [
   // NOTE: undo-last-action should be automatically included on every agent because it is a vital tool
   // for user safety and error recovery. Without redo functionality, users cannot easily restore
   // changes they just undid, creating a frustrating user experience.
-  { id: "undo-last-action",
+  {
+    id: "undo-last-action",
     name: "undoLastAction",
     description: `
       Undo the most recent action performed by the AI assistant.
@@ -823,7 +825,7 @@ export const functionTools: FunctionTool[] = [
       }
 
       const response = await sendMessageToPlugin(ClientQueryType.DELETE_SELECTION, args as unknown as DeleteSelectionQueryPayload);
-      
+
       return response;
     },
   },
@@ -965,6 +967,33 @@ export const functionTools: FunctionTool[] = [
     }),
     function: async (args: CreatePageQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.CREATE_PAGE, args);
+      return response;
+    },
+  },
+  {
+    id: 'set-layer-order',
+    name: 'setLayerOrder',
+    description: `
+      Change the stacking order (z-index) of the selected shapes.
+      
+      This tool allows you to bring shapes to the front, send them to the back, or move them one step forward or backward in the layer stack.
+      
+      Actions:
+      - 'bring-to-front': Move the selected shapes to the top of the stack (in front of everything else)
+      - 'send-to-back': Move the selected shapes to the bottom of the stack (behind everything else)
+      - 'bring-forward': Move the selected shapes one step forward in the stack
+      - 'send-backward': Move the selected shapes one step backward in the stack
+      - 'set-index': Set the exact position in the stack (requires index parameter)
+      
+      Use this when the user wants to change which shapes appear in front or behind other shapes.
+    `,
+    inputSchema: z.object({
+      action: z.enum(['bring-to-front', 'send-to-back', 'bring-forward', 'send-backward', 'set-index']),
+      shapeIds: z.array(z.string()).optional(),
+      index: z.number().optional().describe('Required for set-index action. The target position in the stack (0 = back, higher = front)'),
+    }),
+    function: async (args: ZIndexQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.Z_INDEX_ACTION, args);
       return response;
     },
   },
