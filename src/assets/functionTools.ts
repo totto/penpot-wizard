@@ -16,12 +16,14 @@ import {
   SetSelectionOpacityQueryPayload,
   SetSelectionBorderRadiusQueryPayload,
   DeleteSelectionQueryPayload,
-  // RemoveSelectionFromParentResponsePayload, // Unused import
   DetachFromComponentQueryPayload,
   SetConstraintsHorizontalQueryPayload,
   SetConstraintsVerticalQueryPayload,
   SetConstraintsVerticalResponsePayload,
   OpenPageQueryPayload,
+  RenamePageQueryPayload,
+  ChangePageBackgroundQueryPayload,
+  CreatePageQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -912,6 +914,57 @@ export const functionTools: FunctionTool[] = [
     }),
     function: async (args: OpenPageQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.OPEN_PAGE, args);
+      return response;
+    },
+  },
+  {
+    id: 'rename-page',
+    name: 'Rename Page',
+    description: `
+      Rename an existing page in the current Penpot file.
+      
+      You can specify which page to rename using pageId, or it will rename the current page.
+    `,
+    inputSchema: z.object({
+      pageId: z.string().optional().describe('The ID of the page to rename (defaults to current page)'),
+      newName: z.string().describe('The new name for the page'),
+    }),
+    function: async (args: RenamePageQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.RENAME_PAGE, args);
+      return response;
+    },
+  },
+  {
+    id: 'change-page-background',
+    name: 'Change Page Background',
+    description: `
+      Change the background color of a page in the current Penpot file.
+      
+      Sets the background color via the page's root shape fills property.
+    `,
+    inputSchema: z.object({
+      pageId: z.string().optional().describe('The ID of the page (defaults to current page)'),
+      backgroundColor: z.string().describe('Background color in hex format (e.g., #FFFFFF, #336699)'),
+    }),
+    function: async (args: ChangePageBackgroundQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CHANGE_PAGE_BACKGROUND, args);
+      return response;
+    },
+  },
+  {
+    id: 'create-page',
+    name: 'Create Page',
+    description: `
+      Create a new page in the current Penpot file.
+      
+      Optionally name the page and navigate to it after creation.
+    `,
+    inputSchema: z.object({
+      name: z.string().optional().describe('Optional name for the new page'),
+      openAfterCreate: z.boolean().optional().describe('Whether to navigate to the new page after creating it'),
+    }),
+    function: async (args: CreatePageQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CREATE_PAGE, args);
       return response;
     },
   },

@@ -52,6 +52,9 @@ import {
   SetConstraintsVerticalQueryPayload,
   SetConstraintsHorizontalQueryPayload,
   OpenPageQueryPayload,
+  RenamePageQueryPayload,
+  ChangePageBackgroundQueryPayload,
+  CreatePageQueryPayload,
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
@@ -112,6 +115,9 @@ import {
   setConstraintsVerticalTool,
   setConstraintsHorizontalTool,
   openPageTool,
+  renamePageTool,
+  changePageBackgroundTool,
+  createPageTool,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -415,6 +421,18 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.OPEN_PAGE:
       responseMessage = await openPageTool(payload as unknown as OpenPageQueryPayload);
+      break;
+
+    case ClientQueryType.RENAME_PAGE:
+      responseMessage = await renamePageTool(payload as unknown as RenamePageQueryPayload);
+      break;
+
+    case ClientQueryType.CHANGE_PAGE_BACKGROUND:
+      responseMessage = await changePageBackgroundTool(payload as unknown as ChangePageBackgroundQueryPayload);
+      break;
+
+    case ClientQueryType.CREATE_PAGE:
+      responseMessage = await createPageTool(payload as unknown as CreatePageQueryPayload);
       break;
 
     default:

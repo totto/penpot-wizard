@@ -147,6 +147,9 @@ When using the resize-selection tool:
       'set-constraints-vertical',
       'set-constraints-horizontal',
       'open-page',
+      'rename-page',
+      'change-page-background',
+      'create-page',
 
 
       'dump-selection', //Dev tool for debugging
