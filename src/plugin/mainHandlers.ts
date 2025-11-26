@@ -8829,17 +8829,21 @@ export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<Pl
       // Perform the requested action
       // IMPORTANT: appendChild and insertChild don't move existing children in Penpot
       // We must remove the shape first, then reinsert it at the desired position
+      console.log(`[setLayerOrder] BEFORE ${action}: shape.id = ${shape.id}, parent.children.length = ${parent.children.length}`);
+
       switch (action) {
         case 'bring-to-front':
           shape.remove();
           parent.appendChild(shape);
           targetIndex = parent.children.length - 1;
+          console.log(`[setLayerOrder] AFTER bring-to-front: shape.id = ${shape.id}, targetIndex = ${targetIndex}, parent.children.length = ${parent.children.length}`);
           break;
 
         case 'send-to-back':
           shape.remove();
           parent.insertChild(0, shape);
           targetIndex = 0;
+          console.log(`[setLayerOrder] AFTER send-to-back: shape.id = ${shape.id}, targetIndex = ${targetIndex}, parent.children.length = ${parent.children.length}`);
           break;
 
         case 'bring-forward':
@@ -8848,6 +8852,7 @@ export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<Pl
             // After removal, indices shift down, so we insert at currentIndex + 1
             parent.insertChild(currentIndex + 1, shape);
             targetIndex = currentIndex + 1;
+            console.log(`[setLayerOrder] AFTER bring-forward: shape.id = ${shape.id}, targetIndex = ${targetIndex}, parent.children.length = ${parent.children.length}`);
           }
           break;
 
@@ -8857,6 +8862,7 @@ export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<Pl
             // After removal, indices shift down, so we insert at currentIndex - 1
             parent.insertChild(currentIndex - 1, shape);
             targetIndex = currentIndex - 1;
+            console.log(`[setLayerOrder] AFTER send-backward: shape.id = ${shape.id}, targetIndex = ${targetIndex}, parent.children.length = ${parent.children.length}`);
           }
           break;
 
@@ -8866,6 +8872,7 @@ export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<Pl
             const clampedIndex = Math.max(0, Math.min(index, parent.children.length));
             parent.insertChild(clampedIndex, shape);
             targetIndex = clampedIndex;
+            console.log(`[setLayerOrder] AFTER set-index: shape.id = ${shape.id}, targetIndex = ${targetIndex}, parent.children.length = ${parent.children.length}`);
           } else {
             return {
               ...pluginResponse,
