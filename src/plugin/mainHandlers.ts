@@ -98,6 +98,8 @@ import {
   ChangePageBackgroundResponsePayload,
   RenamePageQueryPayload,
   RenamePageResponsePayload,
+  ZIndexQueryPayload,
+  ZIndexResponsePayload,
 } from "../types/types";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
@@ -109,7 +111,7 @@ import {
   unionRects,
 } from './cloneHelpers';
 import type { PlacementFallback, Rect } from './cloneHelpers';
-import type { Shape, Group, Fill, Stroke } from '@penpot/plugin-types';
+import type { Shape, Group, Fill, Stroke, Board, Boolean } from '@penpot/plugin-types';
 import { blendModes } from '../types/shapeTypes';
 
 const pluginResponse: PluginResponseMessage = {
@@ -8749,6 +8751,141 @@ export async function openPageTool(payload: OpenPageQueryPayload): Promise<Plugi
       type: ClientQueryType.OPEN_PAGE,
       success: false,
       message: `Error opening page: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { action, shapeIds, index } = payload;
+
+    // Get shapes to reorder
+    let targetShapes: Shape[];
+    if (shapeIds && shapeIds.length > 0) {
+      const currentPage = penpot.currentPage;
+      if (!currentPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.Z_INDEX_ACTION,
+          success: false,
+          message: 'No active page found',
+        };
+      }
+      targetShapes = shapeIds
+        .map(id => currentPage.getShapeById(id))
+        .filter((s): s is Shape => s !== null);
+    } else {
+      targetShapes = getSelectionForAction();
+    }
+
+    if (targetShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.Z_INDEX_ACTION,
+        success: false,
+        message: 'NO_SELECTION',
+      };
+    }
+
+    const movedShapes: Array<{ id: string; name?: string }> = [];
+    let targetIndex: number | undefined;
+
+    // Process each shape
+    for (const shape of targetShapes) {
+      const parent = shape.parent as Board | Group | Boolean | null;
+      
+      if (!parent || !('children' in parent)) {
+        console.warn(`Shape ${shape.id} has no valid parent container`);
+        continue;
+      }
+
+      const children = parent.children;
+      const currentIndex = children.findIndex(child => child.id === shape.id);
+      
+      if (currentIndex === -1) {
+        console.warn(`Shape ${shape.id} not found in parent's children`);
+        continue;
+      }
+
+      // Perform the requested action
+      switch (action) {
+        case 'bring-to-front':
+          parent.appendChild(shape);
+          targetIndex = children.length - 1;
+          break;
+
+        case 'send-to-back':
+          parent.insertChild(0, shape);
+          targetIndex = 0;
+          break;
+
+        case 'bring-forward':
+          if (currentIndex < children.length - 1) {
+            parent.insertChild(currentIndex + 1, shape);
+            targetIndex = currentIndex + 1;
+          }
+          break;
+
+        case 'send-backward':
+          if (currentIndex > 0) {
+            parent.insertChild(currentIndex - 1, shape);
+            targetIndex = currentIndex - 1;
+          }
+          break;
+
+        case 'set-index':
+          if (typeof index === 'number') {
+            const clampedIndex = Math.max(0, Math.min(index, children.length - 1));
+            parent.insertChild(clampedIndex, shape);
+            targetIndex = clampedIndex;
+          } else {
+            return {
+              ...pluginResponse,
+              type: ClientQueryType.Z_INDEX_ACTION,
+              success: false,
+              message: 'set-index action requires an index parameter',
+            };
+          }
+          break;
+
+        default:
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.Z_INDEX_ACTION,
+            success: false,
+            message: `Unknown action: ${action}`,
+          };
+      }
+
+      movedShapes.push({ id: shape.id, name: shape.name });
+    }
+
+    if (movedShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.Z_INDEX_ACTION,
+        success: false,
+        message: 'No shapes could be reordered',
+      };
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.Z_INDEX_ACTION,
+      success: true,
+      message: `Successfully ${action.replace(/-/g, ' ')}ed ${movedShapes.length} shape(s)`,
+      payload: {
+        movedShapes,
+        action,
+        targetIndex,
+      } as ZIndexResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.Z_INDEX_ACTION,
+      success: false,
+      message: `Error in setLayerOrderTool: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

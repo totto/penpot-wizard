@@ -763,6 +763,13 @@ export interface RenamePageResponsePayload {
   undoInfo: UndoInfo;
 }
 
+export interface ZIndexResponsePayload {
+  movedShapes: Array<{ id: string; name?: string }>;
+  action: 'bring-to-front' | 'send-to-back' | 'bring-forward' | 'send-backward' | 'set-index';
+  targetIndex?: number; // The final index position (for set-index action)
+  undoInfo?: UndoInfo;
+}
+
 
 export type GetSelectionInfoQueryPayload = Record<string, never>;
 

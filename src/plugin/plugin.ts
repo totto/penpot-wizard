@@ -55,6 +55,7 @@ import {
   RenamePageQueryPayload,
   ChangePageBackgroundQueryPayload,
   CreatePageQueryPayload,
+  ZIndexQueryPayload,
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
@@ -118,6 +119,7 @@ import {
   renamePageTool,
   changePageBackgroundTool,
   createPageTool,
+  setLayerOrderTool,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -433,6 +435,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.CREATE_PAGE:
       responseMessage = await createPageTool(payload as unknown as CreatePageQueryPayload);
+      break;
+
+    case ClientQueryType.Z_INDEX_ACTION:
+      responseMessage = await setLayerOrderTool(payload as unknown as ZIndexQueryPayload);
       break;
 
     default:
