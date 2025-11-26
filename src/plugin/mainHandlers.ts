@@ -8697,11 +8697,6 @@ export async function openPageTool(payload: OpenPageQueryPayload): Promise<Plugi
     const previousPageName = previousPage?.name || '';
 
     // Navigate to the target page
-    // NOTE: penpot.openPage() is currently broken in plugin API (GitHub #2920)
-    // The function completes without error but doesn't actually change the current page
-    console.warn('[OPEN_PAGE] Warning: penpot.openPage() API is non-functional in current Penpot version');
-    console.warn('[OPEN_PAGE] This is a known Penpot limitation tracked in GitHub issue #2920');
-    
     if (penpot.currentPage?.id === targetPage.id) {
       return {
         ...pluginResponse,
@@ -8715,8 +8710,11 @@ export async function openPageTool(payload: OpenPageQueryPayload): Promise<Plugi
       };
     }
 
-    // Call the API (doesn't work, but keeps code structure for future fix)
+    // Attempt to open the page
     penpot.openPage(targetPage);
+    
+    // Check if navigation actually worked
+    const didNavigate = penpot.currentPage?.id === targetPage.id;
 
     // Create undo info
     const undoInfo: UndoInfo = {
@@ -8734,17 +8732,35 @@ export async function openPageTool(payload: OpenPageQueryPayload): Promise<Plugi
 
     addToUndoStack(undoInfo);
 
-    return {
-      ...pluginResponse,
-      type: ClientQueryType.OPEN_PAGE,
-      success: true,
-      message: `⚠️ Open-page is currently not working due to a Penpot API limitation. Please manually navigate to "${targetPage.name}" page until this is fixed.`,
-      payload: {
-        pageId: targetPage.id,
-        pageName: targetPage.name,
-        undoInfo,
-      } as OpenPageResponsePayload,
-    };
+    // Return appropriate message based on whether navigation worked
+    if (didNavigate) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.OPEN_PAGE,
+        success: true,
+        message: `Opened page "${targetPage.name}"`,
+        payload: {
+          pageId: targetPage.id,
+          pageName: targetPage.name,
+          undoInfo,
+        } as OpenPageResponsePayload,
+      };
+    } else {
+      // Navigation failed - warn about API limitation
+      console.warn('[OPEN_PAGE] penpot.openPage() did not navigate to target page');
+      console.warn('[OPEN_PAGE] This is a known Penpot limitation tracked in GitHub issue #2920');
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.OPEN_PAGE,
+        success: true,
+        message: `⚠️ Open-page is currently not working due to a Penpot API limitation. Please manually navigate to "${targetPage.name}" page until this is fixed.`,
+        payload: {
+          pageId: targetPage.id,
+          pageName: targetPage.name,
+          undoInfo,
+        } as OpenPageResponsePayload,
+      };
+    }
   } catch (error) {
     return {
       ...pluginResponse,
