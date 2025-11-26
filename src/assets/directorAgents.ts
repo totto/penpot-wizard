@@ -150,6 +150,7 @@ When using the resize-selection tool:
       'rename-page',
       'change-page-background',
       'create-page',
+      'set-layer-order',
 
 
       'dump-selection', //Dev tool for debugging

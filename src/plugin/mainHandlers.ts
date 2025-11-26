@@ -8755,7 +8755,7 @@ export async function openPageTool(payload: OpenPageQueryPayload): Promise<Plugi
       return {
         ...pluginResponse,
         type: ClientQueryType.OPEN_PAGE,
-        success: true,
+        success: false,
         message: `⚠️ Open-page is currently not working due to a Penpot API limitation. Please manually navigate to "${targetPage.name}" page until this is fixed.`,
         payload: {
           pageId: targetPage.id,
