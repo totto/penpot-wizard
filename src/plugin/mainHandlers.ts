@@ -8269,6 +8269,17 @@ export async function setConstraintsHorizontalTool(payload: SetConstraintsHorizo
       };
     }
 
+    // Validate constraint value
+    const allowedConstraints = ['left', 'right', 'center', 'scale', 'leftright'];
+    if (!allowedConstraints.includes(constraint)) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_CONSTRAINTS_HORIZONTAL,
+        success: false,
+        message: `Unsupported constraint: ${constraint}`,
+      };
+    }
+
     // Determine targets
     let targets: any[] = [];
     if (shapeIds && Array.isArray(shapeIds) && shapeIds.length > 0) {
@@ -8300,10 +8311,7 @@ export async function setConstraintsHorizontalTool(payload: SetConstraintsHorizo
 
     for (const shape of targets) {
       try {
-        // Store previous value for undo
         previousConstraints.push(shape.constraintsHorizontal || 'left');
-        
-        // Set new constraint
         shape.constraintsHorizontal = constraint;
         updatedShapeIds.push(shape.id);
       } catch (error) {
@@ -8311,7 +8319,6 @@ export async function setConstraintsHorizontalTool(payload: SetConstraintsHorizo
       }
     }
 
-    // Create Undo Info
     const undoInfo: UndoInfo = {
       actionType: ClientQueryType.SET_CONSTRAINTS_HORIZONTAL,
       actionId: `set_h_constraints_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -8336,7 +8343,6 @@ export async function setConstraintsHorizontalTool(payload: SetConstraintsHorizo
         undoInfo,
       } as SetConstraintsHorizontalResponsePayload,
     };
-
   } catch (error) {
     return {
       ...pluginResponse,
@@ -8357,6 +8363,17 @@ export async function setConstraintsVerticalTool(payload: SetConstraintsVertical
         type: ClientQueryType.SET_CONSTRAINTS_VERTICAL,
         success: false,
         message: 'No constraint value provided',
+      };
+    }
+
+    // Validate constraint value
+    const allowedConstraints = ['top', 'bottom', 'topbottom', 'center', 'scale'];
+    if (!allowedConstraints.includes(constraint)) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.SET_CONSTRAINTS_VERTICAL,
+        success: false,
+        message: `Unsupported constraint: ${constraint}`,
       };
     }
 
