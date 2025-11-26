@@ -971,26 +971,32 @@ export const functionTools: FunctionTool[] = [
     },
   },
   {
-    id: 'set-layer-order',
-    name: 'setLayerOrder',
+    id: 'set-layout-z-index',
+    name: 'setLayoutZIndex',
     description: `
-      Change the stacking order (z-index) of the selected shapes.
+      ⚠️ IMPORTANT: This tool ONLY works for shapes inside Flex or Grid layouts.
+      It will NOT work for regular shapes outside of layouts.
       
-      This tool allows you to bring shapes to the front, send them to the back, or move them one step forward or backward in the layer stack.
+      Control the stacking order (z-index) of shapes within Flex or Grid layout containers.
+      This determines which elements appear in front when they overlap.
+      
+      Requirements:
+      - The shape MUST be inside a parent with Flex Layout or Grid Layout enabled
+      - Regular shapes without layouts will fail with an error message
       
       Actions:
-      - 'bring-to-front': Move the selected shapes to the top of the stack (in front of everything else)
-      - 'send-to-back': Move the selected shapes to the bottom of the stack (behind everything else)
-      - 'bring-forward': Move the selected shapes one step forward in the stack
-      - 'send-backward': Move the selected shapes one step backward in the stack
-      - 'set-index': Set the exact position in the stack (requires index parameter)
+      - 'bring-to-front': Set z-index higher than all siblings (appears on top)
+      - 'send-to-back': Set z-index lower than all siblings (appears at bottom)
+      - 'bring-forward': Increase z-index by 1
+      - 'send-backward': Decrease z-index by 1
+      - 'set-index': Set exact z-index value (requires index parameter)
       
-      Use this when the user wants to change which shapes appear in front or behind other shapes.
+      The tool will report which shapes succeeded and which failed with reasons.
     `,
     inputSchema: z.object({
       action: z.enum(['bring-to-front', 'send-to-back', 'bring-forward', 'send-backward', 'set-index']),
-      shapeIds: z.array(z.string()).optional(),
-      index: z.number().optional().describe('Required for set-index action. The target position in the stack (0 = back, higher = front)'),
+      shapeIds: z.array(z.string()).optional().describe('Optional array of shape IDs. If not provided, uses current selection'),
+      index: z.number().optional().describe('Required for set-index action. The target z-index value (higher = more in front)'),
     }),
     function: async (args: ZIndexQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.Z_INDEX_ACTION, args);

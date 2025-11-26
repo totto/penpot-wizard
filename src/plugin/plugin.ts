@@ -59,16 +59,16 @@ import {
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
-import { 
-  handleGetProjectData, 
-  handleGetUserData, 
-  handleAddImageFromUrl, 
+import {
+  handleGetProjectData,
+  handleGetUserData,
+  handleAddImageFromUrl,
   handleAddImage,
-  applyBlurTool, 
-  applyFillTool, 
+  applyBlurTool,
+  applyFillTool,
   // selection update lives in actionSelection (action-only). See actionSelection.ts
   // for mutation-safe helper functions.
-  applyStrokeTool, 
+  applyStrokeTool,
   applyShadowTool,
   alignHorizontalTool,
   alignVerticalTool,
@@ -83,17 +83,17 @@ import {
   excludeBooleanOperationTool,
   flattenSelectionTool,
   createShapeFromSvgTool,
-  applyLinearGradientTool, 
-  applyRadialGradientTool, 
-  getCurrentPage, 
-  getAvailableFonts, 
-  getCurrentTheme, 
-  getActiveUsers, 
-  getFileVersions, 
-  createLibraryColor, 
-  createLibraryFont, 
-  createLibraryComponent, 
-  undoLastAction, 
+  applyLinearGradientTool,
+  applyRadialGradientTool,
+  getCurrentPage,
+  getAvailableFonts,
+  getCurrentTheme,
+  getActiveUsers,
+  getFileVersions,
+  createLibraryColor,
+  createLibraryFont,
+  createLibraryComponent,
+  undoLastAction,
   redoLastAction,
   exportSelectionAsSvgTool,
   resizeTool,
@@ -119,7 +119,7 @@ import {
   renamePageTool,
   changePageBackgroundTool,
   createPageTool,
-  setLayerOrderTool,
+  setLayoutZIndexTool,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -196,7 +196,7 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
   const { type, messageId, payload, source } = message;
 
   if (source !== MessageSourceName.Client) {
-    return ;
+    return;
   }
 
   let responseMessage: PluginResponseMessage;
@@ -319,15 +319,15 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       responseMessage = await getFileVersions();
       break;
 
-    
+
     case ClientQueryType.CREATE_LIBRARY_COLOR:
       responseMessage = await createLibraryColor(payload);
       break;
-    
+
     case ClientQueryType.CREATE_LIBRARY_FONT:
       responseMessage = await createLibraryFont(payload as unknown as CreateLibraryFontPayload);
       break;
-    
+
     case ClientQueryType.CREATE_LIBRARY_COMPONENT:
       responseMessage = await createLibraryComponent(payload as unknown as CreateLibraryComponentPayload);
       break;
@@ -438,7 +438,7 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       break;
 
     case ClientQueryType.Z_INDEX_ACTION:
-      responseMessage = await setLayerOrderTool(payload as unknown as ZIndexQueryPayload);
+      responseMessage = await setLayoutZIndexTool(payload as unknown as ZIndexQueryPayload);
       break;
 
     default:

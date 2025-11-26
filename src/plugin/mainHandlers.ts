@@ -8774,7 +8774,7 @@ export async function openPageTool(payload: OpenPageQueryPayload): Promise<Plugi
   }
 }
 
-export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<PluginResponseMessage> {
+export async function setLayoutZIndexTool(payload: ZIndexQueryPayload): Promise<PluginResponseMessage> {
   try {
     const { action, shapeIds, index } = payload;
 
@@ -8806,72 +8806,88 @@ export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<Pl
       };
     }
 
-    const movedShapes: Array<{ id: string; name?: string }> = [];
-    let targetIndex: number | undefined;
+    const movedShapes: Array<{ id: string; name?: string; newZIndex?: number }> = [];
+    const failedShapes: Array<{ id: string; name?: string; reason: string }> = [];
 
     // Process each shape
     for (const shape of targetShapes) {
-      const parent = shape.parent as Board | Group | Boolean | null;
+      // Check if shape has layoutChild (only available in Flex/Grid layouts)
+      if (!shape.layoutChild) {
+        failedShapes.push({
+          id: shape.id,
+          name: shape.name,
+          reason: 'Shape is not in a Flex or Grid layout',
+        });
+        continue;
+      }
 
+      const parent = shape.parent as Board | Group | null;
       if (!parent || !('children' in parent)) {
-        console.warn(`Shape ${shape.id} has no valid parent container`);
+        failedShapes.push({
+          id: shape.id,
+          name: shape.name,
+          reason: 'No valid parent container',
+        });
         continue;
       }
 
-      const children = parent.children;
-      const currentIndex = children.findIndex(child => child.id === shape.id);
+      // Check if parent has flex or grid layout
+      const hasFlexLayout = 'flex' in parent && parent.flex;
+      const hasGridLayout = 'grid' in parent && parent.grid;
 
-      if (currentIndex === -1) {
-        console.warn(`Shape ${shape.id} not found in parent's children`);
+      if (!hasFlexLayout && !hasGridLayout) {
+        failedShapes.push({
+          id: shape.id,
+          name: shape.name,
+          reason: 'Parent does not have Flex or Grid layout enabled',
+        });
         continue;
       }
 
-      // Perform the requested action
-      console.log(`[setLayerOrder] BEFORE ${action}: shape.id = ${shape.id}, currentIndex = ${currentIndex}, parent.children.length = ${parent.children.length}`);
+      // Get current z-index
+      const currentZIndex = shape.layoutChild.zIndex || 0;
+      let newZIndex: number;
 
+      // Calculate new z-index based on action
       switch (action) {
         case 'bring-to-front':
-          parent.appendChild(shape);
-          targetIndex = parent.children.length - 1;
-          console.log(`[setLayerOrder] AFTER bring-to-front: shape.id = ${shape.id}, targetIndex = ${targetIndex}, parent.children.length = ${parent.children.length}`);
+          // Find max z-index among siblings and set higher
+          const maxZIndex = Math.max(
+            ...parent.children
+              .filter(child => child.layoutChild)
+              .map(child => child.layoutChild!.zIndex || 0)
+          );
+          newZIndex = maxZIndex + 1;
           break;
 
         case 'send-to-back':
-          parent.insertChild(0, shape);
-          targetIndex = 0;
-          console.log(`[setLayerOrder] AFTER send-to-back: shape.id = ${shape.id}, targetIndex = ${targetIndex}, parent.children.length = ${parent.children.length}`);
+          // Find min z-index among siblings and set lower
+          const minZIndex = Math.min(
+            ...parent.children
+              .filter(child => child.layoutChild)
+              .map(child => child.layoutChild!.zIndex || 0)
+          );
+          newZIndex = minZIndex - 1;
           break;
 
         case 'bring-forward':
-          if (currentIndex < children.length - 1) {
-            parent.insertChild(currentIndex + 2, shape);
-            targetIndex = currentIndex + 1;
-            console.log(`[setLayerOrder] AFTER bring-forward: shape.id = ${shape.id}, targetIndex = ${targetIndex}, parent.children.length = ${parent.children.length}`);
-          }
+          newZIndex = currentZIndex + 1;
           break;
 
         case 'send-backward':
-          if (currentIndex > 0) {
-            parent.insertChild(currentIndex - 1, shape);
-            targetIndex = currentIndex - 1;
-            console.log(`[setLayerOrder] AFTER send-backward: shape.id = ${shape.id}, targetIndex = ${targetIndex}, parent.children.length = ${parent.children.length}`);
-          }
+          newZIndex = currentZIndex - 1;
           break;
 
         case 'set-index':
-          if (typeof index === 'number') {
-            const clampedIndex = Math.max(0, Math.min(index, parent.children.length - 1));
-            parent.insertChild(clampedIndex, shape);
-            targetIndex = clampedIndex;
-            console.log(`[setLayerOrder] AFTER set-index: shape.id = ${shape.id}, targetIndex = ${targetIndex}, parent.children.length = ${parent.children.length}`);
-          } else {
-            return {
-              ...pluginResponse,
-              type: ClientQueryType.Z_INDEX_ACTION,
-              success: false,
-              message: 'set-index action requires an index parameter',
-            };
+          if (typeof index !== 'number') {
+            failedShapes.push({
+              id: shape.id,
+              name: shape.name,
+              reason: 'set-index action requires an index parameter',
+            });
+            continue;
           }
+          newZIndex = index;
           break;
 
         default:
@@ -8883,27 +8899,41 @@ export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<Pl
           };
       }
 
-      movedShapes.push({ id: shape.id, name: shape.name });
+      // Apply the new z-index
+      shape.layoutChild.zIndex = newZIndex;
+
+      movedShapes.push({
+        id: shape.id,
+        name: shape.name,
+        newZIndex
+      });
+
+      console.log(`[setLayoutZIndex] ${action}: shape "${shape.name}" (${shape.id}) z-index: ${currentZIndex} → ${newZIndex}`);
     }
 
-    if (movedShapes.length === 0) {
-      return {
-        ...pluginResponse,
-        type: ClientQueryType.Z_INDEX_ACTION,
-        success: false,
-        message: 'No shapes could be reordered',
-      };
+    // Build response message
+    let message = '';
+    if (movedShapes.length > 0) {
+      message = `Successfully updated z-index for ${movedShapes.length} shape(s)`;
+    }
+    if (failedShapes.length > 0) {
+      const reasons = failedShapes.map(s => `${s.name || s.id}: ${s.reason}`).join('; ');
+      if (movedShapes.length > 0) {
+        message += `. ${failedShapes.length} shape(s) failed: ${reasons}`;
+      } else {
+        message = `All shapes failed: ${reasons}`;
+      }
     }
 
     return {
       ...pluginResponse,
       type: ClientQueryType.Z_INDEX_ACTION,
-      success: true,
-      message: `Successfully ${action.replace(/-/g, ' ')}ed ${movedShapes.length} shape(s)`,
+      success: movedShapes.length > 0,
+      message,
       payload: {
         movedShapes,
+        failedShapes,
         action,
-        targetIndex,
       } as ZIndexResponsePayload,
     };
   } catch (error) {
@@ -8911,7 +8941,7 @@ export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<Pl
       ...pluginResponse,
       type: ClientQueryType.Z_INDEX_ACTION,
       success: false,
-      message: `Error in setLayerOrderTool: ${error instanceof Error ? error.message : String(error)}`,
+      message: `Error in setLayoutZIndexTool: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
