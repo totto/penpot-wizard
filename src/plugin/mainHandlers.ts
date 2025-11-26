@@ -8625,3 +8625,219 @@ export async function openPageTool(payload: OpenPageQueryPayload): Promise<Plugi
     };
   }
 }
+
+export async function renamePageTool(payload: RenamePageQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { pageId, newName } = payload ?? {};
+
+    if (!newName || newName.trim() === '') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.RENAME_PAGE,
+        success: false,
+        message: 'New page name is required',
+      };
+    }
+
+    const currentFile = penpot.currentFile as any;
+    let targetPage: any;
+
+    if (pageId) {
+      targetPage = currentFile?.pages?.find((p: any) => p.id === pageId);
+      if (!targetPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.RENAME_PAGE,
+          success: false,
+          message: `Page with ID "${pageId}" not found`,
+        };
+      }
+    } else {
+      targetPage = penpot.currentPage as any;
+      if (!targetPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.RENAME_PAGE,
+          success: false,
+          message: 'No current page found',
+        };
+      }
+    }
+
+    const oldName = targetPage.name;
+    targetPage.name = newName.trim();
+
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.RENAME_PAGE,
+      actionId: `rename_page_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Renamed page from "${oldName}" to "${newName}"`,
+      undoData: {
+        pageId: targetPage.id,
+        oldName,
+        newName: newName.trim(),
+      },
+      timestamp: Date.now(),
+    };
+
+    addToUndoStack(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.RENAME_PAGE,
+      success: true,
+      message: `Renamed page from "${oldName}" to "${newName}"`,
+      payload: {
+        pageId: targetPage.id,
+        oldName,
+        newName: newName.trim(),
+        undoInfo,
+      } as RenamePageResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.RENAME_PAGE,
+      success: false,
+      message: `Error renaming page: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function changePageBackgroundTool(payload: ChangePageBackgroundQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { pageId, backgroundColor } = payload ?? {};
+
+    if (!backgroundColor) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CHANGE_PAGE_BACKGROUND,
+        success: false,
+        message: 'Background color is required',
+      };
+    }
+
+    const currentFile = penpot.currentFile as any;
+    let targetPage: any;
+
+    if (pageId) {
+      targetPage = currentFile?.pages?.find((p: any) => p.id === pageId);
+      if (!targetPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.CHANGE_PAGE_BACKGROUND,
+          success: false,
+          message: `Page with ID "${pageId}" not found`,
+        };
+      }
+    } else {
+      targetPage = penpot.currentPage as any;
+      if (!targetPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.CHANGE_PAGE_BACKGROUND,
+          success: false,
+          message: 'No current page found',
+        };
+      }
+    }
+
+    const rootShape = targetPage.root;
+    if (!rootShape) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CHANGE_PAGE_BACKGROUND,
+        success: false,
+        message: 'Page root shape not found',
+      };
+    }
+
+    const previousFills = rootShape.fills ? JSON.parse(JSON.stringify(rootShape.fills)) : [];
+
+    rootShape.fills = [{
+      fillColor: backgroundColor,
+      fillOpacity: 1,
+    }];
+
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.CHANGE_PAGE_BACKGROUND,
+      actionId: `change_bg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Changed page background to ${backgroundColor}`,
+      undoData: {
+        pageId: targetPage.id,
+        previousFills,
+        newColor: backgroundColor,
+      },
+      timestamp: Date.now(),
+    };
+
+    addToUndoStack(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CHANGE_PAGE_BACKGROUND,
+      success: true,
+      message: `Changed page background to ${backgroundColor}`,
+      payload: {
+        pageId: targetPage.id,
+        backgroundColor,
+        undoInfo,
+      } as ChangePageBackgroundResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CHANGE_PAGE_BACKGROUND,
+      success: false,
+      message: `Error changing page background: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function createPageTool(payload: CreatePageQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { name, openAfterCreate = false } = payload ?? {};
+
+    const newPage = penpot.createPage();
+    
+    if (name && name.trim() !== '') {
+      newPage.name = name.trim();
+    }
+
+    if (openAfterCreate) {
+      penpot.openPage(newPage);
+    }
+
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.CREATE_PAGE,
+      actionId: `create_page_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Created page "${newPage.name}"`,
+      undoData: {
+        pageId: newPage.id,
+        pageName: newPage.name,
+        wasOpened: openAfterCreate,
+      },
+      timestamp: Date.now(),
+    };
+
+    addToUndoStack(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CREATE_PAGE,
+      success: true,
+      message: `Created page "${newPage.name}"${openAfterCreate ? ' and opened it' : ''}`,
+      payload: {
+        pageId: newPage.id,
+        pageName: newPage.name,
+        undoInfo,
+      } as CreatePageResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CREATE_PAGE,
+      success: false,
+      message: `Error creating page: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
