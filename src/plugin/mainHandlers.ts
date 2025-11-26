@@ -101,6 +101,12 @@ import {
   ZIndexQueryPayload,
   ZIndexResponsePayload,
 } from "../types/types";
+import {
+  ReadShapeColorsQueryPayload,
+  ReadShapeColorsResponsePayload,
+  ReadLibraryContextQueryPayload,
+  ReadLibraryContextResponsePayload
+} from "../types/pluginTypes";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
 import { getSelectionForAction as actionGetSelectionForAction, hasValidSelection as actionHasValidSelection, updateCurrentSelection, currentSelectionIds } from './actionSelection';
@@ -9160,6 +9166,90 @@ export async function createPageTool(payload: CreatePageQueryPayload): Promise<P
       type: ClientQueryType.CREATE_PAGE,
       success: false,
       message: `Error creating page: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function readShapeColors(payload: ReadShapeColorsQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { shapeIds } = payload;
+    let shapesToRead: Shape[] = [];
+
+    if (shapeIds && shapeIds.length > 0) {
+      shapesToRead = shapeIds
+        .map((id) => penpot.selection.find((s) => s.id === id))
+        .filter((s): s is Shape => !!s);
+    } else {
+      shapesToRead = getSelectionForAction();
+    }
+
+    if (shapesToRead.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.READ_SHAPE_COLORS,
+        success: false,
+        message: 'No shapes selected or found to read colors from.',
+      };
+    }
+
+    // Use the Penpot API to get colors
+    // const colorsInfo = await penpot.shapesColors(shapesToRead);
+
+    // Transform the result into our response payload
+    const shapeColorMap = new Map<string, {
+      shapeId: string;
+      shapeName: string;
+      fills: Array<{ color: string; opacity: number; type: string }>;
+      strokes: Array<{ color: string; opacity: number; width: number; type: string }>;
+    }>();
+
+    // Initialize map for all shapes
+    for (const shape of shapesToRead) {
+      shapeColorMap.set(shape.id, {
+        shapeId: shape.id,
+        shapeName: shape.name,
+        fills: [],
+        strokes: [],
+      });
+    }
+
+    for (const shape of shapesToRead) {
+      const entry = shapeColorMap.get(shape.id)!;
+
+      if (shape.fills && Array.isArray(shape.fills)) {
+        entry.fills = shape.fills.map((fill: any) => ({
+          color: fill.fillColor || fill.color || 'unknown',
+          opacity: fill.fillOpacity ?? fill.opacity ?? 1,
+          type: 'solid', // Simplified for now
+        }));
+      }
+
+      if (shape.strokes && Array.isArray(shape.strokes)) {
+        entry.strokes = shape.strokes.map((stroke: any) => ({
+          color: stroke.strokeColor || stroke.color || 'unknown',
+          opacity: stroke.strokeOpacity ?? stroke.opacity ?? 1,
+          width: stroke.strokeWidth ?? 1,
+          type: stroke.strokeType || 'solid',
+        }));
+      }
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.READ_SHAPE_COLORS,
+      success: true,
+      message: `Read colors from ${shapesToRead.length} shapes`,
+      payload: {
+        colors: Array.from(shapeColorMap.values()),
+      } as ReadShapeColorsResponsePayload,
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.READ_SHAPE_COLORS,
+      success: false,
+      message: `Error reading shape colors: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

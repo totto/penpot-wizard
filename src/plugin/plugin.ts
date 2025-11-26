@@ -58,6 +58,11 @@ import {
   ZIndexQueryPayload,
 } from '../types/types';
 
+import {
+  ReadShapeColorsQueryPayload,
+  ReadLibraryContextQueryPayload
+} from '../types/pluginTypes';
+
 import { handleDrawShape } from './drawHandlers';
 import {
   handleGetProjectData,
@@ -120,6 +125,8 @@ import {
   changePageBackgroundTool,
   createPageTool,
   setLayoutZIndexTool,
+  readShapeColors,
+  readLibraryContext,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -439,6 +446,14 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.Z_INDEX_ACTION:
       responseMessage = await setLayoutZIndexTool(payload as unknown as ZIndexQueryPayload);
+      break;
+
+    case ClientQueryType.READ_SHAPE_COLORS:
+      responseMessage = await readShapeColors(payload as unknown as ReadShapeColorsQueryPayload);
+      break;
+
+    case ClientQueryType.READ_LIBRARY_CONTEXT:
+      responseMessage = await readLibraryContext(payload as unknown as ReadLibraryContextQueryPayload);
       break;
 
     default:

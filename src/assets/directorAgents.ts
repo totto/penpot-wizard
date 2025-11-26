@@ -157,8 +157,8 @@ When using the resize-selection tool:
       'change-page-background',
       'create-page',
       'set-layout-z-index',
-
-
+      'read-shape-colors',
+      'read-library-context',
       'dump-selection', //Dev tool for debugging
 
     ],

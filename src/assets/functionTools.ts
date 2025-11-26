@@ -37,6 +37,7 @@ import type {
   SetConstraintsVerticalResponsePayload,
   PluginResponseMessage,
 } from '@/types/types';
+import { ReadShapeColorsQueryPayload } from '@/types/pluginTypes';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 import { blendModes } from '@/types/shapeTypes';
@@ -1008,6 +1009,36 @@ export const functionTools: FunctionTool[] = [
     }),
     function: async (args: ZIndexQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.Z_INDEX_ACTION, args);
+      return response;
+    },
+  },
+  {
+    id: 'read-shape-colors',
+    name: 'Read Shape Colors',
+    description: `
+      Reads the fill and stroke colors of the selected shapes.
+      Returns a list of colors (hex/rgba) and their usage (fill/stroke) for each shape.
+      Useful for analyzing the color palette of a selection.
+    `,
+    inputSchema: z.object({
+      shapeIds: z.array(z.string()).optional().describe('Optional list of shape IDs to read colors from. If omitted, uses current selection.'),
+    }),
+    function: async (args: ReadShapeColorsQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.READ_SHAPE_COLORS, args);
+      return response;
+    },
+  },
+  {
+    id: 'read-library-context',
+    name: 'Read Library Context',
+    description: `
+      Reads metadata about the current file's local library and any connected libraries.
+      Returns information about available colors, typographies, and components.
+      Useful for understanding the design system context.
+    `,
+    inputSchema: z.object({}),
+    function: async (args: any) => {
+      const response = await sendMessageToPlugin(ClientQueryType.READ_LIBRARY_CONTEXT, args);
       return response;
     },
   },

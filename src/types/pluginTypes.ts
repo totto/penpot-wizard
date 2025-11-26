@@ -1,6 +1,10 @@
 import type { Shape, ImageData as PenpotImageData, User } from '@penpot/plugin-types';
 import { PenpotShapeProperties } from './shapeTypes';
 import type { UndoInfo } from './types';
+import { ReadShapeColorsQueryPayload, ReadShapeColorsResponsePayload } from './readShapeColorsTypes';
+import { ReadLibraryContextQueryPayload, ReadLibraryContextResponsePayload } from './readLibraryContextTypes';
+export type { ReadShapeColorsQueryPayload, ReadShapeColorsResponsePayload };
+export type { ReadLibraryContextQueryPayload, ReadLibraryContextResponsePayload };
 
 // Shared enums between UI and plugin
 export enum MessageSourceName {
@@ -39,6 +43,8 @@ export enum ClientQueryType {
   TOGGLE_SELECTION_PROPORTION_LOCK = 'TOGGLE_SELECTION_PROPORTION_LOCK',
   TOGGLE_SELECTION_VISIBILITY = 'TOGGLE_SELECTION_VISIBILITY',
   CLONE_SELECTION = 'CLONE_SELECTION',
+  READ_SHAPE_COLORS = 'READ_SHAPE_COLORS',
+  READ_LIBRARY_CONTEXT = 'READ_LIBRARY_CONTEXT',
 }
 
 // Plugin-specific enums and types
@@ -409,7 +415,7 @@ export interface GroupResponsePayload {
   groupedShapes: Array<{ id: string; name?: string }>;
 }
 
-export type ClientQueryPayload = 
+export type ClientQueryPayload =
   | DrawShapeQueryPayload
   | AddImageQueryPayload
   | AddImageFromUrlQueryPayload
@@ -419,10 +425,13 @@ export type ClientQueryPayload =
   | SetSelectionBlendModeQueryPayload
   | SetSelectionBoundsQueryPayload
   | CreateLibraryFontPayload
+  | CreateLibraryFontPayload
   | CreateLibraryComponentPayload
-  | CloneSelectionQueryPayload;
-  
-export type PluginResponsePayload = 
+  | CloneSelectionQueryPayload
+  | ReadShapeColorsQueryPayload
+  | ReadLibraryContextQueryPayload;
+
+export type PluginResponsePayload =
   | DrawShapeResponsePayload
   | AddImagePayload
   | ApplyBlurResponsePayload
@@ -447,4 +456,6 @@ export type PluginResponsePayload =
   | UngroupResponsePayload
   | GroupResponsePayload
   | RotateResponsePayload
-  | CloneSelectionResponsePayload;
+  | CloneSelectionResponsePayload
+  | ReadShapeColorsResponsePayload
+  | ReadLibraryContextResponsePayload;

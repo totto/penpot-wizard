@@ -80,6 +80,8 @@ export enum ClientQueryType {
   CHANGE_PAGE_BACKGROUND = 'CHANGE_PAGE_BACKGROUND',
   RENAME_PAGE = 'RENAME_PAGE',
   Z_INDEX_ACTION = 'Z_INDEX_ACTION',
+  READ_SHAPE_COLORS = 'READ_SHAPE_COLORS',
+  READ_LIBRARY_CONTEXT = 'READ_LIBRARY_CONTEXT',
 }
 
 export enum PenpotShapeType {
@@ -94,41 +96,41 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload 
-  | AddImageQueryPayload 
-  | AddImageFromUrlQueryPayload 
-  | ApplyBlurQueryPayload 
-  | ApplyFillQueryPayload 
-  | ApplyStrokeQueryPayload 
-  | ApplyLinearGradientQueryPayload 
-  | ApplyRadialGradientQueryPayload 
-  | ApplyShadowQueryPayload 
-  | SetSelectionOpacityQueryPayload 
-  | SetSelectionBorderRadiusQueryPayload 
-  | SetSelectionBlendModeQueryPayload 
-  | AlignHorizontalQueryPayload 
-  | AlignVerticalQueryPayload 
-  | CenterAlignmentQueryPayload 
-  | DistributeHorizontalQueryPayload 
-  | DistributeVerticalQueryPayload 
-  | GroupQueryPayload 
-  | UngroupQueryPayload 
-  | UnionBooleanOperationQueryPayload 
-  | IntersectionBooleanOperationQueryPayload 
-  | DifferenceBooleanOperationQueryPayload 
-  | ExcludeBooleanOperationQueryPayload 
-  | FlattenSelectionQueryPayload 
-  | CreateShapeFromSvgQueryPayload 
-  | ExportSelectionAsSvgQueryPayload 
-  | ExportSelectionAsPngQueryPayload 
-  | ExportSelectionAsJpegQueryPayload 
-  | ExportSelectionAsWebpQueryPayload 
-  | UndoLastActionQueryPayload 
-  | RedoLastActionQueryPayload 
-  | ResizeQueryPayload 
-  | GetSelectionInfoQueryPayload 
-  | MoveQueryPayload 
-  | CloneSelectionQueryPayload 
+  payload?: DrawShapeQueryPayload
+  | AddImageQueryPayload
+  | AddImageFromUrlQueryPayload
+  | ApplyBlurQueryPayload
+  | ApplyFillQueryPayload
+  | ApplyStrokeQueryPayload
+  | ApplyLinearGradientQueryPayload
+  | ApplyRadialGradientQueryPayload
+  | ApplyShadowQueryPayload
+  | SetSelectionOpacityQueryPayload
+  | SetSelectionBorderRadiusQueryPayload
+  | SetSelectionBlendModeQueryPayload
+  | AlignHorizontalQueryPayload
+  | AlignVerticalQueryPayload
+  | CenterAlignmentQueryPayload
+  | DistributeHorizontalQueryPayload
+  | DistributeVerticalQueryPayload
+  | GroupQueryPayload
+  | UngroupQueryPayload
+  | UnionBooleanOperationQueryPayload
+  | IntersectionBooleanOperationQueryPayload
+  | DifferenceBooleanOperationQueryPayload
+  | ExcludeBooleanOperationQueryPayload
+  | FlattenSelectionQueryPayload
+  | CreateShapeFromSvgQueryPayload
+  | ExportSelectionAsSvgQueryPayload
+  | ExportSelectionAsPngQueryPayload
+  | ExportSelectionAsJpegQueryPayload
+  | ExportSelectionAsWebpQueryPayload
+  | UndoLastActionQueryPayload
+  | RedoLastActionQueryPayload
+  | ResizeQueryPayload
+  | GetSelectionInfoQueryPayload
+  | MoveQueryPayload
+  | CloneSelectionQueryPayload
   | ToggleSelectionLockQueryPayload
   | ToggleSelectionProportionLockQueryPayload
   | FlipSelectionHorizontalQueryPayload
@@ -324,9 +326,9 @@ export type ClientQueryPayload =
   | ApplyLinearGradientQueryPayload
   | ApplyRadialGradientQueryPayload
   | ApplyShadowQueryPayload
-  | SetSelectionOpacityQueryPayload 
-  | SetSelectionBorderRadiusQueryPayload 
-  | SetSelectionBlendModeQueryPayload 
+  | SetSelectionOpacityQueryPayload
+  | SetSelectionBorderRadiusQueryPayload
+  | SetSelectionBlendModeQueryPayload
   | AlignHorizontalQueryPayload
   | AlignVerticalQueryPayload
   | CenterAlignmentQueryPayload
@@ -880,7 +882,7 @@ export interface GetSelectionDumpResponsePayload {
 
 
 export interface GetCurrentThemePayload {
-    theme: Theme;
+  theme: Theme;
 }
 
 export interface ActiveUser {
