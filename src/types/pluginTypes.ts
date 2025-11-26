@@ -1,10 +1,41 @@
 import type { Shape, ImageData as PenpotImageData, User } from '@penpot/plugin-types';
 import { PenpotShapeProperties } from './shapeTypes';
 import type { UndoInfo } from './types';
-import { ReadShapeColorsQueryPayload, ReadShapeColorsResponsePayload } from './readShapeColorsTypes';
-import { ReadLibraryContextQueryPayload, ReadLibraryContextResponsePayload } from './readLibraryContextTypes';
-export type { ReadShapeColorsQueryPayload, ReadShapeColorsResponsePayload };
-export type { ReadLibraryContextQueryPayload, ReadLibraryContextResponsePayload };
+
+// ReadShapeColors Types
+export interface ReadShapeColorsQueryPayload {
+  shapeIds?: string[];
+}
+
+export interface ReadShapeColorsResponsePayload {
+  colors: Array<{
+    shapeId: string;
+    shapeName: string;
+    fills: Array<{ color: string; opacity: number; type: string }>;
+    strokes: Array<{ color: string; opacity: number; width: number; type: string }>;
+  }>;
+}
+
+// ReadLibraryContext Types
+export interface ReadLibraryContextQueryPayload {
+  // No args needed to read current context
+}
+
+export interface ReadLibraryContextResponsePayload {
+  localLibrary: {
+    name: string;
+    colorsCount: number;
+    typographiesCount: number;
+    componentsCount: number;
+  };
+  connectedLibraries: Array<{
+    id: string;
+    name: string;
+    colorsCount: number;
+    typographiesCount: number;
+    componentsCount: number;
+  }>;
+}
 
 // Shared enums between UI and plugin
 export enum MessageSourceName {
