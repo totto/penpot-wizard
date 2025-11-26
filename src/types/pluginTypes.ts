@@ -56,6 +56,21 @@ export interface ReadViewportSettingsResponsePayload {
   center: { x: number; y: number };
 }
 
+// UploadMediaData Types
+export interface UploadMediaDataQueryPayload {
+  url: string; // URL to fetch the image from
+  name?: string; // Optional name for the uploaded image
+}
+
+export interface UploadMediaDataResponsePayload {
+  imageData: {
+    id: string;
+    name: string;
+    width: number;
+    height: number;
+  };
+}
+
 // Shared enums between UI and plugin
 export enum MessageSourceName {
   Plugin = 'penpotWizardPlugin',
@@ -97,6 +112,7 @@ export enum ClientQueryType {
   READ_LIBRARY_CONTEXT = 'READ_LIBRARY_CONTEXT',
   READ_PLUGIN_LOCAL_STORAGE = 'READ_PLUGIN_LOCAL_STORAGE',
   READ_VIEWPORT_SETTINGS = 'READ_VIEWPORT_SETTINGS',
+  UPLOAD_MEDIA_DATA = 'UPLOAD_MEDIA_DATA',
 }
 
 // Plugin-specific enums and types
@@ -483,7 +499,8 @@ export type ClientQueryPayload =
   | ReadShapeColorsQueryPayload
   | ReadLibraryContextQueryPayload
   | ReadPluginLocalStorageQueryPayload
-  | ReadViewportSettingsQueryPayload;
+  | ReadViewportSettingsQueryPayload
+  | UploadMediaDataQueryPayload;
 
 export type PluginResponsePayload =
   | DrawShapeResponsePayload
