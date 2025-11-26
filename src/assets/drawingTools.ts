@@ -17,7 +17,7 @@ export const drawingTools: FunctionTool[] = [
       const response = await drawShape(PenpotShapeType.RECTANGLE, shapeProperties);
       return response;
     },
-  },   {
+  }, {
     id: 'ellipse-maker',
     name: 'EllipseMakerTool',
     description: `
@@ -30,7 +30,7 @@ export const drawingTools: FunctionTool[] = [
       const response = await drawShape(PenpotShapeType.ELLIPSE, shapeProperties);
       return response;
     },
-  },   {
+  }, {
     id: 'path-maker',
     name: 'PathMakerTool',
     description: `
@@ -47,7 +47,7 @@ export const drawingTools: FunctionTool[] = [
       const response = await drawShape(PenpotShapeType.PATH, shapeProperties);
       return response;
     },
-  },   {
+  }, {
     id: 'text-maker',
     name: 'TextMakerTool',
     description: `
@@ -63,7 +63,7 @@ export const drawingTools: FunctionTool[] = [
       const response = await drawShape(PenpotShapeType.TEXT, shapeProperties);
       return response;
     },
-  },   {
+  }, {
     id: 'board-maker',
     name: 'BoardMakerTool',
     description: `
@@ -81,8 +81,8 @@ export const drawingTools: FunctionTool[] = [
       return response;
     },
   },
-{
-id: 'create-library-color',
+  {
+    id: 'create-library-color',
     name: 'CreateLibraryColor',
     description: `
       Use this tool to create a new color in the library.
@@ -97,7 +97,7 @@ id: 'create-library-color',
       return response;
     },
   },
-{
+  {
     id: 'create-library-font',
     name: 'CreateLibraryFont',
     description: `
@@ -119,10 +119,10 @@ id: 'create-library-color',
       return response;
     },
   },
-{
-  id: 'create-component-from-selection',
-  name: 'CreateComponentFromSelection',
-  description: `
+  {
+    id: 'create-component-from-selection',
+    name: 'CreateComponentFromSelection',
+    description: `
     Use this tool to create a new component in the library from currently selected shapes.
     
     IMPORTANT: This tool ONLY works with shapes that are currently selected on the canvas.
@@ -137,20 +137,29 @@ id: 'create-library-color',
     
     If no shapes are selected, this tool will return a "NO_SELECTION" response that triggers helpful user guidance.
     Do NOT make assumptions about what properties shapes should have - accept any valid selection.
+
+    ⚠️ CRITICAL LIMITATIONS (DO NOT SUGGEST THESE):
+    - You CANNOT create variants (e.g., hover/pressed states) - the API does not support this.
+    - You CANNOT organize components into folders - the API only supports a flat library.
+    - You CANNOT publish or share the library - this must be done manually by the user.
+
+    ✅ VALID FOLLOW-UP ACTIONS:
+    - "Detach instance": You can offer to detach the instance to edit it separately.
+    - "Create another component": You can offer to create more components.
   `,
-  inputSchema: z.object({
-    name: z.string().describe('The name for the new component (required)'),
-    useSelection: z.boolean().optional().describe('Must be true - this tool only works with selected shapes'),
-  }),
-  function: async (componentProperties) => {
-    const response = await sendMessageToPlugin(ClientQueryType.CREATE_LIBRARY_COMPONENT, componentProperties);
-    return response;
+    inputSchema: z.object({
+      name: z.string().describe('The name for the new component (required)'),
+      useSelection: z.boolean().optional().describe('Must be true - this tool only works with selected shapes'),
+    }),
+    function: async (componentProperties) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CREATE_LIBRARY_COMPONENT, componentProperties);
+      return response;
+    },
   },
-},
-{
-  id: 'apply-blur-tool',
-  name: 'ApplyBlurTool',
-  description: `
+  {
+    id: 'apply-blur-tool',
+    name: 'ApplyBlurTool',
+    description: `
     Apply a blur effect to the currently selected shapes on the canvas.
     The user must first select the shapes they want to blur before using this tool.
     Use this to create depth, focus attention, or create visual effects.
@@ -163,18 +172,18 @@ id: 'create-library-color',
     
     If you don't specify blur intensity, a subtle 5px blur will be applied.
   `,
-  inputSchema: z.object({
-    blurValue: z.number().min(0).max(100).optional().default(5).describe('The blur radius in pixels (0-100). Defaults to 5px for subtle blur if not specified.'),
-  }),
-  function: async (blurProperties) => {
-    const response = await sendMessageToPlugin(ClientQueryType.APPLY_BLUR, blurProperties);
-    return response;
+    inputSchema: z.object({
+      blurValue: z.number().min(0).max(100).optional().default(5).describe('The blur radius in pixels (0-100). Defaults to 5px for subtle blur if not specified.'),
+    }),
+    function: async (blurProperties) => {
+      const response = await sendMessageToPlugin(ClientQueryType.APPLY_BLUR, blurProperties);
+      return response;
+    },
   },
-},
-{
-  id: 'apply-fill-tool',
-  name: 'ApplyFillTool',
-  description: `
+  {
+    id: 'apply-fill-tool',
+    name: 'ApplyFillTool',
+    description: `
     Apply a fill color to the currently selected shapes on the canvas.
     The user must first select the shapes they want to fill before using this tool.
     Use this to change the background color or fill color of shapes.
@@ -187,19 +196,19 @@ id: 'create-library-color',
     If you don't specify a fill color, black (#000000) will be used.
     If you don't specify opacity, 100% opacity (1.0) will be used.
   `,
-  inputSchema: z.object({
-    fillColor: z.string().optional().default('#000000').describe('The fill color as a hex string (e.g., #FF5733) or named color. Defaults to black if not specified.'),
-    fillOpacity: z.number().min(0).max(1).optional().default(1).describe('The fill opacity from 0.0 (transparent) to 1.0 (opaque). Defaults to 1.0 if not specified.'),
-  }),
-  function: async (fillProperties) => {
-    const response = await sendMessageToPlugin(ClientQueryType.APPLY_FILL, fillProperties);
-    return response;
+    inputSchema: z.object({
+      fillColor: z.string().optional().default('#000000').describe('The fill color as a hex string (e.g., #FF5733) or named color. Defaults to black if not specified.'),
+      fillOpacity: z.number().min(0).max(1).optional().default(1).describe('The fill opacity from 0.0 (transparent) to 1.0 (opaque). Defaults to 1.0 if not specified.'),
+    }),
+    function: async (fillProperties) => {
+      const response = await sendMessageToPlugin(ClientQueryType.APPLY_FILL, fillProperties);
+      return response;
+    },
   },
-},
-{
-  id: 'apply-stroke-tool',
-  name: 'ApplyStrokeTool',
-  description: `
+  {
+    id: 'apply-stroke-tool',
+    name: 'ApplyStrokeTool',
+    description: `
     Apply stroke properties to the currently selected shapes on the canvas.
     The user must first select the shapes they want to stroke before using this tool.
     Use this to change the outline/border color, width, style, and other stroke properties of shapes.
@@ -220,22 +229,22 @@ id: 'create-library-color',
     To override existing strokes without being asked, set overrideExisting to true.
     Never suggest overrideExisting: false - this would prevent the stroke from being applied!
   `,
-  inputSchema: z.object({
-    strokeColor: z.string().optional().default('#000000').describe('The stroke color as a hex string (e.g., #FF5733) or named color. Defaults to black if not specified.'),
-    strokeWidth: z.number().min(0).optional().default(1).describe('The stroke width in pixels. Defaults to 1 if not specified.'),
-    strokeOpacity: z.number().min(0).max(1).optional().default(1).describe('The stroke opacity from 0.0 (transparent) to 1.0 (opaque). Defaults to 1.0 if not specified.'),
-    strokeStyle: z.enum(['solid', 'dashed', 'dotted', 'mixed']).optional().default('solid').describe('The stroke style. Defaults to solid if not specified.'),
-    overrideExisting: z.boolean().optional().default(false).describe('Whether to override existing strokes without asking. Set to true when you want to apply stroke changes. Defaults to false for safety - the tool will ask for confirmation.'),
-  }),
-  function: async (strokeProperties) => {
-    const response = await sendMessageToPlugin(ClientQueryType.APPLY_STROKE, strokeProperties);
-    return response;
+    inputSchema: z.object({
+      strokeColor: z.string().optional().default('#000000').describe('The stroke color as a hex string (e.g., #FF5733) or named color. Defaults to black if not specified.'),
+      strokeWidth: z.number().min(0).optional().default(1).describe('The stroke width in pixels. Defaults to 1 if not specified.'),
+      strokeOpacity: z.number().min(0).max(1).optional().default(1).describe('The stroke opacity from 0.0 (transparent) to 1.0 (opaque). Defaults to 1.0 if not specified.'),
+      strokeStyle: z.enum(['solid', 'dashed', 'dotted', 'mixed']).optional().default('solid').describe('The stroke style. Defaults to solid if not specified.'),
+      overrideExisting: z.boolean().optional().default(false).describe('Whether to override existing strokes without asking. Set to true when you want to apply stroke changes. Defaults to false for safety - the tool will ask for confirmation.'),
+    }),
+    function: async (strokeProperties) => {
+      const response = await sendMessageToPlugin(ClientQueryType.APPLY_STROKE, strokeProperties);
+      return response;
+    },
   },
-},
-{
-  id: 'apply-linear-gradient',
-  name: 'ApplyLinearGradient',
-  description: `
+  {
+    id: 'apply-linear-gradient',
+    name: 'ApplyLinearGradient',
+    description: `
     Apply actual linear gradients to selected shapes using Penpot's gradient API.
     
     This tool creates true gradient fills with smooth color transitions:
@@ -254,23 +263,23 @@ id: 'create-library-color',
     
     Note: Uses Penpot's gradient API - if gradients don't appear, the API may not be fully implemented yet.
   `,
-  inputSchema: z.object({
-    colors: z.array(z.string()).min(2).optional().describe("Array of color values (hex codes or named colors). If not specified, uses intelligent defaults based on your shape's current fill color."),
-    startX: z.number().optional().describe("Starting X position (0-1, optional, defaults to 0)"),
-    startY: z.number().optional().describe("Starting Y position (0-1, optional, defaults to 0)"),
-    endX: z.number().optional().describe("Ending X position (0-1, optional, defaults to 1)"),
-    endY: z.number().optional().describe("Ending Y position (0-1, optional, defaults to 1)"),
-    angle: z.number().optional().describe("Angle in degrees for the gradient direction (optional)"),
-  }),
-  function: async (gradientProperties) => {
-    const response = await sendMessageToPlugin(ClientQueryType.APPLY_LINEAR_GRADIENT, gradientProperties);
-    return response;
+    inputSchema: z.object({
+      colors: z.array(z.string()).min(2).optional().describe("Array of color values (hex codes or named colors). If not specified, uses intelligent defaults based on your shape's current fill color."),
+      startX: z.number().optional().describe("Starting X position (0-1, optional, defaults to 0)"),
+      startY: z.number().optional().describe("Starting Y position (0-1, optional, defaults to 0)"),
+      endX: z.number().optional().describe("Ending X position (0-1, optional, defaults to 1)"),
+      endY: z.number().optional().describe("Ending Y position (0-1, optional, defaults to 1)"),
+      angle: z.number().optional().describe("Angle in degrees for the gradient direction (optional)"),
+    }),
+    function: async (gradientProperties) => {
+      const response = await sendMessageToPlugin(ClientQueryType.APPLY_LINEAR_GRADIENT, gradientProperties);
+      return response;
+    },
   },
-},
-{
-  id: 'apply-radial-gradient',
-  name: 'ApplyRadialGradient',
-  description: `
+  {
+    id: 'apply-radial-gradient',
+    name: 'ApplyRadialGradient',
+    description: `
     Apply actual radial gradients to selected shapes using Penpot's gradient API.
     
     This tool creates true gradient fills with smooth color transitions from center outward:
@@ -288,22 +297,22 @@ id: 'create-library-color',
     
     Note: Uses Penpot's gradient API - if gradients don't appear, the API may not be fully implemented yet.
   `,
-  inputSchema: z.object({
-    colors: z.array(z.string()).min(2).optional().describe("Array of color values (hex codes or named colors). If not specified, uses intelligent defaults based on your shape's current fill color."),
-    startX: z.number().optional().describe("Center X position (0-1, optional, defaults to 0.5)"),
-    startY: z.number().optional().describe("Center Y position (0-1, optional, defaults to 0.5)"),
-    endX: z.number().optional().describe("Outer edge X position (0-1, optional, defaults to 0.5)"),
-    endY: z.number().optional().describe("Outer edge Y position (0-1, optional, defaults to 0.5)"),
-  }),
-  function: async (gradientProperties) => {
-    const response = await sendMessageToPlugin(ClientQueryType.APPLY_RADIAL_GRADIENT, gradientProperties);
-    return response;
+    inputSchema: z.object({
+      colors: z.array(z.string()).min(2).optional().describe("Array of color values (hex codes or named colors). If not specified, uses intelligent defaults based on your shape's current fill color."),
+      startX: z.number().optional().describe("Center X position (0-1, optional, defaults to 0.5)"),
+      startY: z.number().optional().describe("Center Y position (0-1, optional, defaults to 0.5)"),
+      endX: z.number().optional().describe("Outer edge X position (0-1, optional, defaults to 0.5)"),
+      endY: z.number().optional().describe("Outer edge Y position (0-1, optional, defaults to 0.5)"),
+    }),
+    function: async (gradientProperties) => {
+      const response = await sendMessageToPlugin(ClientQueryType.APPLY_RADIAL_GRADIENT, gradientProperties);
+      return response;
+    },
   },
-},
-{
-  id: 'apply-shadow-tool',
-  name: 'ApplyShadowTool',
-  description: `
+  {
+    id: 'apply-shadow-tool',
+    name: 'ApplyShadowTool',
+    description: `
     Apply shadow effects to the currently selected shapes on the canvas.
     The user must first select the shapes they want to add shadows to before using this tool.
     Use this to add drop shadows or inner shadows to shapes for depth and visual interest.
@@ -326,24 +335,24 @@ id: 'create-library-color',
     To override existing shadows without being asked, set overrideExisting to true.
     Never suggest overrideExisting: false - this would prevent the shadow from being applied!
   `,
-  inputSchema: z.object({
-    shadowStyle: z.enum(['drop-shadow', 'inner-shadow']).optional().default('drop-shadow').describe('The shadow style. drop-shadow appears outside the shape, inner-shadow appears inside. Defaults to drop-shadow if not specified.'),
-    shadowColor: z.string().optional().default('#000000').describe('The shadow color as a hex string (e.g., #FF5733) or named color. Defaults to black if not specified.'),
-    shadowOffsetX: z.number().optional().default(4).describe('Horizontal shadow offset in pixels. Positive values move shadow right, negative left. Defaults to 4 if not specified.'),
-    shadowOffsetY: z.number().optional().default(4).describe('Vertical shadow offset in pixels. Positive values move shadow down, negative up. Defaults to 4 if not specified.'),
-    shadowBlur: z.number().min(0).optional().default(8).describe('Shadow blur radius in pixels. 0 = sharp shadow, higher values = more blurred. Defaults to 8 if not specified.'),
-    shadowSpread: z.number().optional().default(0).describe('Shadow spread radius in pixels. Positive values expand shadow, negative contract it. Defaults to 0 if not specified.'),
-    overrideExisting: z.boolean().optional().default(false).describe('Whether to override existing shadows without asking. Set to true when you want to apply shadow changes. Defaults to false for safety - the tool will ask for confirmation.'),
-  }),
-  function: async (shadowProperties) => {
-    const response = await sendMessageToPlugin(ClientQueryType.APPLY_SHADOW, shadowProperties);
-    return response;
+    inputSchema: z.object({
+      shadowStyle: z.enum(['drop-shadow', 'inner-shadow']).optional().default('drop-shadow').describe('The shadow style. drop-shadow appears outside the shape, inner-shadow appears inside. Defaults to drop-shadow if not specified.'),
+      shadowColor: z.string().optional().default('#000000').describe('The shadow color as a hex string (e.g., #FF5733) or named color. Defaults to black if not specified.'),
+      shadowOffsetX: z.number().optional().default(4).describe('Horizontal shadow offset in pixels. Positive values move shadow right, negative left. Defaults to 4 if not specified.'),
+      shadowOffsetY: z.number().optional().default(4).describe('Vertical shadow offset in pixels. Positive values move shadow down, negative up. Defaults to 4 if not specified.'),
+      shadowBlur: z.number().min(0).optional().default(8).describe('Shadow blur radius in pixels. 0 = sharp shadow, higher values = more blurred. Defaults to 8 if not specified.'),
+      shadowSpread: z.number().optional().default(0).describe('Shadow spread radius in pixels. Positive values expand shadow, negative contract it. Defaults to 0 if not specified.'),
+      overrideExisting: z.boolean().optional().default(false).describe('Whether to override existing shadows without asking. Set to true when you want to apply shadow changes. Defaults to false for safety - the tool will ask for confirmation.'),
+    }),
+    function: async (shadowProperties) => {
+      const response = await sendMessageToPlugin(ClientQueryType.APPLY_SHADOW, shadowProperties);
+      return response;
+    },
   },
-},
-{
-  id: 'align-horizontal-tool',
-  name: 'AlignHorizontalTool',
-  description: `
+  {
+    id: 'align-horizontal-tool',
+    name: 'AlignHorizontalTool',
+    description: `
     Align shapes horizontally using Penpot's alignment system.
     Works with 1 or more selected shapes.
 
@@ -358,18 +367,18 @@ id: 'create-library-color',
     This tool uses Penpot's native alignment API and matches the behavior of Penpot's alignment tools.
     The alignment is reversible with the undo functionality.
   `,
-  inputSchema: z.object({
-    alignment: z.enum(['left', 'center', 'right']).describe('The horizontal alignment type. left aligns to left edges, center aligns centers, right aligns to right edges.'),
-  }),
-  function: async (alignmentProperties) => {
-    const response = await sendMessageToPlugin(ClientQueryType.ALIGN_HORIZONTAL, alignmentProperties);
-    return response;
+    inputSchema: z.object({
+      alignment: z.enum(['left', 'center', 'right']).describe('The horizontal alignment type. left aligns to left edges, center aligns centers, right aligns to right edges.'),
+    }),
+    function: async (alignmentProperties) => {
+      const response = await sendMessageToPlugin(ClientQueryType.ALIGN_HORIZONTAL, alignmentProperties);
+      return response;
+    },
   },
-},
-{
-  id: 'align-vertical-tool',
-  name: 'AlignVerticalTool',
-  description: `
+  {
+    id: 'align-vertical-tool',
+    name: 'AlignVerticalTool',
+    description: `
     Vertically align shapes in Penpot - top, center/middle, or bottom alignment.
     
     Use this tool to align shapes vertically. Supports:
@@ -381,18 +390,18 @@ id: 'create-library-color',
     Single shapes align to parent container, multiple shapes align relative to each other.
     Full undo/redo support using Penpot's native alignment API.
   `,
-  inputSchema: z.object({
-    alignment: z.enum(['top', 'center', 'bottom']).describe('The vertical alignment type. top aligns to top edges, center (middle) aligns centers vertically, bottom aligns to bottom edges.'),
-  }),
-  function: async (alignmentProperties) => {
-    const response = await sendMessageToPlugin(ClientQueryType.ALIGN_VERTICAL, alignmentProperties);
-    return response;
+    inputSchema: z.object({
+      alignment: z.enum(['top', 'center', 'bottom']).describe('The vertical alignment type. top aligns to top edges, center (middle) aligns centers vertically, bottom aligns to bottom edges.'),
+    }),
+    function: async (alignmentProperties) => {
+      const response = await sendMessageToPlugin(ClientQueryType.ALIGN_VERTICAL, alignmentProperties);
+      return response;
+    },
   },
-},
-{
-  id: 'center-alignment-tool',
-  name: 'CenterAlignmentTool',
-  description: `
+  {
+    id: 'center-alignment-tool',
+    name: 'CenterAlignmentTool',
+    description: `
     Center shapes both horizontally AND vertically on the canvas/screen in one operation.
     
     This tool performs complete centering by aligning shapes to the center of their container both ways:
@@ -404,16 +413,16 @@ id: 'create-library-color',
     Single shapes center within their parent bounds, multiple shapes center relative to each other.
     Full undo/redo support - one undo reverses both alignments.
   `,
-  inputSchema: z.object({}),
-  function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.CENTER_ALIGNMENT, {});
-    return response;
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.CENTER_ALIGNMENT, {});
+      return response;
+    },
   },
-},
-{
-  id: 'distribute-horizontal-tool',
-  name: 'DistributeHorizontalTool',
-  description: `
+  {
+    id: 'distribute-horizontal-tool',
+    name: 'DistributeHorizontalTool',
+    description: `
     Distribute selected shapes evenly across the horizontal space.
     
     This tool spaces shapes evenly between the leftmost and rightmost shapes in your selection.
@@ -423,16 +432,16 @@ id: 'create-library-color',
     Uses Penpot's native distribution API for consistent behavior.
     Full undo/redo support included.
   `,
-  inputSchema: z.object({}),
-  function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.DISTRIBUTE_HORIZONTAL, {});
-    return response;
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.DISTRIBUTE_HORIZONTAL, {});
+      return response;
+    },
   },
-},
-{
-  id: 'distribute-vertical-tool',
-  name: 'DistributeVerticalTool',
-  description: `
+  {
+    id: 'distribute-vertical-tool',
+    name: 'DistributeVerticalTool',
+    description: `
     Distribute selected shapes evenly across the vertical space.
     
     This tool spaces shapes evenly between the topmost and bottommost shapes in your selection.
@@ -442,16 +451,16 @@ id: 'create-library-color',
     Uses Penpot's native distribution API for consistent behavior.
     Full undo/redo support included.
   `,
-  inputSchema: z.object({}),
-  function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.DISTRIBUTE_VERTICAL, {});
-    return response;
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.DISTRIBUTE_VERTICAL, {});
+      return response;
+    },
   },
-},
-{
-  id: 'group-tool',
-  name: 'GroupTool',
-  description: `
+  {
+    id: 'group-tool',
+    name: 'GroupTool',
+    description: `
     Group selected shapes into a single container.
     
     This tool combines 2+ selected shapes into a group, allowing you to move, rotate, and scale them as a single unit.
@@ -461,16 +470,16 @@ id: 'create-library-color',
     Uses Penpot's native grouping API for consistent behavior.
     Full undo/redo support included - ungrouping restores original positions.
   `,
-  inputSchema: z.object({}),
-  function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.GROUP, {});
-    return response;
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.GROUP, {});
+      return response;
+    },
   },
-},
-{
-  id: 'ungroup-tool',
-  name: 'UngroupTool',
-  description: `
+  {
+    id: 'ungroup-tool',
+    name: 'UngroupTool',
+    description: `
     Ungroup selected group containers into individual shapes.
     
     This tool releases shapes from their group containers, allowing you to manipulate them individually.
@@ -480,16 +489,16 @@ id: 'create-library-color',
     Uses Penpot's native ungrouping API for consistent behavior.
     Full undo/redo support included - regrouping restores the original groups.
   `,
-  inputSchema: z.object({}),
-  function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.UNGROUP, {});
-    return response;
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.UNGROUP, {});
+      return response;
+    },
   },
-},
-{
-  id: 'union-boolean-operation',
-  name: 'UnionBooleanOperationTool',
-  description: `
+  {
+    id: 'union-boolean-operation',
+    name: 'UnionBooleanOperationTool',
+    description: `
     Combine multiple selected shapes into a single compound shape using boolean union operation.
     
     This tool merges 2+ selected shapes into one compound shape that can be manipulated as a single unit.
@@ -508,16 +517,16 @@ id: 'create-library-color',
     
     AI Aliases: combine shapes, merge shapes, join shapes, unite shapes, add shapes together
   `,
-  inputSchema: z.object({}),
-  function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.UNION_BOOLEAN_OPERATION, {});
-    return response;
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.UNION_BOOLEAN_OPERATION, {});
+      return response;
+    },
   },
-},
-{
-  id: 'intersection-boolean-operation',
-  name: 'IntersectionBooleanOperationTool',
-  description: `
+  {
+    id: 'intersection-boolean-operation',
+    name: 'IntersectionBooleanOperationTool',
+    description: `
     Intersect multiple selected shapes to create a new shape from their overlapping areas.
     
     This tool creates a new shape from the intersection (overlap) of 2+ selected shapes.
@@ -536,16 +545,16 @@ id: 'create-library-color',
     
     AI Aliases: intersect shapes, overlap shapes, find common area, keep overlapping parts
   `,
-  inputSchema: z.object({}),
-  function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.INTERSECTION_BOOLEAN_OPERATION, {});
-    return response;
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.INTERSECTION_BOOLEAN_OPERATION, {});
+      return response;
+    },
   },
-},
-{
-  id: 'difference-boolean-operation',
-  name: 'DifferenceBooleanOperationTool',
-  description: `
+  {
+    id: 'difference-boolean-operation',
+    name: 'DifferenceBooleanOperationTool',
+    description: `
     Subtract shapes to create cutouts and holes in other shapes.
     
     This tool subtracts overlapping shapes from the base shape, creating cutouts or holes.
@@ -564,16 +573,16 @@ id: 'create-library-color',
     
     AI Aliases: subtract shapes, cut out shapes, create holes, remove overlapping parts
   `,
-  inputSchema: z.object({}),
-  function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION, {});
-    return response;
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.DIFFERENCE_BOOLEAN_OPERATION, {});
+      return response;
+    },
   },
-},
-{
-  id: 'exclude-boolean-operation',
-  name: 'ExcludeBooleanOperationTool',
-  description: `
+  {
+    id: 'exclude-boolean-operation',
+    name: 'ExcludeBooleanOperationTool',
+    description: `
     Exclude overlapping areas to create complex shapes with voids and cutouts.
     
     This tool creates a new shape by excluding (removing) all overlapping areas between shapes.
@@ -592,16 +601,16 @@ id: 'create-library-color',
     
     AI Aliases: exclude shapes, remove overlaps, create voids, make cutouts, exclude overlapping areas
   `,
-  inputSchema: z.object({}),
-  function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.EXCLUDE_BOOLEAN_OPERATION, {});
-    return response;
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.EXCLUDE_BOOLEAN_OPERATION, {});
+      return response;
+    },
   },
-},
-{
-  id: 'flatten-selection-tool',
-  name: 'FlattenSelectionTool',
-  description: `
+  {
+    id: 'flatten-selection-tool',
+    name: 'FlattenSelectionTool',
+    description: `
     Flatten selected shapes into editable paths.
     
     This tool converts compound shapes, groups, or complex shapes into flattened, editable paths.
@@ -621,11 +630,11 @@ id: 'create-library-color',
     
     AI Aliases: flatten shapes, convert to paths, break apart, decompose shapes, make editable, flatten selection
   `,
-  inputSchema: z.object({}),
-  function: async () => {
-    const response = await sendMessageToPlugin(ClientQueryType.FLATTEN_SELECTION, {});
-    return response;
-  },
-}
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.FLATTEN_SELECTION, {});
+      return response;
+    },
+  }
 
 ];
