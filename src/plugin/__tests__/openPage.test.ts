@@ -11,7 +11,9 @@ const mockPenpot = {
     pages: [mockPage1, mockPage2],
   },
   currentPage: mockPage1,
-  openPage: vi.fn(),
+  openPage: vi.fn((page) => {
+    mockPenpot.currentPage = page;
+  }),
 };
 
 global.penpot = mockPenpot as any;

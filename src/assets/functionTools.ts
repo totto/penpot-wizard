@@ -19,7 +19,6 @@ import {
   DetachFromComponentQueryPayload,
   SetConstraintsHorizontalQueryPayload,
   SetConstraintsVerticalQueryPayload,
-  SetConstraintsVerticalResponsePayload,
   OpenPageQueryPayload,
   RenamePageQueryPayload,
   ChangePageBackgroundQueryPayload,
@@ -34,6 +33,9 @@ import type {
   MoveResponsePayload,
   SetSelectionBoundsQueryPayload,
   SetSelectionBoundsResponsePayload,
+  SetConstraintsHorizontalResponsePayload,
+  SetConstraintsVerticalResponsePayload,
+  PluginResponseMessage,
 } from '@/types/types';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
@@ -869,7 +871,7 @@ export const functionTools: FunctionTool[] = [
       shapeIds: z.array(z.string()).optional(),
       constraint: z.enum(['left', 'right', 'leftright', 'center', 'scale']),
     }),
-    function: async (args: SetConstraintsHorizontalQueryPayload) => {
+    function: async (args: SetConstraintsHorizontalQueryPayload): Promise<PluginResponseMessage & { payload?: SetConstraintsHorizontalResponsePayload }> => {
       const response = await sendMessageToPlugin(ClientQueryType.SET_CONSTRAINTS_HORIZONTAL, args);
       return response;
     },
@@ -893,7 +895,7 @@ export const functionTools: FunctionTool[] = [
       shapeIds: z.array(z.string()).optional(),
       constraint: z.enum(['top', 'bottom', 'topbottom', 'center', 'scale']),
     }),
-    function: async (args: SetConstraintsVerticalQueryPayload) => {
+    function: async (args: SetConstraintsVerticalQueryPayload): Promise<PluginResponseMessage & { payload?: SetConstraintsVerticalResponsePayload }> => {
       const response = await sendMessageToPlugin(ClientQueryType.SET_CONSTRAINTS_VERTICAL, args);
       return response;
     },
