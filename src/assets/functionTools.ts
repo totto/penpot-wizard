@@ -974,24 +974,30 @@ export const functionTools: FunctionTool[] = [
     id: 'set-layout-z-index',
     name: 'setLayoutZIndex',
     description: `
-      ⚠️ IMPORTANT: This tool ONLY works for shapes inside Flex or Grid layouts.
-      It will NOT work for regular shapes outside of layouts.
+      ⚠️ IMPORTANT LIMITATIONS:
+      1. This tool ONLY works for shapes inside Flex or Grid layouts
+      2. Z-index controls VISUAL OVERLAP only, NOT layer panel order
+      3. The Layers panel order will NOT change - shapes stay in the same position
+      4. You will only see changes when shapes OVERLAP each other
       
-      Control the stacking order (z-index) of shapes within Flex or Grid layout containers.
-      This determines which elements appear in front when they overlap.
+      Control the stacking order (z-index) of overlapping shapes within Flex or Grid layout containers.
+      Z-index determines which element appears in front when multiple elements occupy the same space.
       
       Requirements:
       - The shape MUST be inside a parent with Flex Layout or Grid Layout enabled
       - Regular shapes without layouts will fail with an error message
+      - Shapes must OVERLAP for z-index changes to be visible
       
       Actions:
-      - 'bring-to-front': Set z-index higher than all siblings (appears on top)
-      - 'send-to-back': Set z-index lower than all siblings (appears at bottom)
+      - 'bring-to-front': Set z-index higher than all siblings (appears on top when overlapping)
+      - 'send-to-back': Set z-index lower than all siblings (appears at bottom when overlapping)
       - 'bring-forward': Increase z-index by 1
       - 'send-backward': Decrease z-index by 1
       - 'set-index': Set exact z-index value (requires index parameter)
       
-      The tool will report which shapes succeeded and which failed with reasons.
+      IMPORTANT: After using this tool, always explain to the user:
+      "The z-index has been updated, but you will NOT see a change in the Layers panel order.
+      Z-index only affects which shape appears in front when shapes overlap."
     `,
     inputSchema: z.object({
       action: z.enum(['bring-to-front', 'send-to-back', 'bring-forward', 'send-backward', 'set-index']),

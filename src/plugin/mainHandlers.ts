@@ -8914,12 +8914,13 @@ export async function setLayoutZIndexTool(payload: ZIndexQueryPayload): Promise<
     // Build response message
     let message = '';
     if (movedShapes.length > 0) {
-      message = `Successfully updated z-index for ${movedShapes.length} shape(s)`;
+      message = `Successfully updated z-index for ${movedShapes.length} shape(s). `;
+      message += `NOTE: The Layers panel order will NOT change. Z-index only affects visual stacking when shapes overlap.`;
     }
     if (failedShapes.length > 0) {
       const reasons = failedShapes.map(s => `${s.name || s.id}: ${s.reason}`).join('; ');
       if (movedShapes.length > 0) {
-        message += `. ${failedShapes.length} shape(s) failed: ${reasons}`;
+        message += ` ${failedShapes.length} shape(s) failed: ${reasons}`;
       } else {
         message = `All shapes failed: ${reasons}`;
       }
