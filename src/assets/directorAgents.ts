@@ -96,22 +96,22 @@ When using the resize-selection tool:
 </selection_tools>
     `,
     toolIds: [
-      'get-user-data', 
-      'get-current-page', 
-      'rectangle-maker', 
-      'ellipse-maker', 
-      'path-maker', 
-      'text-maker', 
-      'board-maker', 
-      'create-library-color', 
-      'create-library-font', 
-      'create-component-from-selection', 
-      'add-image-from-url', 
-      'apply-blur-tool', 
-      'apply-fill-tool', 
-      'apply-linear-gradient', 
-      'apply-radial-gradient', 
-      'undo-last-action', 
+      'get-user-data',
+      'get-current-page',
+      'rectangle-maker',
+      'ellipse-maker',
+      'path-maker',
+      'text-maker',
+      'board-maker',
+      'create-library-color',
+      'create-library-font',
+      'create-component-from-selection',
+      'add-image-from-url',
+      'apply-blur-tool',
+      'apply-fill-tool',
+      'apply-linear-gradient',
+      'apply-radial-gradient',
+      'undo-last-action',
       'redo-last-action',
       'apply-stroke-tool',
       'apply-shadow-tool',
@@ -139,14 +139,14 @@ When using the resize-selection tool:
       'set-selection-opacity',
       'set-selection-blend-mode',
       'set-selection-border-radius',
-      'set-selection-bounds', 
+      'set-selection-bounds',
       'toggle-selection-proportion-lock',
       'flip-selection-horizontal',
       'flip-selection-vertical',
       'delete-selection',
       'set-constraints-vertical',
       'set-constraints-horizontal',
-      'open-page',
+      'open-page', //Known API side issues
       'rename-page',
       'change-page-background',
       'create-page',
@@ -154,9 +154,9 @@ When using the resize-selection tool:
 
 
       'dump-selection', //Dev tool for debugging
-      
+
     ],
-    
+
     specializedAgentIds: ['mobile-projects-coordinator'],
   },
 ];
