@@ -107,7 +107,9 @@ import {
   ReadLibraryContextQueryPayload,
   ReadLibraryContextResponsePayload,
   ReadPluginLocalStorageQueryPayload,
-  ReadPluginLocalStorageResponsePayload
+  ReadPluginLocalStorageResponsePayload,
+  ReadViewportSettingsQueryPayload,
+  ReadViewportSettingsResponsePayload
 } from "../types/pluginTypes";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';

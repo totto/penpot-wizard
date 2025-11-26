@@ -46,6 +46,16 @@ export interface ReadPluginLocalStorageResponsePayload {
   data: Record<string, string>;
 }
 
+// ReadViewportSettings Types
+export interface ReadViewportSettingsQueryPayload {
+  // No args needed
+}
+
+export interface ReadViewportSettingsResponsePayload {
+  zoom: number;
+  center: { x: number; y: number };
+}
+
 // Shared enums between UI and plugin
 export enum MessageSourceName {
   Plugin = 'penpotWizardPlugin',
@@ -86,6 +96,7 @@ export enum ClientQueryType {
   READ_SHAPE_COLORS = 'READ_SHAPE_COLORS',
   READ_LIBRARY_CONTEXT = 'READ_LIBRARY_CONTEXT',
   READ_PLUGIN_LOCAL_STORAGE = 'READ_PLUGIN_LOCAL_STORAGE',
+  READ_VIEWPORT_SETTINGS = 'READ_VIEWPORT_SETTINGS',
 }
 
 // Plugin-specific enums and types
@@ -471,7 +482,8 @@ export type ClientQueryPayload =
   | CloneSelectionQueryPayload
   | ReadShapeColorsQueryPayload
   | ReadLibraryContextQueryPayload
-  | ReadPluginLocalStorageQueryPayload;
+  | ReadPluginLocalStorageQueryPayload
+  | ReadViewportSettingsQueryPayload;
 
 export type PluginResponsePayload =
   | DrawShapeResponsePayload
@@ -501,4 +513,5 @@ export type PluginResponsePayload =
   | CloneSelectionResponsePayload
   | ReadShapeColorsResponsePayload
   | ReadLibraryContextResponsePayload
-  | ReadPluginLocalStorageResponsePayload;
+  | ReadPluginLocalStorageResponsePayload
+  | ReadViewportSettingsResponsePayload;

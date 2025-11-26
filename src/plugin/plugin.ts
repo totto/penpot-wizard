@@ -61,7 +61,8 @@ import {
 import {
   ReadShapeColorsQueryPayload,
   ReadLibraryContextQueryPayload,
-  ReadPluginLocalStorageQueryPayload
+  ReadPluginLocalStorageQueryPayload,
+  ReadViewportSettingsQueryPayload
 } from '../types/pluginTypes';
 
 import { handleDrawShape } from './drawHandlers';
@@ -129,6 +130,7 @@ import {
   readShapeColors,
   readLibraryContext,
   readPluginLocalStorage,
+  readViewportSettings,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -460,6 +462,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.READ_PLUGIN_LOCAL_STORAGE:
       responseMessage = await readPluginLocalStorage(payload as unknown as ReadPluginLocalStorageQueryPayload);
+      break;
+
+    case ClientQueryType.READ_VIEWPORT_SETTINGS:
+      responseMessage = await readViewportSettings(payload as unknown as ReadViewportSettingsQueryPayload);
       break;
 
     default:

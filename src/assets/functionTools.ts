@@ -37,7 +37,7 @@ import type {
   SetConstraintsVerticalResponsePayload,
   PluginResponseMessage,
 } from '@/types/types';
-import { ReadShapeColorsQueryPayload, ReadPluginLocalStorageQueryPayload } from '@/types/pluginTypes';
+import { ReadShapeColorsQueryPayload, ReadPluginLocalStorageQueryPayload, ReadViewportSettingsQueryPayload } from '@/types/pluginTypes';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 import { blendModes } from '@/types/shapeTypes';
@@ -1055,6 +1055,20 @@ export const functionTools: FunctionTool[] = [
     }),
     function: async (args: ReadPluginLocalStorageQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.READ_PLUGIN_LOCAL_STORAGE, args as any);
+      return response;
+    },
+  },
+  {
+    id: 'read-viewport-settings',
+    name: 'Read Viewport Settings',
+    description: `
+      Reads the current viewport settings including zoom level and center position.
+      Returns zoom value and center coordinates (x, y).
+      Useful for understanding the current view state.
+    `,
+    inputSchema: z.object({}),
+    function: async (args: ReadViewportSettingsQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.READ_VIEWPORT_SETTINGS, args as any);
       return response;
     },
   },

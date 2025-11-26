@@ -160,6 +160,7 @@ When using the resize-selection tool:
       'read-shape-colors',
       'read-library-context',
       'read-plugin-local-storage',
+      'read-viewport-settings',
       'dump-selection', //Dev tool for debugging
 
     ],
