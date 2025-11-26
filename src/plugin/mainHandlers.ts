@@ -8713,6 +8713,9 @@ export async function openPageTool(payload: OpenPageQueryPayload): Promise<Plugi
     // Attempt to open the page
     penpot.openPage(targetPage);
     
+    // Wait briefly for potential async page change
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // Check if navigation actually worked
     const didNavigate = penpot.currentPage?.id === targetPage.id;
 
