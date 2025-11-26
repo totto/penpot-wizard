@@ -180,14 +180,14 @@ export function handleGetUserData(): PluginResponseMessage {
         id: penpot.currentUser.id,
       },
     };
-    } else {
-      return {
-        ...pluginResponse,
-        type: ClientQueryType.GET_USER_DATA,
-        success: false,
-        message: 'Error retrieving user data',
-      };
-    }
+  } else {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_USER_DATA,
+      success: false,
+      message: 'Error retrieving user data',
+    };
+  }
 }
 // end wrapper
 export async function createLibraryColor(payload: any): Promise<PluginResponseMessage> {
@@ -489,20 +489,20 @@ export function handleGetProjectData(): PluginResponseMessage {
       type: ClientQueryType.GET_PROJECT_DATA,
       message: 'Project data successfully retrieved',
       payload: {
-          name: penpot.currentFile?.name,
-          id: penpot.currentFile?.id,
-          pages: penpot.currentFile?.pages.map((page) => ({ name: page.name, id: page.id })),
-        },
-      };
-    } else {
-      return {
-        ...pluginResponse,
-        type: ClientQueryType.GET_PROJECT_DATA,
-        success: false,
-        message: 'Error retrieving project data',
-      }
+        name: penpot.currentFile?.name,
+        id: penpot.currentFile?.id,
+        pages: penpot.currentFile?.pages.map((page) => ({ name: page.name, id: page.id })),
+      },
+    };
+  } else {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_PROJECT_DATA,
+      success: false,
+      message: 'Error retrieving project data',
     }
   }
+}
 
 export function getAvailableFonts(): PluginResponseMessage {
   return {
@@ -583,15 +583,15 @@ export function getActiveUsers(): PluginResponseMessage {
   const raw = (penpot.currentFile as any)?.collaborators ?? [];
   const users = Array.isArray(raw)
     ? (
-        raw.map(
-          (u: any) => ({
-            id: String(u.id ?? u.userId ?? ''),
-            name: u.name ?? u.fullName ?? u.username ?? undefined,
-            avatarUrl: u.avatarUrl ?? u.avatarURL ?? u.avatar ?? undefined,
-            color: u.color ?? undefined,
-          })
-        )
+      raw.map(
+        (u: any) => ({
+          id: String(u.id ?? u.userId ?? ''),
+          name: u.name ?? u.fullName ?? u.username ?? undefined,
+          avatarUrl: u.avatarUrl ?? u.avatarURL ?? u.avatar ?? undefined,
+          color: u.color ?? undefined,
+        })
       )
+    )
     : [];
 
   return {
@@ -765,24 +765,24 @@ export async function handleAddImage(payload: AddImageQueryPayload): Promise<Plu
       console.warn('Failed to center viewport on new image:', e);
     }
 
-      // Select the newly created image so the user can immediately act on it
-      try {
-        const hostPenpot = (globalThis as unknown as { penpot?: { selection?: Shape[] } }).penpot;
-        if (hostPenpot) {
-          hostPenpot.selection = [imageShape];
-        }
-      } catch (selErr) {
-        console.warn('Failed to set selection on new image:', selErr);
+    // Select the newly created image so the user can immediately act on it
+    try {
+      const hostPenpot = (globalThis as unknown as { penpot?: { selection?: Shape[] } }).penpot;
+      if (hostPenpot) {
+        hostPenpot.selection = [imageShape];
       }
+    } catch (selErr) {
+      console.warn('Failed to set selection on new image:', selErr);
+    }
 
-      // update internal selection tracking for action-only helpers
-      setTimeout(() => {
-        try {
-          updateCurrentSelection([imageShape.id]);
-        } catch (err) {
-          console.warn('Failed to update current selection for new image:', err);
-        }
-      }, 10);
+    // update internal selection tracking for action-only helpers
+    setTimeout(() => {
+      try {
+        updateCurrentSelection([imageShape.id]);
+      } catch (err) {
+        console.warn('Failed to update current selection for new image:', err);
+      }
+    }, 10);
 
     return {
       ...pluginResponse,
@@ -897,7 +897,7 @@ export async function getFileVersions(): Promise<PluginResponseMessage> {
     console.log('Safe versions with extracted data:', safeVersions);
 
     // Check if the data appears to be mock data (all same label, synthetic IDs)
-    const isMockData = safeVersions.length > 1 && safeVersions.every(v => 
+    const isMockData = safeVersions.length > 1 && safeVersions.every(v =>
       typeof v.id === 'string' && v.id.startsWith('version-')
     );
 
@@ -954,8 +954,8 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
     const shapeIds: string[] = [];
     const previousBlurs: Array<{ value?: number; type?: string } | undefined> = [];
     const appliedBlurs: Array<{ value: number; type: 'layer-blur' }> = [];
-    
-  // First pass: capture previous blur values for undo
+
+    // First pass: capture previous blur values for undo
     for (const shape of sel) {
       shapeIds.push(shape.id);
       if (shape.blur) {
@@ -966,7 +966,7 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
       // Store the blur that will be applied
       appliedBlurs.push({ value: blurValue, type: 'layer-blur' });
     }
-    
+
     // Second pass: apply the new blur
     for (const shape of sel) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1008,12 +1008,12 @@ export async function applyBlurTool(payload: ApplyBlurQueryPayload): Promise<Plu
       description: `Applied ${blurValue}px blur to ${blurredShapes.length} shape${blurredShapes.length > 1 ? 's' : ''}`,
       timestamp: Date.now(),
     };
-    
+
     // Add to undo stack
     undoStack.push(undoInfo);
 
     // Nothing to do here for selection sync in blur; leave UI selection untouched.
-    
+
     return {
       ...pluginResponse,
       type: ClientQueryType.APPLY_BLUR,
@@ -1405,7 +1405,7 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
     const shapeIds: string[] = [];
     const previousFills: Array<{ fillColor?: string; fillOpacity?: number } | undefined> = [];
     const appliedFills: Array<{ fillColor: string; fillOpacity: number }> = [];
-    
+
     // First pass: capture previous fill values for undo
     for (const shape of sel) {
       shapeIds.push(shape.id);
@@ -1417,7 +1417,7 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
       // Store the fill that will be applied
       appliedFills.push({ fillColor: hexColor, fillOpacity: fillOpacity });
     }
-    
+
     // Second pass: apply the new fills
     for (const shape of sel) {
       console.log(`Processing shape: ${shape.id}, has fills: ${'fills' in shape}`);
@@ -1479,10 +1479,10 @@ export async function applyFillTool(payload: ApplyFillQueryPayload): Promise<Plu
       description: `Applied ${hexColor}${fillOpacity < 1 ? ` at ${Math.round(fillOpacity * 100)}% opacity` : ''} fill to ${filledShapes.length} shape${filledShapes.length > 1 ? 's' : ''}`,
       timestamp: Date.now(),
     };
-    
+
     // Add to undo stack
     undoStack.push(undoInfo);
-    
+
     return {
       ...pluginResponse,
       type: ClientQueryType.APPLY_FILL,
@@ -2107,7 +2107,7 @@ export async function setSelectionBorderRadiusTool(payload: SetSelectionBorderRa
 
     if (changedShapeIds.length === 0) {
       const message = skippedLocked.length > 0
-        ? `All selected shapes are locked (${skippedLocked.map(s=> s.name ?? s.id).join(', ')}). Unlock them before changing the border radius.`
+        ? `All selected shapes are locked (${skippedLocked.map(s => s.name ?? s.id).join(', ')}). Unlock them before changing the border radius.`
         : 'No shapes were updated.';
       return {
         ...pluginResponse,
@@ -2780,8 +2780,8 @@ export async function distributeHorizontalTool(_payload: DistributeHorizontalQue
         ...pluginResponse,
         type: ClientQueryType.DISTRIBUTE_HORIZONTAL,
         success: false,
-        message: sel && sel.length === 2 
-          ? 'NEED_MORE_SHAPES' 
+        message: sel && sel.length === 2
+          ? 'NEED_MORE_SHAPES'
           : 'NO_SELECTION',
       };
     }
@@ -2858,8 +2858,8 @@ export async function distributeVerticalTool(_payload: DistributeVerticalQueryPa
         ...pluginResponse,
         type: ClientQueryType.DISTRIBUTE_VERTICAL,
         success: false,
-        message: sel && sel.length === 2 
-          ? 'NEED_MORE_SHAPES' 
+        message: sel && sel.length === 2
+          ? 'NEED_MORE_SHAPES'
           : 'NO_SELECTION',
       };
     }
@@ -3031,7 +3031,7 @@ export async function ungroupTool(_payload: UngroupQueryPayload): Promise<Plugin
 
     // Filter to only groups using Penpot's isGroup utility
     const groupsToUngroup = sel.filter(shape => penpot.utils.types.isGroup(shape));
-    
+
     if (groupsToUngroup.length === 0) {
       return {
         ...pluginResponse,
@@ -4047,11 +4047,11 @@ export async function resizeTool(payload: ResizeQueryPayload): Promise<PluginRes
     // First pass: capture previous dimensions and calculate new ones
     for (const shape of sel) {
       shapeIds.push(shape.id);
-  // Prefer the read-only snapshot for previous dimensions to avoid any
-  // accidental mutation or re-query during calculations.
-  const infoForShape = selectionInfo.find(si => si.id === shape.id);
-  const prevWidth = typeof infoForShape?.width === 'number' ? infoForShape.width : shape.width;
-  const prevHeight = typeof infoForShape?.height === 'number' ? infoForShape.height : shape.height;
+      // Prefer the read-only snapshot for previous dimensions to avoid any
+      // accidental mutation or re-query during calculations.
+      const infoForShape = selectionInfo.find(si => si.id === shape.id);
+      const prevWidth = typeof infoForShape?.width === 'number' ? infoForShape.width : shape.width;
+      const prevHeight = typeof infoForShape?.height === 'number' ? infoForShape.height : shape.height;
       previousDimensions.push({ width: prevWidth, height: prevHeight });
 
       // Calculate new dimensions based on scale factors
@@ -4085,9 +4085,9 @@ export async function resizeTool(payload: ResizeQueryPayload): Promise<PluginRes
     let resizedCount = 0;
     for (let i = 0; i < sel.length; i++) {
       const shape = sel[i];
-    const dimensions = newDimensions[i];
-    try {
-      shape.resize(dimensions.width, dimensions.height);
+      const dimensions = newDimensions[i];
+      try {
+        shape.resize(dimensions.width, dimensions.height);
         resizedCount++;
       } catch (shapeError) {
         console.warn(`Failed to resize shape ${shape.id}:`, shapeError);
@@ -4489,13 +4489,13 @@ export async function moveSelectionTool(payload: MoveQueryPayload): Promise<Plug
       };
     }
 
-  // Capture previous positions
+    // Capture previous positions
     const previousPositions: Array<{ x?: number; y?: number }> = [];
     const newPositions: Array<{ x?: number; y?: number }> = [];
     const movedIds: string[] = [];
-  // Track skipped locked shapes with ids and names for UI feedback
-  const skippedLockedIds: string[] = [];
-  const skippedLockedNames: string[] = [];
+    // Track skipped locked shapes with ids and names for UI feedback
+    const skippedLockedIds: string[] = [];
+    const skippedLockedNames: string[] = [];
 
     for (const shape of sel) {
       try {
@@ -4532,12 +4532,12 @@ export async function moveSelectionTool(payload: MoveQueryPayload): Promise<Plug
 
     if (movedIds.length === 0) {
       // If we couldn't move any shapes but some were locked, return a helpful message
-  if (skippedLockedIds.length > 0) {
+      if (skippedLockedIds.length > 0) {
         return {
           ...pluginResponse,
           type: ClientQueryType.MOVE,
           success: false,
-    message: `Skipped ${skippedLockedIds.length} locked shape(s): ${skippedLockedNames.join(', ')}`,
+          message: `Skipped ${skippedLockedIds.length} locked shape(s): ${skippedLockedNames.join(', ')}`,
           payload: {
             skippedLockedIds,
             skippedLockedNames,
@@ -4574,8 +4574,8 @@ export async function moveSelectionTool(payload: MoveQueryPayload): Promise<Plug
       message: `Moved ${movedIds.length} shape${movedIds.length > 1 ? 's' : ''}: ${shapeNames}`,
       payload: {
         movedShapes: sel.map(s => ({ id: s.id, name: s.name })),
-  skippedLockedIds,
-  skippedLockedNames,
+        skippedLockedIds,
+        skippedLockedNames,
         previousPositions,
         newPositions,
         undoInfo,
@@ -4636,11 +4636,11 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
         // swallow
       }
     }
-    
+
     if (!targets || targets.length === 0) {
-  return {
+      return {
         ...pluginResponse,
-  type: ClientQueryType.TOGGLE_SELECTION_LOCK,
+        type: ClientQueryType.TOGGLE_SELECTION_LOCK,
         success: false,
         message: 'NO_SELECTION',
       };
@@ -4676,12 +4676,12 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
         payload: {
           lockedShapes: targets.filter((s: any) => !!s.locked || !!s.blocked).map((s: any) => ({ id: s.id, name: s.name })),
           unlockedShapes: targets.filter((s: any) => !s.locked && !s.blocked).map((s: any) => ({ id: s.id, name: s.name })),
-  } as unknown as ToggleSelectionLockResponsePayload,
+        } as unknown as ToggleSelectionLockResponsePayload,
       };
     }
 
     const willLock = typeof lock === 'boolean' ? lock : (!hasLocked && !hasUnlocked ? true : !hasLocked);
-  const previousStates: boolean[] = [];
+    const previousStates: boolean[] = [];
     const affectedIds: string[] = [];
     const lockedShapes: Array<{ id: string; name?: string }> = [];
     const unlockedShapes: Array<{ id: string; name?: string }> = [];
@@ -4693,7 +4693,7 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
       try {
         const keys = Object.keys(shape).slice(0, 40).join(', ');
         const ratioFlags = [
-          'proportionLock','keepAspectRatio','constrainProportions','lockProportions','preserveAspectRatio','lockRatio','ratioLocked','lockAspectRatio','keepRatio','fixedAspectRatio','constrainAspectRatio','maintainAspectRatio'
+          'proportionLock', 'keepAspectRatio', 'constrainProportions', 'lockProportions', 'preserveAspectRatio', 'lockRatio', 'ratioLocked', 'lockAspectRatio', 'keepRatio', 'fixedAspectRatio', 'constrainAspectRatio', 'maintainAspectRatio'
         ].filter(k => (shape as any)[k]);
         console.log(`toggleSelectionLockTool: shape=${shape.id} locked=${!!shape.locked} blocked=${!!shape.blocked} ratioFlags=[${ratioFlags.join(', ')}] keys=[${keys}]`);
       } catch (e) {
@@ -4703,7 +4703,7 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
         // Record the prior locked state considering either `locked` or `blocked`.
         const prevLocked = !!shape.locked || !!shape.blocked;
         // Apply only if needed
-          if (willLock && !(shape.locked || shape.blocked)) {
+        if (willLock && !(shape.locked || shape.blocked)) {
           // Set both fields when possible so host UIs which read either property
           // will reflect the same state.
           try { shape.locked = true; } catch (e) { void e; }
@@ -4757,7 +4757,7 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
     }
 
     const undoInfo: UndoInfo = {
-  actionType: ClientQueryType.TOGGLE_SELECTION_LOCK,
+      actionType: ClientQueryType.TOGGLE_SELECTION_LOCK,
       actionId: `lock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       description: `${willLock ? 'Locked' : 'Unlocked'} ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''}`,
       undoData: {
@@ -4767,30 +4767,30 @@ export async function toggleSelectionLockTool(payload: ToggleSelectionLockQueryP
       timestamp: Date.now(),
     };
 
-  undoStack.push(undoInfo);
+    undoStack.push(undoInfo);
 
-  const respPayload: ToggleSelectionLockResponsePayload = {
+    const respPayload: ToggleSelectionLockResponsePayload = {
       lockedShapes: lockedShapes.length > 0 ? lockedShapes : undefined,
       unlockedShapes: unlockedShapes.length > 0 ? unlockedShapes : undefined,
       undoInfo,
     };
 
-  // Attach a diagnostic snapshot of the final editor/proportion states for the affected shapes
-  try {
-    const currentPage = (penpot as any).currentPage as any;
-    const snapshot: Array<any> = [];
-    for (const id of affectedIds) {
-      let fresh: any = undefined;
-      if (currentPage && typeof currentPage.getShapeById === 'function') fresh = currentPage.getShapeById(id);
-      if (!fresh) fresh = targets.find((s: any) => s.id === id);
-      snapshot.push({ id: id, name: fresh?.name, editorLocked: !!fresh?.locked, editorBlocked: !!fresh?.blocked, proportionLocked: !!(fresh?.proportionLock || fresh?.keepAspectRatio) });
-    }
-    if (snapshot.length > 0) respPayload.selectionSnapshot = snapshot;
-  } catch (e) { /* swallow */ }
+    // Attach a diagnostic snapshot of the final editor/proportion states for the affected shapes
+    try {
+      const currentPage = (penpot as any).currentPage as any;
+      const snapshot: Array<any> = [];
+      for (const id of affectedIds) {
+        let fresh: any = undefined;
+        if (currentPage && typeof currentPage.getShapeById === 'function') fresh = currentPage.getShapeById(id);
+        if (!fresh) fresh = targets.find((s: any) => s.id === id);
+        snapshot.push({ id: id, name: fresh?.name, editorLocked: !!fresh?.locked, editorBlocked: !!fresh?.blocked, proportionLocked: !!(fresh?.proportionLock || fresh?.keepAspectRatio) });
+      }
+      if (snapshot.length > 0) respPayload.selectionSnapshot = snapshot;
+    } catch (e) { /* swallow */ }
 
     return {
       ...pluginResponse,
-  type: ClientQueryType.TOGGLE_SELECTION_LOCK,
+      type: ClientQueryType.TOGGLE_SELECTION_LOCK,
       success: true,
       message: `${willLock ? 'Locked' : 'Unlocked'} ${affectedIds.length} shape${affectedIds.length > 1 ? 's' : ''}`,
       payload: respPayload,
@@ -4909,7 +4909,7 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
       try {
         const keys = Object.keys(shape).slice(0, 40).join(', ');
         const ratioFlags = [
-          'proportionLock','keepAspectRatio','constrainProportions','lockProportions','preserveAspectRatio','lockRatio','ratioLocked','lockAspectRatio','keepRatio','fixedAspectRatio','constrainAspectRatio','maintainAspect'
+          'proportionLock', 'keepAspectRatio', 'constrainProportions', 'lockProportions', 'preserveAspectRatio', 'lockRatio', 'ratioLocked', 'lockAspectRatio', 'keepRatio', 'fixedAspectRatio', 'constrainAspectRatio', 'maintainAspect'
         ].filter(k => (shape as any)[k]);
         console.log(`toggleSelectionProportionLockTool: shape=${shape.id} locked=${!!shape.locked} blocked=${!!shape.blocked} ratioFlags=[${ratioFlags.join(', ')}] keys=[${keys}]`);
       } catch (err) {
@@ -4928,7 +4928,7 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
         const prevNested = !!(shape.constraints && (shape.constraints.lockRatio || shape.constraints.ratioLocked || shape.constraints.lockAspectRatio || shape.constraints.keepAspect || shape.constraints.keepRatio || shape.constraints.fixedAspectRatio || shape.constraints.maintainAspect));
         const prev = prevTop || prevNested;
 
-          if (willLock && !prev) {
+        if (willLock && !prev) {
           console.log(`toggleSelectionProportionLockTool: toggling ON proportion lock for shape ${shape.id} (prev=${prev})`);
           // set common property names used by different hosts
           // Apply to several top-level names used by different hosts
@@ -4949,7 +4949,7 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
           lockedShapes.push({ id: shape.id, name: shape.name });
           affectedIds.push(shape.id);
           previousStates.push(prev);
-          } else if (!willLock && prev) {
+        } else if (!willLock && prev) {
           console.log(`toggleSelectionProportionLockTool: toggling OFF proportion lock for shape ${shape.id} (prev=${prev})`);
           try { shape.proportionLock = false; } catch (e) { void e; }
           try { shape.keepAspectRatio = false; } catch (e) { void e; }
@@ -5052,19 +5052,19 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
         if (!willLock && finalLocked) {
           try {
             // Clear all known keys again on the fresh reference
-            try { freshShape.proportionLock = false; } catch {}
-            try { freshShape.keepAspectRatio = false; } catch {}
-            try { freshShape.constrainProportions = false; } catch {}
-            try { freshShape.lockProportions = false; } catch {}
-            try { freshShape.preserveAspectRatio = false; } catch {}
-            try { freshShape.lockRatio = false; } catch {}
-            try { freshShape.ratioLocked = false; } catch {}
-            try { freshShape.lockAspectRatio = false; } catch {}
-            try { freshShape.keepRatio = false; } catch {}
-            try { freshShape.fixedAspectRatio = false; } catch {}
-            try { freshShape.constrainAspectRatio = false; } catch {}
-            try { freshShape.maintainAspectRatio = false; } catch {}
-            try { if (freshShape.constraints) { freshShape.constraints.proportionLock = false; freshShape.constraints.lockRatio = false; freshShape.constraints.ratioLocked = false; freshShape.constraints.lockAspectRatio = false; freshShape.constraints.keepRatio = false; freshShape.constraints.maintainAspect = false; } } catch {}
+            try { freshShape.proportionLock = false; } catch { }
+            try { freshShape.keepAspectRatio = false; } catch { }
+            try { freshShape.constrainProportions = false; } catch { }
+            try { freshShape.lockProportions = false; } catch { }
+            try { freshShape.preserveAspectRatio = false; } catch { }
+            try { freshShape.lockRatio = false; } catch { }
+            try { freshShape.ratioLocked = false; } catch { }
+            try { freshShape.lockAspectRatio = false; } catch { }
+            try { freshShape.keepRatio = false; } catch { }
+            try { freshShape.fixedAspectRatio = false; } catch { }
+            try { freshShape.constrainAspectRatio = false; } catch { }
+            try { freshShape.maintainAspectRatio = false; } catch { }
+            try { if (freshShape.constraints) { freshShape.constraints.proportionLock = false; freshShape.constraints.lockRatio = false; freshShape.constraints.ratioLocked = false; freshShape.constraints.lockAspectRatio = false; freshShape.constraints.keepRatio = false; freshShape.constraints.maintainAspect = false; } } catch { }
           } catch (e) { /* swallow second-pass errors */ }
 
           // re-evaluate flags
@@ -5077,7 +5077,7 @@ export async function toggleSelectionProportionLockTool(payload: ToggleSelection
         // in uncommon properties or proxies; deleting keys is a last resort.
         if (!willLock && Object.values(flags).some(Boolean)) {
           try {
-            const deleteKeys = ['proportionLock','keepAspectRatio','constrainProportions','lockProportions','preserveAspectRatio','lockRatio','ratioLocked','lockAspectRatio','keepRatio','fixedAspectRatio','constrainAspectRatio','maintainAspect'];
+            const deleteKeys = ['proportionLock', 'keepAspectRatio', 'constrainProportions', 'lockProportions', 'preserveAspectRatio', 'lockRatio', 'ratioLocked', 'lockAspectRatio', 'keepRatio', 'fixedAspectRatio', 'constrainAspectRatio', 'maintainAspect'];
             for (const k of deleteKeys) {
               try { delete (freshShape as any)[k]; } catch { /* swallow */ }
             }
@@ -5378,7 +5378,7 @@ export async function flipSelectionVerticalTool(payload: FlipSelectionVerticalQu
   try {
     const { shapeIds } = payload ?? {};
     let targets: any[] = [];
-    
+
     if (shapeIds && Array.isArray(shapeIds) && shapeIds.length > 0) {
       const currentPage = penpot.currentPage as any;
       if (!currentPage) {
@@ -5469,7 +5469,7 @@ export async function getSelectionInfoTool(_payload: GetSelectionInfoQueryPayloa
         type: ClientQueryType.GET_SELECTION_INFO,
         success: false,
         message: 'No shapes are currently selected. Please select one or more shapes first.',
-  };
+      };
     }
 
     const shapeNames = selectedObjects.map(obj => obj.name || `Shape ${obj.id.slice(-4)}`).join(', ');
@@ -5512,7 +5512,7 @@ export async function getSelectionDumpTool(_payload: GetSelectionDumpQueryPayloa
     const detailed = (selection as any[]).map((shape: any) => {
       const keys = Object.keys(shape).slice(0, 80);
       const ratioFlags = [
-        'proportionLock','keepAspectRatio','constrainProportions','lockProportions','preserveAspectRatio','lockRatio','ratioLocked','lockAspectRatio','keepRatio','fixedAspectRatio','constrainAspectRatio','maintainAspect'
+        'proportionLock', 'keepAspectRatio', 'constrainProportions', 'lockProportions', 'preserveAspectRatio', 'lockRatio', 'ratioLocked', 'lockAspectRatio', 'keepRatio', 'fixedAspectRatio', 'constrainAspectRatio', 'maintainAspect'
       ].reduce((acc: Record<string, unknown>, k) => { if (k in shape) acc[k] = shape[k]; return acc; }, {} as Record<string, unknown>);
 
       return {
@@ -5566,8 +5566,8 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
 
     // Get the last undoable action
     const lastAction = undoStack.pop()!;
-  console.log('Undoing action:', lastAction.description);
-  console.log('Undoing actionType:', lastAction.actionType);
+    console.log('Undoing action:', lastAction.description);
+    console.log('Undoing actionType:', lastAction.actionType);
     console.log('Undoing - data:', JSON.stringify(lastAction.undoData));
 
     // Push to redo stack so it can be redone
@@ -5591,7 +5591,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
 
           try {
             const currentPage = penpot.currentPage;
-              // currentPage.getShapeById? -> available in testing environment
+            // currentPage.getShapeById? -> available in testing environment
             if (!currentPage) continue;
 
             const shape = currentPage.getShapeById(shapeId);
@@ -5613,9 +5613,9 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
           }
         }
         break;
-        }
+      }
 
-      
+
 
       case ClientQueryType.APPLY_BLUR: {
         // Restore previous blur values
@@ -5815,7 +5815,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
 
       /* (removed reapply-rotate case; rotate redo belongs to redoLastAction) */
 
-      
+
 
       case ClientQueryType.ROTATE: {
         // Undo the rotation by rotating by the inverse angle or restoring previous rotation
@@ -5903,25 +5903,25 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
-      
 
-      
 
-      
 
-      
 
-      
 
-      
 
-      
 
-      
+
+
+
+
+
+
+
+
 
       case ClientQueryType.MOVE: {
         const moveData = lastAction.undoData as { shapeIds: string[]; previousPositions: Array<{ x?: number; y?: number }>; newPositions: Array<{ x?: number; y?: number }> };
-  // DEBUG: moveData contains shapeIds length: moveData.shapeIds.length
+        // DEBUG: moveData contains shapeIds length: moveData.shapeIds.length
         for (let i = 0; i < moveData.shapeIds.length; i++) {
           const shapeId = moveData.shapeIds[i];
           const previousPosition = moveData.previousPositions[i];
@@ -5968,9 +5968,9 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         // After undoing clones, try to re-select the original source shapes so the editor
         // selection reflects the user's prior selection (sourceIds) if available.
         try {
-            const cloneDataTyped = cloneData as { shapeIds: string[]; sourceIds?: string[] };
-            const sourceIds = cloneDataTyped.sourceIds as string[] | undefined;
-            const sourceSelection: Shape[] = [];
+          const cloneDataTyped = cloneData as { shapeIds: string[]; sourceIds?: string[] };
+          const sourceIds = cloneDataTyped.sourceIds as string[] | undefined;
+          const sourceSelection: Shape[] = [];
           if (Array.isArray(sourceIds) && currentPage) {
             for (const sid of sourceIds) {
               const s = currentPage.getShapeById(sid);
@@ -6002,7 +6002,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
-  case ClientQueryType.TOGGLE_SELECTION_LOCK: {
+      case ClientQueryType.TOGGLE_SELECTION_LOCK: {
         // Restore previous locked state (undo)
         const lockData = lastAction.undoData as { shapeIds: string[]; previousLockedStates: boolean[] };
 
@@ -6021,7 +6021,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             // read either `locked` or `blocked` see the consistent state.
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (shape as any).locked = !!previousLocked;
-            try { (shape as any).blocked = !!previousLocked; } catch {}
+            try { (shape as any).blocked = !!previousLocked; } catch { }
 
             restoredShapes.push(shape.name || shape.id);
           } catch (error) {
@@ -6031,7 +6031,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
-  case ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK: {
+      case ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK: {
         // Restore previous proportion lock state (undo)
         const propData = lastAction.undoData as { shapeIds: string[]; previousProportionStates: boolean[] };
 
@@ -6128,7 +6128,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         }
         break;
       }
-            case ClientQueryType.FLIP_SELECTION_VERTICAL: {
+      case ClientQueryType.FLIP_SELECTION_VERTICAL: {
         const flipData = lastAction.undoData as { shapeIds: string[]; previousFlipStates: boolean[] };
         for (let i = 0; i < flipData.shapeIds.length; i++) {
           const shapeId = flipData.shapeIds[i];
@@ -6147,22 +6147,22 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
-  // Do not duplicate TOGGLE_SELECTION_LOCK here; handled in undo case above
+      // Do not duplicate TOGGLE_SELECTION_LOCK here; handled in undo case above
 
-      
 
-      
 
-      
 
-      
 
-      
 
-      
+
+
+
+
+
+
 
       case ClientQueryType.ALIGN_HORIZONTAL: {
-      
+
         // Restore previous positions
         const alignData = lastAction.undoData as {
           shapeIds: string[];
@@ -6220,7 +6220,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
-      
+
 
       case ClientQueryType.CENTER_ALIGNMENT: {
         // Restore previous positions (same as horizontal/vertical alignment)
@@ -6879,10 +6879,10 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
       }
 
       case ClientQueryType.DELETE_SELECTION: {
-        const removeData = lastAction.undoData as { 
-          items: Array<{ originalId: string; name: string; x: number; y: number; svgString: string }> 
+        const removeData = lastAction.undoData as {
+          items: Array<{ originalId: string; name: string; x: number; y: number; svgString: string }>
         };
-        
+
         const restoredIds: string[] = [];
 
         for (const item of removeData.items) {
@@ -6899,7 +6899,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
               createdShape.name = item.name;
               createdShape.x = item.x;
               createdShape.y = item.y;
-              
+
               restoredIds.push(createdShape.id);
               restoredShapes.push(createdShape.name || createdShape.id);
             }
@@ -6907,10 +6907,10 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
             console.warn(`Failed to restore shape ${item.originalId} from SVG:`, error);
           }
         }
-        
+
         // Select restored shapes
         if (restoredIds.length > 0) {
-           setTimeout(() => updateCurrentSelection(restoredIds), 10);
+          setTimeout(() => updateCurrentSelection(restoredIds), 10);
         }
 
         break;
@@ -7074,7 +7074,7 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
     const isFlatten = lastAction.actionType === ClientQueryType.FLATTEN_SELECTION;
     const isBooleanOperation = isUnionBoolean || isIntersectionBoolean || isDifferenceBoolean || isExcludeBoolean;
     const isDestructiveOperation = isBooleanOperation || isFlatten;
-    
+
     return {
       ...pluginResponse,
       type: ClientQueryType.UNDO_LAST_ACTION,
@@ -7139,7 +7139,7 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
             const shape = currentPage.getShapeById(shapeId);
             if (!shape) continue;
 
-            undoStack.push(lastAction); 
+            undoStack.push(lastAction);
 
             // Reapply the fill
             shape.fills = [appliedFill];
@@ -7184,274 +7184,274 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
         break;
       }
 
-        case ClientQueryType.MOVE: {
-          // Reapply the move that was undone
-          const moveData = lastAction.undoData as { shapeIds: string[]; previousPositions: Array<{ x?: number; y?: number }>; newPositions: Array<{ x?: number; y?: number }> };
+      case ClientQueryType.MOVE: {
+        // Reapply the move that was undone
+        const moveData = lastAction.undoData as { shapeIds: string[]; previousPositions: Array<{ x?: number; y?: number }>; newPositions: Array<{ x?: number; y?: number }> };
 
-          for (let i = 0; i < moveData.shapeIds.length; i++) {
-            const shapeId = moveData.shapeIds[i];
-            const newPosition = moveData.newPositions[i];
+        for (let i = 0; i < moveData.shapeIds.length; i++) {
+          const shapeId = moveData.shapeIds[i];
+          const newPosition = moveData.newPositions[i];
 
-            try {
-              const currentPage = penpot.currentPage;
-              if (!currentPage) continue;
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
 
-              const shape = currentPage.getShapeById(shapeId);
-              if (!shape) continue;
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
 
-              if (typeof newPosition.x === 'number') shape.x = newPosition.x;
-              if (typeof newPosition.y === 'number') shape.y = newPosition.y;
+            if (typeof newPosition.x === 'number') shape.x = newPosition.x;
+            if (typeof newPosition.y === 'number') shape.y = newPosition.y;
 
-              undoStack.push(lastAction);
+            undoStack.push(lastAction);
 
-              restoredShapes.push(shape.name || shape.id);
-            } catch (error) {
-              console.warn(`Failed to redo move for shape ${shapeId}:`, error);
-            }
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo move for shape ${shapeId}:`, error);
           }
+        }
+        break;
+      }
+
+      case ClientQueryType.CLONE_SELECTION: {
+        const cloneData = lastAction.undoData as { shapeIds: string[]; sourceIds?: string[]; deltaX?: number; deltaY?: number };
+        const currentPage = penpot.currentPage;
+        if (!currentPage || !Array.isArray(cloneData.sourceIds)) {
           break;
         }
 
-          case ClientQueryType.CLONE_SELECTION: {
-            const cloneData = lastAction.undoData as { shapeIds: string[]; sourceIds?: string[]; deltaX?: number; deltaY?: number };
-            const currentPage = penpot.currentPage;
-            if (!currentPage || !Array.isArray(cloneData.sourceIds)) {
-              break;
+        const newCreatedIds: string[] = [];
+        const dx = typeof cloneData.deltaX === 'number' ? cloneData.deltaX : 0;
+        const dy = typeof cloneData.deltaY === 'number' ? cloneData.deltaY : 0;
+
+        for (const sourceId of cloneData.sourceIds) {
+          try {
+            const sourceShape = currentPage.getShapeById(sourceId);
+            if (!sourceShape) continue;
+            const clone = sourceShape.clone();
+            if (!clone) continue;
+            const baseX = typeof sourceShape.x === 'number' ? sourceShape.x : 0;
+            const baseY = typeof sourceShape.y === 'number' ? sourceShape.y : 0;
+            clone.x = baseX + dx;
+            clone.y = baseY + dy;
+            newCreatedIds.push(clone.id);
+            restoredShapes.push(clone.name || clone.id);
+          } catch (error) {
+            console.warn(`Failed to redo clone for source shape ${sourceId}:`, error);
+          }
+        }
+
+        cloneData.shapeIds = newCreatedIds;
+
+        // After re-creating the clones, select them and update the internal selection
+        try {
+          const createdSelection: any[] = [];
+          if (Array.isArray(newCreatedIds) && currentPage) {
+            for (const nid of newCreatedIds) {
+              const s = currentPage.getShapeById(nid);
+              if (s) createdSelection.push(s);
             }
+          }
 
-            const newCreatedIds: string[] = [];
-            const dx = typeof cloneData.deltaX === 'number' ? cloneData.deltaX : 0;
-            const dy = typeof cloneData.deltaY === 'number' ? cloneData.deltaY : 0;
+          const hostPenpot = (globalThis as unknown as { penpot?: { selection?: Shape[] } }).penpot;
+          if (hostPenpot) {
+            hostPenpot.selection = createdSelection;
+          }
 
-            for (const sourceId of cloneData.sourceIds) {
-              try {
-                const sourceShape = currentPage.getShapeById(sourceId);
-                if (!sourceShape) continue;
-                const clone = sourceShape.clone();
-                if (!clone) continue;
-                const baseX = typeof sourceShape.x === 'number' ? sourceShape.x : 0;
-                const baseY = typeof sourceShape.y === 'number' ? sourceShape.y : 0;
-                clone.x = baseX + dx;
-                clone.y = baseY + dy;
-                newCreatedIds.push(clone.id);
-                restoredShapes.push(clone.name || clone.id);
-              } catch (error) {
-                console.warn(`Failed to redo clone for source shape ${sourceId}:`, error);
-              }
-            }
-
-            cloneData.shapeIds = newCreatedIds;
-
-            // After re-creating the clones, select them and update the internal selection
+          setTimeout(() => {
             try {
-              const createdSelection: any[] = [];
-              if (Array.isArray(newCreatedIds) && currentPage) {
-                for (const nid of newCreatedIds) {
-                  const s = currentPage.getShapeById(nid);
-                  if (s) createdSelection.push(s);
-                }
-              }
-
-              const hostPenpot = (globalThis as unknown as { penpot?: { selection?: Shape[] } }).penpot;
-              if (hostPenpot) {
-                hostPenpot.selection = createdSelection;
-              }
-
-              setTimeout(() => {
-                try {
-                  updateCurrentSelection(newCreatedIds);
-                } catch (err) {
-                  console.warn('Failed to update selection after redoing clone:', err);
-                }
-              }, 10);
-            } catch (selErr) {
-              console.warn('Failed to set selection after redo clone:', selErr);
+              updateCurrentSelection(newCreatedIds);
+            } catch (err) {
+              console.warn('Failed to update selection after redoing clone:', err);
             }
-            break;
+          }, 10);
+        } catch (selErr) {
+          console.warn('Failed to set selection after redo clone:', selErr);
+        }
+        break;
+      }
+
+      case ClientQueryType.TOGGLE_SELECTION_LOCK: {
+        const lockData = lastAction.undoData as { shapeIds: string[]; previousLockedStates: boolean[] };
+
+        for (let i = 0; i < lockData.shapeIds.length; i++) {
+          const shapeId = lockData.shapeIds[i];
+          const previousLocked = lockData.previousLockedStates[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            // Reapply the original applied state (opposite of previousLocked) to both
+            // locked and blocked properties so hosts that read either reflect the
+            // re-applied state.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (shape as any).locked = !previousLocked;
+            try { (shape as any).blocked = !previousLocked; } catch (e) { void e; }
+
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo lock/unlock for shape ${shapeId}:`, error);
           }
+        }
 
-          case ClientQueryType.TOGGLE_SELECTION_LOCK: {
-            const lockData = lastAction.undoData as { shapeIds: string[]; previousLockedStates: boolean[] };
+        // After reapplying locks, push the action back onto the undo stack
+        undoStack.push(lastAction);
+        break;
+      }
 
-            for (let i = 0; i < lockData.shapeIds.length; i++) {
-              const shapeId = lockData.shapeIds[i];
-              const previousLocked = lockData.previousLockedStates[i];
+      case ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK: {
+        const propData = lastAction.undoData as { shapeIds: string[]; previousProportionStates: boolean[] };
 
-              try {
-                const currentPage = penpot.currentPage;
-                if (!currentPage) continue;
+        for (let i = 0; i < propData.shapeIds.length; i++) {
+          const shapeId = propData.shapeIds[i];
+          const previousLocked = propData.previousProportionStates[i];
 
-                const shape = currentPage.getShapeById(shapeId);
-                if (!shape) continue;
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
 
-                // Reapply the original applied state (opposite of previousLocked) to both
-                // locked and blocked properties so hosts that read either reflect the
-                // re-applied state.
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (shape as any).locked = !previousLocked;
-                try { (shape as any).blocked = !previousLocked; } catch (e) { void e; }
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
 
-                restoredShapes.push(shape.name || shape.id);
-              } catch (error) {
-                console.warn(`Failed to redo lock/unlock for shape ${shapeId}:`, error);
-              }
-            }
+            // Reapply the original applied state (opposite of previousLocked) across
+            // a broad set of property names and nested constraints.* variants.
+            const newV = !previousLocked;
+            try { (shape as any).proportionLock = newV; } catch (e) { void e; }
+            try { (shape as any).keepAspectRatio = newV; } catch (e) { void e; }
+            try { (shape as any).constrainProportions = newV; } catch (e) { void e; }
+            try { (shape as any).lockProportions = newV; } catch (e) { void e; }
+            try { (shape as any).preserveAspectRatio = newV; } catch (e) { void e; }
+            try { (shape as any).lockRatio = newV; } catch (e) { void e; }
+            try { (shape as any).ratioLocked = newV; } catch (e) { void e; }
+            try { (shape as any).lockAspectRatio = newV; } catch (e) { void e; }
+            try { (shape as any).keepRatio = newV; } catch (e) { void e; }
+            try { (shape as any).fixedAspectRatio = newV; } catch (e) { void e; }
+            try { (shape as any).constrainAspectRatio = newV; } catch (e) { void e; }
+            try { (shape as any).maintainAspectRatio = newV; } catch (e) { void e; }
+            try { if (!(shape as any).constraints) (shape as any).constraints = {}; (shape as any).constraints.proportionLock = newV; (shape as any).constraints.lockRatio = newV; (shape as any).constraints.ratioLocked = newV; (shape as any).constraints.lockAspectRatio = newV; (shape as any).constraints.keepRatio = newV; (shape as any).constraints.fixedAspectRatio = newV; (shape as any).constraints.maintainAspect = newV; } catch (e) { void e; }
 
-            // After reapplying locks, push the action back onto the undo stack
-            undoStack.push(lastAction);
-            break;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo proportion lock/unlock for shape ${shapeId}:`, error);
           }
+        }
 
-          case ClientQueryType.TOGGLE_SELECTION_PROPORTION_LOCK: {
-            const propData = lastAction.undoData as { shapeIds: string[]; previousProportionStates: boolean[] };
+        // After reapplying proportion locks, push the action back onto the undo stack
+        undoStack.push(lastAction);
+        break;
+      }
 
-            for (let i = 0; i < propData.shapeIds.length; i++) {
-                const shapeId = propData.shapeIds[i];
-                const previousLocked = propData.previousProportionStates[i];
+      case ClientQueryType.DELETE_SELECTION: {
+        const removeData = lastAction.undoData as {
+          items: Array<{ originalId: string; name: string; x: number; y: number; svgString: string }>
+        };
 
-                try {
-                  const currentPage = penpot.currentPage;
-                  if (!currentPage) continue;
+        const restoredIds: string[] = [];
 
-                  const shape = currentPage.getShapeById(shapeId);
-                  if (!shape) continue;
+        for (const item of removeData.items) {
+          try {
+            if (!item.svgString) {
+              console.warn(`Cannot restore shape ${item.originalId}: No SVG data`);
+              continue;
+            }
 
-                  // Reapply the original applied state (opposite of previousLocked) across
-                  // a broad set of property names and nested constraints.* variants.
-                  const newV = !previousLocked;
-                  try { (shape as any).proportionLock = newV; } catch (e) { void e; }
-                  try { (shape as any).keepAspectRatio = newV; } catch (e) { void e; }
-                  try { (shape as any).constrainProportions = newV; } catch (e) { void e; }
-                  try { (shape as any).lockProportions = newV; } catch (e) { void e; }
-                  try { (shape as any).preserveAspectRatio = newV; } catch (e) { void e; }
-                  try { (shape as any).lockRatio = newV; } catch (e) { void e; }
-                  try { (shape as any).ratioLocked = newV; } catch (e) { void e; }
-                  try { (shape as any).lockAspectRatio = newV; } catch (e) { void e; }
-                  try { (shape as any).keepRatio = newV; } catch (e) { void e; }
-                  try { (shape as any).fixedAspectRatio = newV; } catch (e) { void e; }
-                  try { (shape as any).constrainAspectRatio = newV; } catch (e) { void e; }
-                  try { (shape as any).maintainAspectRatio = newV; } catch (e) { void e; }
-                  try { if (!(shape as any).constraints) (shape as any).constraints = {}; (shape as any).constraints.proportionLock = newV; (shape as any).constraints.lockRatio = newV; (shape as any).constraints.ratioLocked = newV; (shape as any).constraints.lockAspectRatio = newV; (shape as any).constraints.keepRatio = newV; (shape as any).constraints.fixedAspectRatio = newV; (shape as any).constraints.maintainAspect = newV; } catch (e) { void e; }
+            // Re-create from SVG
+            const createdShape = penpot.createShapeFromSvg(item.svgString);
+            if (createdShape) {
+              // Restore properties
+              createdShape.name = item.name;
+              createdShape.x = item.x;
+              createdShape.y = item.y;
 
-                  restoredShapes.push(shape.name || shape.id);
-                } catch (error) {
-                  console.warn(`Failed to redo proportion lock/unlock for shape ${shapeId}:`, error);
-                }
-              }
-
-            // After reapplying proportion locks, push the action back onto the undo stack
-            undoStack.push(lastAction);
-            break;
+              restoredIds.push(createdShape.id);
+              restoredShapes.push(createdShape.name || createdShape.id);
+            }
+          } catch (error) {
+            console.warn(`Failed to restore shape ${item.originalId} from SVG:`, error);
           }
+        }
 
-          case ClientQueryType.DELETE_SELECTION: {
-            const removeData = lastAction.undoData as { 
-              items: Array<{ originalId: string; name: string; x: number; y: number; svgString: string }> 
-            };
-            
-            const restoredIds: string[] = [];
+        // Select restored shapes
+        if (restoredIds.length > 0) {
+          setTimeout(() => updateCurrentSelection(restoredIds), 10);
+        }
 
-            for (const item of removeData.items) {
-              try {
-                if (!item.svgString) {
-                  console.warn(`Cannot restore shape ${item.originalId}: No SVG data`);
-                  continue;
-                }
+        break;
+      }
 
-                // Re-create from SVG
-                const createdShape = penpot.createShapeFromSvg(item.svgString);
-                if (createdShape) {
-                  // Restore properties
-                  createdShape.name = item.name;
-                  createdShape.x = item.x;
-                  createdShape.y = item.y;
-                  
-                  restoredIds.push(createdShape.id);
-                  restoredShapes.push(createdShape.name || createdShape.id);
-                }
-              } catch (error) {
-                console.warn(`Failed to restore shape ${item.originalId} from SVG:`, error);
-              }
-            }
-            
-            // Select restored shapes
-            if (restoredIds.length > 0) {
-               setTimeout(() => updateCurrentSelection(restoredIds), 10);
-            }
+      case ClientQueryType.TOGGLE_SELECTION_VISIBILITY: {
+        const visData = lastAction.undoData as { shapeIds: string[]; previousVisibleStates: boolean[] };
 
-            break;
-          }
+        for (let i = 0; i < visData.shapeIds.length; i++) {
+          const shapeId = visData.shapeIds[i];
+          const previousVisible = visData.previousVisibleStates[i];
 
-          case ClientQueryType.TOGGLE_SELECTION_VISIBILITY: {
-            const visData = lastAction.undoData as { shapeIds: string[]; previousVisibleStates: boolean[] };
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
 
-            for (let i = 0; i < visData.shapeIds.length; i++) {
-              const shapeId = visData.shapeIds[i];
-              const previousVisible = visData.previousVisibleStates[i];
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
 
-              try {
-                const currentPage = penpot.currentPage;
-                if (!currentPage) continue;
-
-                const shape = currentPage.getShapeById(shapeId);
-                if (!shape) continue;
-
-                // reapply the changed visibility (opposite of previous)
-                (shape as any).visible = !previousVisible;
-
-                undoStack.push(lastAction);
-                restoredShapes.push(shape.name || shape.id);
-              } catch (error) {
-                console.warn(`Failed to redo visibility change for shape ${shapeId}:`, error);
-              }
-            }
-
-            break;
-          }
-          case ClientQueryType.FLIP_SELECTION_HORIZONTAL: {
-            const flipData = lastAction.undoData as { shapeIds: string[]; previousFlipStates: boolean[] };
-
-            for (let i = 0; i < flipData.shapeIds.length; i++) {
-              const shapeId = flipData.shapeIds[i];
-              const previousFlipX = flipData.previousFlipStates[i];
-
-              try {
-                const currentPage = penpot.currentPage;
-                if (!currentPage) continue;
-
-                const shape = currentPage.getShapeById(shapeId);
-                if (!shape) continue;
-
-                (shape as any).flipX = !previousFlipX;
-                restoredShapes.push(shape.name || shape.id);
-              } catch (error) {
-                console.warn(`Failed to redo flipX change for shape ${shapeId}:`, error);
-              }
-            }
+            // reapply the changed visibility (opposite of previous)
+            (shape as any).visible = !previousVisible;
 
             undoStack.push(lastAction);
-            break;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo visibility change for shape ${shapeId}:`, error);
           }
+        }
 
-                    case ClientQueryType.FLIP_SELECTION_VERTICAL: {
-            const flipData = lastAction.undoData as { shapeIds: string[]; previousFlipStates: boolean[] };
-            for (let i = 0; i < flipData.shapeIds.length; i++) {
-              const shapeId = flipData.shapeIds[i];
-              const previousFlipY = flipData.previousFlipStates[i];
-              try {
-                const currentPage = penpot.currentPage;
-                if (!currentPage) continue;
-                const shape = currentPage.getShapeById(shapeId);
-                if (!shape) continue;
-                (shape as any).flipY = !previousFlipY;
-                restoredShapes.push(shape.name || shape.id);
-              } catch (error) {
-                console.warn(`Failed to redo flipY change for shape ${shapeId}:`, error);
-              }
-            }
-            undoStack.push(lastAction);
-            break;
+        break;
+      }
+      case ClientQueryType.FLIP_SELECTION_HORIZONTAL: {
+        const flipData = lastAction.undoData as { shapeIds: string[]; previousFlipStates: boolean[] };
+
+        for (let i = 0; i < flipData.shapeIds.length; i++) {
+          const shapeId = flipData.shapeIds[i];
+          const previousFlipX = flipData.previousFlipStates[i];
+
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+
+            (shape as any).flipX = !previousFlipX;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo flipX change for shape ${shapeId}:`, error);
           }
+        }
+
+        undoStack.push(lastAction);
+        break;
+      }
+
+      case ClientQueryType.FLIP_SELECTION_VERTICAL: {
+        const flipData = lastAction.undoData as { shapeIds: string[]; previousFlipStates: boolean[] };
+        for (let i = 0; i < flipData.shapeIds.length; i++) {
+          const shapeId = flipData.shapeIds[i];
+          const previousFlipY = flipData.previousFlipStates[i];
+          try {
+            const currentPage = penpot.currentPage;
+            if (!currentPage) continue;
+            const shape = currentPage.getShapeById(shapeId);
+            if (!shape) continue;
+            (shape as any).flipY = !previousFlipY;
+            restoredShapes.push(shape.name || shape.id);
+          } catch (error) {
+            console.warn(`Failed to redo flipY change for shape ${shapeId}:`, error);
+          }
+        }
+        undoStack.push(lastAction);
+        break;
+      }
 
       case ClientQueryType.APPLY_STROKE: {
         // Reapply the stroke values
@@ -8030,7 +8030,7 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
         //
         // Strategy: We can't easily Redo this perfectly without persistent IDs. 
         // We will warn the user.
-        
+
         return {
           ...pluginResponse,
           type: ClientQueryType.REDO_LAST_ACTION,
@@ -8040,9 +8040,9 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
       }
 
       case ClientQueryType.DETACH_FROM_COMPONENT: {
-         // Redo: Detach again.
-         // Limitation: The restored component instance has a NEW ID.
-         return {
+        // Redo: Detach again.
+        // Limitation: The restored component instance has a NEW ID.
+        return {
           ...pluginResponse,
           type: ClientQueryType.REDO_LAST_ACTION,
           success: false,
@@ -8373,15 +8373,15 @@ export async function detachFromComponentTool(payload: DetachFromComponentQueryP
         // Check if it is a component instance
         // We can check if `shape.component()` returns something, or `shape.detach` exists.
         if (typeof shape.detach !== 'function') {
-           failedShapes.push(shape.name || shape.id);
-           continue;
+          failedShapes.push(shape.name || shape.id);
+          continue;
         }
 
         const component = shape.component ? shape.component() : null;
         if (!component) {
-           // Not an instance?
-           failedShapes.push(shape.name || shape.id);
-           continue;
+          // Not an instance?
+          failedShapes.push(shape.name || shape.id);
+          continue;
         }
 
         // Capture metadata for Undo
@@ -8599,7 +8599,7 @@ export async function setConstraintsVerticalTool(payload: SetConstraintsVertical
       try {
         // Store previous value for undo
         previousConstraints.push(shape.constraintsVertical || 'top');
-        
+
         // Set new constraint
         shape.constraintsVertical = constraint;
         updatedShapeIds.push(shape.id);
@@ -8712,10 +8712,10 @@ export async function openPageTool(payload: OpenPageQueryPayload): Promise<Plugi
 
     // Attempt to open the page
     penpot.openPage(targetPage);
-    
+
     // Wait briefly for potential async page change
     await new Promise(resolve => setTimeout(resolve, 100));
-    
+
     // Check if navigation actually worked
     const didNavigate = penpot.currentPage?.id === targetPage.id;
 
@@ -8812,7 +8812,7 @@ export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<Pl
     // Process each shape
     for (const shape of targetShapes) {
       const parent = shape.parent as Board | Group | Boolean | null;
-      
+
       if (!parent || !('children' in parent)) {
         console.warn(`Shape ${shape.id} has no valid parent container`);
         continue;
@@ -8820,26 +8820,32 @@ export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<Pl
 
       const children = parent.children;
       const currentIndex = children.findIndex(child => child.id === shape.id);
-      
+
       if (currentIndex === -1) {
         console.warn(`Shape ${shape.id} not found in parent's children`);
         continue;
       }
 
       // Perform the requested action
+      // IMPORTANT: appendChild and insertChild don't move existing children in Penpot
+      // We must remove the shape first, then reinsert it at the desired position
       switch (action) {
         case 'bring-to-front':
+          shape.remove();
           parent.appendChild(shape);
-          targetIndex = children.length - 1;
+          targetIndex = parent.children.length - 1;
           break;
 
         case 'send-to-back':
+          shape.remove();
           parent.insertChild(0, shape);
           targetIndex = 0;
           break;
 
         case 'bring-forward':
           if (currentIndex < children.length - 1) {
+            shape.remove();
+            // After removal, indices shift down, so we insert at currentIndex + 1
             parent.insertChild(currentIndex + 1, shape);
             targetIndex = currentIndex + 1;
           }
@@ -8847,6 +8853,8 @@ export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<Pl
 
         case 'send-backward':
           if (currentIndex > 0) {
+            shape.remove();
+            // After removal, indices shift down, so we insert at currentIndex - 1
             parent.insertChild(currentIndex - 1, shape);
             targetIndex = currentIndex - 1;
           }
@@ -8854,7 +8862,8 @@ export async function setLayerOrderTool(payload: ZIndexQueryPayload): Promise<Pl
 
         case 'set-index':
           if (typeof index === 'number') {
-            const clampedIndex = Math.max(0, Math.min(index, children.length - 1));
+            shape.remove();
+            const clampedIndex = Math.max(0, Math.min(index, parent.children.length));
             parent.insertChild(clampedIndex, shape);
             targetIndex = clampedIndex;
           } else {
@@ -9081,7 +9090,7 @@ export async function createPageTool(payload: CreatePageQueryPayload): Promise<P
     const { name, openAfterCreate = false } = payload ?? {};
 
     const newPage = penpot.createPage();
-    
+
     if (name && name.trim() !== '') {
       newPage.name = name.trim();
     }
