@@ -8914,7 +8914,8 @@ export async function setLayoutZIndexTool(payload: ZIndexQueryPayload): Promise<
     // Build response message
     let message = '';
     if (movedShapes.length > 0) {
-      message = `Successfully updated z-index for ${movedShapes.length} shape(s). `;
+      const details = movedShapes.map(s => `${s.name || 'Shape'} (z-index: ${s.newZIndex})`).join(', ');
+      message = `Successfully updated z-index for ${movedShapes.length} shape(s): ${details}. `;
       message += `NOTE: The Layers panel order will NOT change. Z-index only affects visual stacking when shapes overlap.`;
     }
     if (failedShapes.length > 0) {
