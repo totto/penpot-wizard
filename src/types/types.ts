@@ -75,6 +75,10 @@ export enum ClientQueryType {
   DETACH_FROM_COMPONENT = 'DETACH_FROM_COMPONENT',
   SET_CONSTRAINTS_HORIZONTAL = 'SET_CONSTRAINTS_HORIZONTAL',
   SET_CONSTRAINTS_VERTICAL = 'SET_CONSTRAINTS_VERTICAL',
+  OPEN_PAGE = 'OPEN_PAGE',
+  CREATE_PAGE = 'CREATE_PAGE',
+  CHANGE_PAGE_BACKGROUND = 'CHANGE_PAGE_BACKGROUND',
+  RENAME_PAGE = 'RENAME_PAGE',
 }
 
 export enum PenpotShapeType {
@@ -281,6 +285,27 @@ export interface SetConstraintsVerticalQueryPayload {
   constraint: 'top' | 'bottom' | 'topbottom' | 'center' | 'scale';
 }
 
+export interface OpenPageQueryPayload {
+  pageId?: string;
+  pageName?: string;
+}
+
+export interface CreatePageQueryPayload {
+  name?: string;
+  openAfterCreate?: boolean;
+}
+
+export interface ChangePageBackgroundQueryPayload {
+  pageId?: string;
+  backgroundColor: string;
+}
+
+export interface RenamePageQueryPayload {
+  pageId?: string;
+  newName: string;
+}
+
+
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
   | AddImageQueryPayload
@@ -320,7 +345,11 @@ export type ClientQueryPayload =
   | ToggleSelectionLockQueryPayload
   | ToggleSelectionVisibilityQueryPayload
   | FlipSelectionHorizontalQueryPayload
-  | FlipSelectionVerticalQueryPayload;
+  | FlipSelectionVerticalQueryPayload
+  | OpenPageQueryPayload
+  | CreatePageQueryPayload
+  | ChangePageBackgroundQueryPayload
+  | RenamePageQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -700,6 +729,32 @@ export interface SetConstraintsVerticalResponsePayload {
   undoInfo?: UndoInfo;
 }
 
+export interface OpenPageResponsePayload {
+  pageId: string;
+  pageName: string;
+  undoInfo?: UndoInfo;
+}
+
+export interface CreatePageResponsePayload {
+  pageId: string;
+  pageName: string;
+  undoInfo: UndoInfo;
+}
+
+export interface ChangePageBackgroundResponsePayload {
+  pageId: string;
+  backgroundColor: string;
+  undoInfo: UndoInfo;
+}
+
+export interface RenamePageResponsePayload {
+  pageId: string;
+  oldName: string;
+  newName: string;
+  undoInfo: UndoInfo;
+}
+
+
 export type GetSelectionInfoQueryPayload = Record<string, never>;
 
 export interface SelectionInfoItem {
@@ -960,7 +1015,11 @@ export type PluginResponsePayload =
   | UngroupResponsePayload
   | GroupResponsePayload
   | FlipSelectionHorizontalResponsePayload
-  | FlipSelectionVerticalResponsePayload;
+  | FlipSelectionVerticalResponsePayload
+  | OpenPageResponsePayload
+  | CreatePageResponsePayload
+  | ChangePageBackgroundResponsePayload
+  | RenamePageResponsePayload;
 
 // Response for ungrouping shapes
 export interface UngroupResponsePayload {

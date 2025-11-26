@@ -90,6 +90,14 @@ import {
   SetConstraintsHorizontalResponsePayload,
   SetConstraintsVerticalQueryPayload,
   SetConstraintsVerticalResponsePayload,
+  OpenPageQueryPayload,
+  OpenPageResponsePayload,
+  CreatePageQueryPayload,
+  CreatePageResponsePayload,
+  ChangePageBackgroundQueryPayload,
+  ChangePageBackgroundResponsePayload,
+  RenamePageQueryPayload,
+  RenamePageResponsePayload,
 } from "../types/types";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
@@ -8451,6 +8459,98 @@ export async function setConstraintsVerticalTool(payload: SetConstraintsVertical
       type: ClientQueryType.SET_CONSTRAINTS_VERTICAL,
       success: false,
       message: `Error setting vertical constraints: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function openPageTool(payload: OpenPageQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { pageId, pageName } = payload ?? {};
+
+    if (!pageId && !pageName) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.OPEN_PAGE,
+        success: false,
+        message: 'Either pageId or pageName must be provided',
+      };
+    }
+
+    const currentFile = penpot.currentFile as any;
+    if (!currentFile || !currentFile.pages) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.OPEN_PAGE,
+        success: false,
+        message: 'No current file found',
+      };
+    }
+
+    // Find the target page
+    let targetPage: any;
+    if (pageId) {
+      targetPage = currentFile.pages.find((p: any) => p.id === pageId);
+      if (!targetPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.OPEN_PAGE,
+          success: false,
+          message: `Page with ID "${pageId}" not found`,
+        };
+      }
+    } else {
+      targetPage = currentFile.pages.find((p: any) => p.name === pageName);
+      if (!targetPage) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.OPEN_PAGE,
+          success: false,
+          message: `Page with name "${pageName}" not found`,
+        };
+      }
+    }
+
+    // Store current page for undo
+    const previousPage = penpot.currentPage as any;
+    const previousPageId = previousPage?.id;
+    const previousPageName = previousPage?.name || '';
+
+    // Navigate to the target page
+    penpot.openPage(targetPage);
+
+    // Create undo info
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.OPEN_PAGE,
+      actionId: `open_page_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Opened page "${targetPage.name}"`,
+      undoData: {
+        previousPageId,
+        previousPageName,
+        targetPageId: targetPage.id,
+        targetPageName: targetPage.name,
+      },
+      timestamp: Date.now(),
+    };
+
+    addToUndoStack(undoInfo);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.OPEN_PAGE,
+      success: true,
+      message: `Opened page "${targetPage.name}"`,
+      payload: {
+        pageId: targetPage.id,
+        pageName: targetPage.name,
+        undoInfo,
+      } as OpenPageResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.OPEN_PAGE,
+      success: false,
+      message: `Error opening page: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
