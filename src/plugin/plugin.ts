@@ -51,6 +51,7 @@ import {
   DetachFromComponentQueryPayload,
   SetConstraintsVerticalQueryPayload,
   SetConstraintsHorizontalQueryPayload,
+  OpenPageQueryPayload,
 } from '../types/types';
 
 import { handleDrawShape } from './drawHandlers';
@@ -110,7 +111,7 @@ import {
   detachFromComponentTool,
   setConstraintsVerticalTool,
   setConstraintsHorizontalTool,
-  
+  openPageTool,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -407,11 +408,13 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
     case ClientQueryType.SET_CONSTRAINTS_VERTICAL:
       responseMessage = await setConstraintsVerticalTool(payload as unknown as SetConstraintsVerticalQueryPayload);
       break;
-      responseMessage = await detachFromComponentTool(payload as unknown as DetachFromComponentQueryPayload);
-      break;
 
     case ClientQueryType.SET_CONSTRAINTS_HORIZONTAL:
       responseMessage = await setConstraintsHorizontalTool(payload as unknown as SetConstraintsHorizontalQueryPayload);
+      break;
+
+    case ClientQueryType.OPEN_PAGE:
+      responseMessage = await openPageTool(payload as unknown as OpenPageQueryPayload);
       break;
 
     default:

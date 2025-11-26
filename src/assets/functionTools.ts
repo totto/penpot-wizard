@@ -21,6 +21,7 @@ import {
   SetConstraintsHorizontalQueryPayload,
   SetConstraintsVerticalQueryPayload,
   SetConstraintsVerticalResponsePayload,
+  OpenPageQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -890,6 +891,27 @@ export const functionTools: FunctionTool[] = [
     }),
     function: async (args: SetConstraintsVerticalQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.SET_CONSTRAINTS_VERTICAL, args);
+      return response;
+    },
+  },
+  {
+    id: 'open-page',
+    name: 'Open Page',
+    description: `
+      Navigate to a specific page in the current Penpot file.
+      
+      You can specify the page either by:
+      - pageId: The unique ID of the page
+      - pageName: The name of the page
+      
+      At least one of these parameters must be provided.
+    `,
+    inputSchema: z.object({
+      pageId: z.string().optional().describe('The unique ID of the page to open'),
+      pageName: z.string().optional().describe('The name of the page to open'),
+    }),
+    function: async (args: OpenPageQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.OPEN_PAGE, args);
       return response;
     },
   },

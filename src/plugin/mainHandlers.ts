@@ -6968,6 +6968,41 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.OPEN_PAGE: {
+        const pageData = lastAction.undoData as {
+          previousPageId: string;
+          previousPageName: string;
+        };
+
+        try {
+          const currentFile = penpot.currentFile as any;
+          if (!currentFile || !currentFile.pages) {
+            return {
+              ...pluginResponse,
+              type: ClientQueryType.UNDO_LAST_ACTION,
+              success: false,
+              message: 'Cannot undo: No file pages available',
+            };
+          }
+
+          const previousPage = currentFile.pages.find((p: any) => p.id === pageData.previousPageId);
+          if (!previousPage) {
+            return {
+              ...pluginResponse,
+              type: ClientQueryType.UNDO_LAST_ACTION,
+              success: false,
+              message: `Cannot undo: Previous page not found`,
+            };
+          }
+
+          penpot.openPage(previousPage);
+          restoredShapes.push(`Returned to page "${previousPage.name}"`);
+        } catch (error) {
+          console.warn(`Failed to restore previous page:`, error);
+        }
+        break;
+      }
+
       default:
         return {
           ...pluginResponse,
@@ -8006,6 +8041,42 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
           } catch (error) {
             console.warn(`Failed to redo vertical constraint for shape ${shapeId}:`, error);
           }
+        }
+        break;
+      }
+
+      case ClientQueryType.OPEN_PAGE: {
+        const pageData = lastAction.undoData as {
+          targetPageId: string;
+          targetPageName: string;
+        };
+
+        try {
+          const currentFile = penpot.currentFile as any;
+          if (!currentFile || !currentFile.pages) {
+            return {
+              ...pluginResponse,
+              type: ClientQueryType.REDO_LAST_ACTION,
+              success: false,
+              message: 'Cannot redo: No file pages available',
+            };
+          }
+
+          const targetPage = currentFile.pages.find((p: any) => p.id === pageData.targetPageId);
+          if (!targetPage) {
+            return {
+              ...pluginResponse,
+              type: ClientQueryType.REDO_LAST_ACTION,
+              success: false,
+              message: `Cannot redo: Target page not found`,
+            };
+          }
+
+          penpot.openPage(targetPage);
+          undoStack.push(lastAction);
+          restoredShapes.push(`Reopened page "${targetPage.name}"`);
+        } catch (error) {
+          console.warn(`Failed to redo page navigation:`, error);
         }
         break;
       }

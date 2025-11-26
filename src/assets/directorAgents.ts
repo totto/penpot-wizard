@@ -146,6 +146,7 @@ When using the resize-selection tool:
       'delete-selection',
       'set-constraints-vertical',
       'set-constraints-horizontal',
+      'open-page',
 
 
       'dump-selection', //Dev tool for debugging
