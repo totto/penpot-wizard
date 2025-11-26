@@ -7003,6 +7003,59 @@ export async function undoLastAction(_payload: UndoLastActionQueryPayload): Prom
         break;
       }
 
+      case ClientQueryType.RENAME_PAGE: {
+        const pageData = lastAction.undoData as {
+          pageId: string;
+          oldName: string;
+        };
+
+        try {
+          const currentFile = penpot.currentFile as any;
+          const targetPage = currentFile?.pages?.find((p: any) => p.id === pageData.pageId);
+          if (targetPage) {
+            targetPage.name = pageData.oldName;
+            restoredShapes.push(`Restored page name to "${pageData.oldName}"`);
+          }
+        } catch (error) {
+          console.warn(`Failed to restore page name:`, error);
+        }
+        break;
+      }
+
+      case ClientQueryType.CHANGE_PAGE_BACKGROUND: {
+        const bgData = lastAction.undoData as {
+          pageId: string;
+          previousFills: any[];
+        };
+
+        try {
+          const currentFile = penpot.currentFile as any;
+          const targetPage = currentFile?.pages?.find((p: any) => p.id === bgData.pageId);
+          if (targetPage?.root) {
+            targetPage.root.fills = bgData.previousFills;
+            restoredShapes.push(`Restored page background`);
+          }
+        } catch (error) {
+          console.warn(`Failed to restore page background:`, error);
+        }
+        break;
+      }
+
+      case ClientQueryType.CREATE_PAGE: {
+        const pageData = lastAction.undoData as {
+          pageId: string;
+          pageName: string;
+        };
+
+        try {
+          console.warn(`Cannot undo page creation - page deletion not supported in API`);
+          restoredShapes.push(`Note: Created page "${pageData.pageName}" cannot be automatically deleted`);
+        } catch (error) {
+          console.warn(`Failed to undo page creation:`, error);
+        }
+        break;
+      }
+
       default:
         return {
           ...pluginResponse,
@@ -8077,6 +8130,61 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
           restoredShapes.push(`Reopened page "${targetPage.name}"`);
         } catch (error) {
           console.warn(`Failed to redo page navigation:`, error);
+        }
+        break;
+        break;
+      }
+
+      case ClientQueryType.RENAME_PAGE: {
+        const pageData = lastAction.undoData as {
+          pageId: string;
+          newName: string;
+        };
+
+        try {
+          const currentFile = penpot.currentFile as any;
+          const targetPage = currentFile?.pages?.find((p: any) => p.id === pageData.pageId);
+          if (targetPage) {
+            targetPage.name = pageData.newName;
+            undoStack.push(lastAction);
+            restoredShapes.push(`Renamed page to "${pageData.newName}"`);
+          }
+        } catch (error) {
+          console.warn(`Failed to redo page rename:`, error);
+        }
+        break;
+      }
+
+      case ClientQueryType.CHANGE_PAGE_BACKGROUND: {
+        const bgData = lastAction.undoData as {
+          pageId: string;
+          newColor: string;
+        };
+
+        try {
+          const currentFile = penpot.currentFile as any;
+          const targetPage = currentFile?.pages?.find((p: any) => p.id === bgData.pageId);
+          if (targetPage?.root) {
+            targetPage.root.fills = [{ fillColor: bgData.newColor, fillOpacity: 1 }];
+            undoStack.push(lastAction);
+            restoredShapes.push(`Reapplied page background ${bgData.newColor}`);
+          }
+        } catch (error) {
+          console.warn(`Failed to redo page background:`, error);
+        }
+        break;
+      }
+
+      case ClientQueryType.CREATE_PAGE: {
+        const pageData = lastAction.undoData as {
+          pageName: string;
+        };
+
+        try {
+          console.warn(`Cannot redo page creation - must create new page manually`);
+          restoredShapes.push(`Note: Cannot automatically recreate page "${pageData.pageName}"`);
+        } catch (error) {
+          console.warn(`Failed to redo page creation:`, error);
         }
         break;
       }
