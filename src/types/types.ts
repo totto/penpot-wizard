@@ -307,11 +307,10 @@ export interface RenamePageQueryPayload {
   newName: string;
 }
 
-export type ZIndexAction = 'bring-to-front' | 'send-to-back' | 'bring-forward' | 'send-backward';
-
 export interface ZIndexQueryPayload {
-  action: ZIndexAction;
+  action: 'bring-to-front' | 'send-to-back' | 'bring-forward' | 'send-backward' | 'set-index';
   shapeIds?: string[];
+  index?: number; // Optional, for 'set-index' action
 }
 
 
