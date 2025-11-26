@@ -8695,15 +8695,12 @@ export async function openPageTool(payload: OpenPageQueryPayload): Promise<Plugi
     const previousPageName = previousPage?.name || '';
 
     // Navigate to the target page
-    // Navigate to the target page
-    console.log(`[DEBUG] Current page ID: ${penpot.currentPage?.id}`);
-    console.log(`[DEBUG] Target page found: ${targetPage ? 'YES' : 'NO'}`);
-    if (targetPage) {
-      console.log(`[DEBUG] Target page details: ID=${targetPage.id}, Name=${targetPage.name}`);
-    }
-
+    // NOTE: penpot.openPage() is currently broken in plugin API (GitHub #2920)
+    // The function completes without error but doesn't actually change the current page
+    console.warn('[OPEN_PAGE] Warning: penpot.openPage() API is non-functional in current Penpot version');
+    console.warn('[OPEN_PAGE] This is a known Penpot limitation tracked in GitHub issue #2920');
+    
     if (penpot.currentPage?.id === targetPage.id) {
-      console.log(`[DEBUG] Already on target page`);
       return {
         ...pluginResponse,
         type: ClientQueryType.OPEN_PAGE,
@@ -8716,18 +8713,8 @@ export async function openPageTool(payload: OpenPageQueryPayload): Promise<Plugi
       };
     }
 
-    console.log(`[DEBUG] Calling penpot.openPage(targetPage)...`);
-    try {
-      // Try calling openPage
-      penpot.openPage(targetPage);
-      console.log(`[DEBUG] penpot.openPage returned`);
-      
-      // Check if page actually changed (might be async, so this check might be too early)
-      console.log(`[DEBUG] Page after call: ${penpot.currentPage?.id}`);
-    } catch (e) {
-      console.error(`[DEBUG] Error calling penpot.openPage:`, e);
-      throw e;
-    }
+    // Call the API (doesn't work, but keeps code structure for future fix)
+    penpot.openPage(targetPage);
 
     // Create undo info
     const undoInfo: UndoInfo = {
