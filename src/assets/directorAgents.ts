@@ -164,6 +164,7 @@ When using the resize-selection tool:
       'upload-media-from-data',
       'configure-flex-layout',
       'configure-grid-layout',
+      'configure-ruler-guides',
       'dump-selection', //Dev tool for debugging
 
     ],
