@@ -24,6 +24,7 @@ import {
   ChangePageBackgroundQueryPayload,
   CreatePageQueryPayload,
   ZIndexQueryPayload,
+  ConfigureFlexLayoutQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -1086,6 +1087,58 @@ export const functionTools: FunctionTool[] = [
     }),
     function: async (args: UploadMediaFromDataQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.UPLOAD_MEDIA_FROM_DATA, args as any);
+      return response;
+    },
+  },
+  {
+    id: 'configure-flex-layout',
+    name: 'configureFlexLayout',
+    description: `
+      Configures flex layout properties for selected boards or groups.
+      Can set container properties (direction, wrap, alignment, gaps, padding, sizing)
+      and child properties (sizing, margins, alignment, z-index).
+      Can also remove flex layout from the container.
+    `,
+    inputSchema: z.object({
+      shapeIds: z.array(z.string()).optional().describe('Optional list of shape IDs to apply the layout to. If omitted, applies to current selection.'),
+      remove: z.boolean().optional().describe('If true, removes the flex layout from the container.'),
+      dir: z.enum(['row', 'row-reverse', 'column', 'column-reverse']).optional().describe('Flex direction.'),
+      wrap: z.enum(['wrap', 'nowrap']).optional().describe('Flex wrap behavior.'),
+      alignItems: z.enum(['start', 'end', 'center', 'stretch']).optional().describe('Alignment of items along the cross axis.'),
+      alignContent: z.enum(['start', 'end', 'center', 'space-between', 'space-around', 'space-evenly', 'stretch']).optional().describe('Alignment of content lines along the cross axis.'),
+      justifyItems: z.enum(['start', 'end', 'center', 'stretch']).optional().describe('Justification of items along the main axis.'),
+      justifyContent: z.enum(['start', 'center', 'end', 'space-between', 'space-around', 'space-evenly', 'stretch']).optional().describe('Justification of content along the main axis.'),
+      rowGap: z.number().optional().describe('Gap between rows.'),
+      columnGap: z.number().optional().describe('Gap between columns.'),
+      topPadding: z.number().optional().describe('Top padding.'),
+      rightPadding: z.number().optional().describe('Right padding.'),
+      bottomPadding: z.number().optional().describe('Bottom padding.'),
+      leftPadding: z.number().optional().describe('Left padding.'),
+      horizontalPadding: z.number().optional().describe('Horizontal padding (sets both left and right).'),
+      verticalPadding: z.number().optional().describe('Vertical padding (sets both top and bottom).'),
+      horizontalSizing: z.enum(['fit-content', 'fill', 'auto']).optional().describe('Horizontal sizing behavior of the container.'),
+      verticalSizing: z.enum(['fit-content', 'fill', 'auto']).optional().describe('Vertical sizing behavior of the container.'),
+      childProperties: z.object({
+        shapeIds: z.array(z.string()).optional().describe('Specific children to modify. If omitted, applies to all children.'),
+        absolute: z.boolean().optional().describe('If true, positions the child absolutely within the container.'),
+        zIndex: z.number().optional().describe('Z-index of the child.'),
+        horizontalSizing: z.enum(['auto', 'fill', 'fix']).optional().describe('Horizontal sizing behavior of the child.'),
+        verticalSizing: z.enum(['auto', 'fill', 'fix']).optional().describe('Vertical sizing behavior of the child.'),
+        alignSelf: z.enum(['auto', 'start', 'center', 'end', 'stretch']).optional().describe('Alignment of the child along the cross axis, overriding container alignItems.'),
+        topMargin: z.number().optional().describe('Top margin.'),
+        rightMargin: z.number().optional().describe('Right margin.'),
+        bottomMargin: z.number().optional().describe('Bottom margin.'),
+        leftMargin: z.number().optional().describe('Left margin.'),
+        horizontalMargin: z.number().optional().describe('Horizontal margin (sets both left and right).'),
+        verticalMargin: z.number().optional().describe('Vertical margin (sets both top and bottom).'),
+        minWidth: z.number().optional().describe('Minimum width constraint.'),
+        maxWidth: z.number().optional().describe('Maximum width constraint.'),
+        minHeight: z.number().optional().describe('Minimum height constraint.'),
+        maxHeight: z.number().optional().describe('Maximum height constraint.'),
+      }).optional().describe('Properties to apply to children of the flex container.'),
+    }),
+    function: async (args: ConfigureFlexLayoutQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CONFIGURE_FLEX_LAYOUT, args);
       return response;
     },
   },
