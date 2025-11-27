@@ -9918,7 +9918,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               (board as any).columnGuides = {
                 type: 'column',
                 display: guide.display,
-                color: guide.color,
+                color: guide.color ? { color: guide.color, opacity: 1 } : undefined,
                 alignment: guide.alignment,
                 size: calculatedSize,
                 margin: guide.margin,
@@ -9942,7 +9942,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               (board as any).squareGuides = {
                 type: 'square',
                 display: guide.display,
-                color: guide.color,
+                color: guide.color ? { color: guide.color, opacity: 1 } : undefined,
                 size: guide.size,
               };
               guidesSet++;
@@ -9969,7 +9969,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               (board as any).columnGuides = {
                 type: 'column',
                 display: guide.display,
-                color: guide.color,
+                color: guide.color ? { color: guide.color, opacity: 1 } : undefined,
                 alignment: guide.alignment,
                 size: calculatedSize,
                 margin: guide.margin,
@@ -9981,7 +9981,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               (board as any).rowGuides = {
                 type: 'row',
                 display: guide.display,
-                color: guide.color,
+                color: guide.color ? { color: guide.color, opacity: 1 } : undefined,
                 alignment: guide.alignment,
                 size: calculatedSize,
                 margin: guide.margin,
