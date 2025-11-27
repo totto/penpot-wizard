@@ -1281,10 +1281,11 @@ export const functionTools: FunctionTool[] = [
         color: z.string().optional().describe('Color of the guide (hex format).'),
         
         // Column/Row specific
+        count: z.number().optional().describe('Number of columns/rows to create. If specified, the plugin will calculate the size automatically based on board dimensions.'),
         alignment: z.enum(['stretch', 'left', 'center', 'right']).optional().describe('Alignment for column/row guides.'),
-        size: z.number().optional().describe('Size (width for columns, height for rows).'),
+        size: z.number().optional().describe('Size (width for columns, height for rows). For N-column grids, calculate: size = (boardWidth - 2*margin - (N-1)*gutter) / N. Alternatively, use the count property.'),
         margin: z.number().optional().describe('Margin around the guide area.'),
-        itemLength: z.number().optional().describe('Length of each item in the guide.'),
+        itemLength: z.number().optional().describe('DEPRECATED: Length of each individual item within the guide. This is NOT the number of columns/rows.'),
         gutter: z.number().optional().describe('Gutter (spacing) between guide items.'),
       })).optional().describe('List of guides to set or add. Required for "set" and "add" actions.'),
     }),

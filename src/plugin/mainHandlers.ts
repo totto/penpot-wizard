@@ -9905,13 +9905,22 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
         // Then set new ones
         if (guides) {
           for (const guide of guides) {
+            // Calculate size from count if provided
+            let calculatedSize = guide.size;
+            if (guide.count && !guide.size && (guide.type === 'column' || guide.type === 'row')) {
+              const dimension = guide.type === 'column' ? board.width : board.height;
+              const margin = guide.margin ?? 0;
+              const gutter = guide.gutter ?? 0;
+              calculatedSize = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
+            }
+            
             if (guide.type === 'column') {
               (board as any).columnGuides = {
                 type: 'column',
                 display: guide.display,
                 color: guide.color,
                 alignment: guide.alignment,
-                size: guide.size,
+                size: calculatedSize,
                 margin: guide.margin,
                 itemLength: guide.itemLength,
                 gutter: guide.gutter,
@@ -9923,7 +9932,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
                 display: guide.display,
                 color: guide.color,
                 alignment: guide.alignment,
-                size: guide.size,
+                size: calculatedSize,
                 margin: guide.margin,
                 itemLength: guide.itemLength,
                 gutter: guide.gutter,
@@ -9947,13 +9956,22 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
         // Let's interpret 'add' as 'set' for each type provided.
         if (guides) {
           for (const guide of guides) {
+            // Calculate size from count if provided
+            let calculatedSize = guide.size;
+            if (guide.count && !guide.size && (guide.type === 'column' || guide.type === 'row')) {
+              const dimension = guide.type === 'column' ? board.width : board.height;
+              const margin = guide.margin ?? 0;
+              const gutter = guide.gutter ?? 0;
+              calculatedSize = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
+            }
+            
             if (guide.type === 'column') {
               (board as any).columnGuides = {
                 type: 'column',
                 display: guide.display,
                 color: guide.color,
                 alignment: guide.alignment,
-                size: guide.size,
+                size: calculatedSize,
                 margin: guide.margin,
                 itemLength: guide.itemLength,
                 gutter: guide.gutter,
@@ -9965,7 +9983,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
                 display: guide.display,
                 color: guide.color,
                 alignment: guide.alignment,
-                size: guide.size,
+                size: calculatedSize,
                 margin: guide.margin,
                 itemLength: guide.itemLength,
                 gutter: guide.gutter,

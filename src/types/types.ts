@@ -455,6 +455,7 @@ export interface ConfigureBoardGuidesQueryPayload {
     color?: string;
     
     // Column/Row params
+    count?: number; // Number of columns/rows (will calculate size automatically)
     alignment?: 'stretch' | 'left' | 'center' | 'right';
     size?: number;
     margin?: number;
