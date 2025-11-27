@@ -102,6 +102,8 @@ import {
   ZIndexResponsePayload,
   ConfigureFlexLayoutQueryPayload,
   ConfigureFlexLayoutResponsePayload,
+  ConfigureGridLayoutQueryPayload,
+  ConfigureGridLayoutResponsePayload,
 } from "../types/types";
 import {
   ReadShapeColorsQueryPayload,
@@ -9505,6 +9507,257 @@ export async function configureFlexLayoutTool(payload: ConfigureFlexLayoutQueryP
       type: ClientQueryType.CONFIGURE_FLEX_LAYOUT,
       success: false,
       message: `Error configuring flex layout: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const {
+      shapeIds,
+      remove,
+      alignItems,
+      alignContent,
+      justifyItems,
+      justifyContent,
+      rowGap,
+      columnGap,
+      topPadding,
+      rightPadding,
+      bottomPadding,
+      leftPadding,
+      horizontalPadding,
+      verticalPadding,
+      horizontalSizing,
+      verticalSizing,
+      rows,
+      columns,
+      addRows,
+      addColumns,
+      removeRowIndices,
+      removeColumnIndices,
+      childProperties,
+    } = payload;
+
+    // Resolve shapes
+    let shapes: Shape[] = [];
+    if (shapeIds && shapeIds.length > 0) {
+      const page = penpot.currentPage;
+      if (page) {
+        shapes = shapeIds.map(id => page.getShapeById(id)).filter((s): s is Shape => !!s);
+      }
+    } else {
+      shapes = getSelectionForAction();
+    }
+
+    if (!shapes || shapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CONFIGURE_GRID_LAYOUT,
+        success: false,
+        message: 'No shapes found to configure.',
+      };
+    }
+
+    const configuredShapes: Array<{ id: string; name?: string }> = [];
+    const affectedChildren: Array<{ id: string; name?: string }> = [];
+    const containerPropsSet: string[] = [];
+    const childPropsSet: string[] = [];
+
+    for (const shape of shapes) {
+      if (shape.type !== 'board') {
+        continue;
+      }
+
+      const board = shape as Board;
+
+      // 1. Handle Removal
+      if (remove) {
+        if (board.grid) {
+          board.grid.remove();
+          configuredShapes.push({ id: board.id, name: board.name });
+        }
+        if (board.flex) {
+          board.flex.remove();
+        }
+        continue;
+      }
+
+      // 2. Get or Create Grid Layout
+      if (board.flex) {
+        board.flex.remove();
+      }
+
+      let grid = board.grid;
+      if (!grid) {
+        grid = board.addGridLayout();
+      }
+
+      // 3. Apply Container Properties
+      if (alignItems) { grid.alignItems = alignItems; containerPropsSet.push('alignItems'); }
+      if (alignContent) { grid.alignContent = alignContent; containerPropsSet.push('alignContent'); }
+      if (justifyItems) { grid.justifyItems = justifyItems; containerPropsSet.push('justifyItems'); }
+      if (justifyContent) { grid.justifyContent = justifyContent; containerPropsSet.push('justifyContent'); }
+      if (rowGap !== undefined) { grid.rowGap = rowGap; containerPropsSet.push('rowGap'); }
+      if (columnGap !== undefined) { grid.columnGap = columnGap; containerPropsSet.push('columnGap'); }
+      
+      if (topPadding !== undefined) { grid.topPadding = topPadding; containerPropsSet.push('topPadding'); }
+      if (rightPadding !== undefined) { grid.rightPadding = rightPadding; containerPropsSet.push('rightPadding'); }
+      if (bottomPadding !== undefined) { grid.bottomPadding = bottomPadding; containerPropsSet.push('bottomPadding'); }
+      if (leftPadding !== undefined) { grid.leftPadding = leftPadding; containerPropsSet.push('leftPadding'); }
+      if (horizontalPadding !== undefined) { grid.horizontalPadding = horizontalPadding; containerPropsSet.push('horizontalPadding'); }
+      if (verticalPadding !== undefined) { grid.verticalPadding = verticalPadding; containerPropsSet.push('verticalPadding'); }
+
+      if (horizontalSizing) { grid.horizontalSizing = horizontalSizing; containerPropsSet.push('horizontalSizing'); }
+      if (verticalSizing) { grid.verticalSizing = verticalSizing; containerPropsSet.push('verticalSizing'); }
+
+      configuredShapes.push({ id: board.id, name: board.name });
+
+      // 4. Grid Structure
+      // Set all rows/columns (clears existing?)
+      // The API doesn't have "setRows", only add/remove/setRow(index).
+      // If `rows` is provided, we should probably clear existing and add new ones.
+      // Or update existing ones?
+      // "Set all rows" implies replacing the structure.
+      
+      if (rows) {
+        // Remove all existing rows
+        // We need to know how many rows there are. `grid.rows` is Readonly<Track[]>.
+        const currentCount = grid.rows.length;
+        for (let i = currentCount - 1; i >= 0; i--) {
+          grid.removeRow(i);
+        }
+        // Add new rows
+        for (const row of rows) {
+          grid.addRow(row.type as any, row.value ?? undefined);
+        }
+        containerPropsSet.push('rows');
+      }
+
+      if (columns) {
+        const currentCount = grid.columns.length;
+        for (let i = currentCount - 1; i >= 0; i--) {
+          grid.removeColumn(i);
+        }
+        for (const col of columns) {
+          grid.addColumn(col.type as any, col.value ?? undefined);
+        }
+        containerPropsSet.push('columns');
+      }
+
+      // Operations
+      if (addRows) {
+        for (const row of addRows) {
+          if (row.index !== undefined) {
+            grid.addRowAtIndex(row.type as any, row.index, row.value ?? undefined);
+          } else {
+            grid.addRow(row.type as any, row.value ?? undefined);
+          }
+        }
+        containerPropsSet.push('addRows');
+      }
+
+      if (addColumns) {
+        for (const col of addColumns) {
+          if (col.index !== undefined) {
+            grid.addColumnAtIndex(col.type as any, col.index, col.value ?? undefined);
+          } else {
+            grid.addColumn(col.type as any, col.value ?? undefined);
+          }
+        }
+        containerPropsSet.push('addColumns');
+      }
+
+      if (removeRowIndices) {
+        // Sort descending to avoid index shift
+        const sorted = [...removeRowIndices].sort((a, b) => b - a);
+        for (const idx of sorted) {
+          // Check bounds? API probably throws if out of bounds.
+          if (idx >= 0 && idx < grid.rows.length) {
+            grid.removeRow(idx);
+          }
+        }
+        containerPropsSet.push('removeRows');
+      }
+
+      if (removeColumnIndices) {
+        const sorted = [...removeColumnIndices].sort((a, b) => b - a);
+        for (const idx of sorted) {
+          if (idx >= 0 && idx < grid.columns.length) {
+            grid.removeColumn(idx);
+          }
+        }
+        containerPropsSet.push('removeColumns');
+      }
+
+      // 5. Child Properties
+      if (childProperties) {
+        const childrenToUpdate: Shape[] = [];
+        if (childProperties.shapeIds && childProperties.shapeIds.length > 0) {
+          const targetIds = new Set(childProperties.shapeIds);
+          childrenToUpdate.push(...board.children.filter(child => targetIds.has(child.id)));
+        } else {
+          childrenToUpdate.push(...board.children);
+        }
+
+        for (const child of childrenToUpdate) {
+          // LayoutChildProperties
+          const layoutChild = child.layoutChild as any;
+          if (layoutChild) {
+             if (childProperties.absolute !== undefined) { layoutChild.absolute = childProperties.absolute; childPropsSet.push('absolute'); }
+             if (childProperties.zIndex !== undefined) { layoutChild.zIndex = childProperties.zIndex; childPropsSet.push('zIndex'); }
+             if (childProperties.horizontalSizing) { layoutChild.horizontalSizing = childProperties.horizontalSizing; childPropsSet.push('horizontalSizing'); }
+             if (childProperties.verticalSizing) { layoutChild.verticalSizing = childProperties.verticalSizing; childPropsSet.push('verticalSizing'); }
+             if (childProperties.alignSelf) { layoutChild.alignSelf = childProperties.alignSelf; childPropsSet.push('alignSelf'); }
+             if (childProperties.justifySelf) { layoutChild.justifySelf = childProperties.justifySelf; childPropsSet.push('justifySelf'); }
+             
+             if (childProperties.topMargin !== undefined) { layoutChild.topMargin = childProperties.topMargin; childPropsSet.push('topMargin'); }
+             if (childProperties.rightMargin !== undefined) { layoutChild.rightMargin = childProperties.rightMargin; childPropsSet.push('rightMargin'); }
+             if (childProperties.bottomMargin !== undefined) { layoutChild.bottomMargin = childProperties.bottomMargin; childPropsSet.push('bottomMargin'); }
+             if (childProperties.leftMargin !== undefined) { layoutChild.leftMargin = childProperties.leftMargin; childPropsSet.push('leftMargin'); }
+             if (childProperties.horizontalMargin !== undefined) { layoutChild.horizontalMargin = childProperties.horizontalMargin; childPropsSet.push('horizontalMargin'); }
+             if (childProperties.verticalMargin !== undefined) { layoutChild.verticalMargin = childProperties.verticalMargin; childPropsSet.push('verticalMargin'); }
+             
+             if (childProperties.minWidth !== undefined) { layoutChild.minWidth = childProperties.minWidth; childPropsSet.push('minWidth'); }
+             if (childProperties.maxWidth !== undefined) { layoutChild.maxWidth = childProperties.maxWidth; childPropsSet.push('maxWidth'); }
+             if (childProperties.minHeight !== undefined) { layoutChild.minHeight = childProperties.minHeight; childPropsSet.push('minHeight'); }
+             if (childProperties.maxHeight !== undefined) { layoutChild.maxHeight = childProperties.maxHeight; childPropsSet.push('maxHeight'); }
+          }
+
+          // LayoutCellProperties
+          const layoutCell = child.layoutCell as any;
+          if (layoutCell) {
+            if (childProperties.row !== undefined) { layoutCell.row = childProperties.row; childPropsSet.push('row'); }
+            if (childProperties.column !== undefined) { layoutCell.column = childProperties.column; childPropsSet.push('column'); }
+            if (childProperties.rowSpan !== undefined) { layoutCell.rowSpan = childProperties.rowSpan; childPropsSet.push('rowSpan'); }
+            if (childProperties.columnSpan !== undefined) { layoutCell.columnSpan = childProperties.columnSpan; childPropsSet.push('columnSpan'); }
+          }
+          
+          affectedChildren.push({ id: child.id, name: child.name });
+        }
+      }
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CONFIGURE_GRID_LAYOUT,
+      success: true,
+      message: `Configured grid layout for ${configuredShapes.length} shapes`,
+      payload: {
+        configuredShapes,
+        layoutRemoved: !!remove,
+        containerPropertiesSet: [...new Set(containerPropsSet)],
+        childPropertiesSet: [...new Set(childPropsSet)],
+        affectedChildren,
+      } as ConfigureGridLayoutResponsePayload,
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CONFIGURE_GRID_LAYOUT,
+      success: false,
+      message: `Error configuring grid layout: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
