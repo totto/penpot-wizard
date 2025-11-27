@@ -85,6 +85,7 @@ export enum ClientQueryType {
   READ_PLUGIN_LOCAL_STORAGE = 'READ_PLUGIN_LOCAL_STORAGE',
   READ_VIEWPORT_SETTINGS = 'READ_VIEWPORT_SETTINGS',
   UPLOAD_MEDIA_FROM_DATA = 'UPLOAD_MEDIA_FROM_DATA',
+  CONFIGURE_FLEX_LAYOUT = 'CONFIGURE_FLEX_LAYOUT',
 }
 
 export enum PenpotShapeType {
@@ -138,7 +139,8 @@ export interface ClientMessage {
   | ToggleSelectionProportionLockQueryPayload
   | FlipSelectionHorizontalQueryPayload
   | FlipSelectionVerticalQueryPayload
-  | ZIndexQueryPayload;
+  | ZIndexQueryPayload
+  | ConfigureFlexLayoutQueryPayload;
 
 }
 
@@ -318,6 +320,49 @@ export interface ZIndexQueryPayload {
   index?: number; // Optional, for 'set-index' action
 }
 
+export interface ConfigureFlexLayoutQueryPayload {
+  shapeIds?: string[]; // If omitted, use current selection
+  
+  // Container properties
+  remove?: boolean; // If true, remove the flex layout
+  dir?: 'row' | 'row-reverse' | 'column' | 'column-reverse';
+  wrap?: 'wrap' | 'nowrap';
+  alignItems?: 'start' | 'end' | 'center' | 'stretch';
+  alignContent?: 'start' | 'end' | 'center' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
+  justifyItems?: 'start' | 'end' | 'center' | 'stretch';
+  justifyContent?: 'start' | 'center' | 'end' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
+  rowGap?: number;
+  columnGap?: number;
+  topPadding?: number;
+  rightPadding?: number;
+  bottomPadding?: number;
+  leftPadding?: number;
+  horizontalPadding?: number;
+  verticalPadding?: number;
+  horizontalSizing?: 'fit-content' | 'fill' | 'auto';
+  verticalSizing?: 'fit-content' | 'fill' | 'auto';
+  
+  // Child properties (apply to children within the layout)
+  childProperties?: {
+    shapeIds?: string[]; // Specific children to modify (if omitted, apply to all children)
+    absolute?: boolean;
+    zIndex?: number;
+    horizontalSizing?: 'auto' | 'fill' | 'fix';
+    verticalSizing?: 'auto' | 'fill' | 'fix';
+    alignSelf?: 'auto' | 'start' | 'center' | 'end' | 'stretch';
+    topMargin?: number;
+    rightMargin?: number;
+    bottomMargin?: number;
+    leftMargin?: number;
+    horizontalMargin?: number;
+    verticalMargin?: number;
+    minWidth?: number;
+    maxWidth?: number;
+    minHeight?: number;
+    maxHeight?: number;
+  };
+}
+
 
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
@@ -363,7 +408,8 @@ export type ClientQueryPayload =
   | CreatePageQueryPayload
   | ChangePageBackgroundQueryPayload
   | RenamePageQueryPayload
-  | ZIndexQueryPayload;
+  | ZIndexQueryPayload
+  | ConfigureFlexLayoutQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -772,6 +818,15 @@ export interface ZIndexResponsePayload {
   movedShapes: Array<{ id: string; name?: string }>;
   action: 'bring-to-front' | 'send-to-back' | 'bring-forward' | 'send-backward' | 'set-index';
   targetIndex?: number; // The final index position (for set-index action)
+  undoInfo?: UndoInfo;
+}
+
+export interface ConfigureFlexLayoutResponsePayload {
+  configuredShapes: Array<{ id: string; name?: string }>;
+  layoutRemoved?: boolean;
+  containerPropertiesSet?: string[]; // List of container properties that were set
+  childPropertiesSet?: string[]; // List of child properties that were set
+  affectedChildren?: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
 }
 
