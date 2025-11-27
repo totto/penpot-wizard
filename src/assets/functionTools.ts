@@ -1237,6 +1237,7 @@ export const functionTools: FunctionTool[] = [
     name: 'configureRulerGuides',
     description: `
       Configures **Ruler Guides** (thin blue/red lines dragged from rulers) for the page or selected boards.
+      **Default tool for "add guide" or "create guide" commands.**
       **Does NOT affect Layout Grids (columns/rows overlays).**
       Can add or remove ruler guides at specific positions.
     `,
