@@ -86,6 +86,7 @@ export enum ClientQueryType {
   READ_VIEWPORT_SETTINGS = 'READ_VIEWPORT_SETTINGS',
   UPLOAD_MEDIA_FROM_DATA = 'UPLOAD_MEDIA_FROM_DATA',
   CONFIGURE_FLEX_LAYOUT = 'CONFIGURE_FLEX_LAYOUT',
+  CONFIGURE_GRID_LAYOUT = 'CONFIGURE_GRID_LAYOUT',
 }
 
 export enum PenpotShapeType {
@@ -140,7 +141,8 @@ export interface ClientMessage {
   | FlipSelectionHorizontalQueryPayload
   | FlipSelectionVerticalQueryPayload
   | ZIndexQueryPayload
-  | ConfigureFlexLayoutQueryPayload;
+  | ConfigureFlexLayoutQueryPayload
+  | ConfigureGridLayoutQueryPayload;
 
 }
 
@@ -363,6 +365,64 @@ export interface ConfigureFlexLayoutQueryPayload {
   };
 }
 
+export interface ConfigureGridLayoutQueryPayload {
+  shapeIds?: string[];
+  remove?: boolean;
+
+  // Container properties
+  alignItems?: 'start' | 'end' | 'center' | 'stretch';
+  alignContent?: 'start' | 'end' | 'center' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
+  justifyItems?: 'start' | 'end' | 'center' | 'stretch';
+  justifyContent?: 'start' | 'center' | 'end' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
+  rowGap?: number;
+  columnGap?: number;
+  topPadding?: number;
+  rightPadding?: number;
+  bottomPadding?: number;
+  leftPadding?: number;
+  horizontalPadding?: number;
+  verticalPadding?: number;
+  horizontalSizing?: 'fit-content' | 'fill' | 'auto';
+  verticalSizing?: 'fit-content' | 'fill' | 'auto';
+
+  // Grid Structure
+  rows?: Array<{ type: 'flex' | 'fixed' | 'percent' | 'auto'; value: number | null }>;
+  columns?: Array<{ type: 'flex' | 'fixed' | 'percent' | 'auto'; value: number | null }>;
+  
+  // Operations
+  addRows?: Array<{ type: 'flex' | 'fixed' | 'percent' | 'auto'; value: number | null; index?: number }>;
+  addColumns?: Array<{ type: 'flex' | 'fixed' | 'percent' | 'auto'; value: number | null; index?: number }>;
+  removeRowIndices?: number[];
+  removeColumnIndices?: number[];
+
+  // Child properties (including Grid Cell properties)
+  childProperties?: {
+    shapeIds?: string[];
+    absolute?: boolean;
+    zIndex?: number;
+    horizontalSizing?: 'auto' | 'fill' | 'fix';
+    verticalSizing?: 'auto' | 'fill' | 'fix';
+    alignSelf?: 'auto' | 'start' | 'center' | 'end' | 'stretch';
+    justifySelf?: 'auto' | 'start' | 'center' | 'end' | 'stretch'; // Grid specific
+    topMargin?: number;
+    rightMargin?: number;
+    bottomMargin?: number;
+    leftMargin?: number;
+    horizontalMargin?: number;
+    verticalMargin?: number;
+    minWidth?: number;
+    maxWidth?: number;
+    minHeight?: number;
+    maxHeight?: number;
+    
+    // Grid Cell Properties
+    row?: number;
+    column?: number;
+    rowSpan?: number;
+    columnSpan?: number;
+  };
+}
+
 
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
@@ -409,7 +469,8 @@ export type ClientQueryPayload =
   | ChangePageBackgroundQueryPayload
   | RenamePageQueryPayload
   | ZIndexQueryPayload
-  | ConfigureFlexLayoutQueryPayload;
+  | ConfigureFlexLayoutQueryPayload
+  | ConfigureGridLayoutQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -826,6 +887,15 @@ export interface ConfigureFlexLayoutResponsePayload {
   layoutRemoved?: boolean;
   containerPropertiesSet?: string[]; // List of container properties that were set
   childPropertiesSet?: string[]; // List of child properties that were set
+  affectedChildren?: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface ConfigureGridLayoutResponsePayload {
+  configuredShapes: Array<{ id: string; name?: string }>;
+  layoutRemoved?: boolean;
+  containerPropertiesSet?: string[];
+  childPropertiesSet?: string[];
   affectedChildren?: Array<{ id: string; name?: string }>;
   undoInfo?: UndoInfo;
 }
