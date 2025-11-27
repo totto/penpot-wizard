@@ -87,6 +87,8 @@ export enum ClientQueryType {
   UPLOAD_MEDIA_FROM_DATA = 'UPLOAD_MEDIA_FROM_DATA',
   CONFIGURE_FLEX_LAYOUT = 'CONFIGURE_FLEX_LAYOUT',
   CONFIGURE_GRID_LAYOUT = 'CONFIGURE_GRID_LAYOUT',
+  CONFIGURE_RULER_GUIDES = 'CONFIGURE_RULER_GUIDES',
+  CONFIGURE_BOARD_GUIDES = 'CONFIGURE_BOARD_GUIDES',
 }
 
 export enum PenpotShapeType {
@@ -423,6 +425,44 @@ export interface ConfigureGridLayoutQueryPayload {
   };
 }
 
+export interface ConfigureRulerGuidesQueryPayload {
+  scope: 'page' | 'board';
+  shapeIds?: string[]; // For board scope
+
+  addGuides?: Array<{
+    orientation: 'horizontal' | 'vertical';
+    position: number;
+  }>;
+  
+  removeGuides?: Array<{
+    orientation: 'horizontal' | 'vertical';
+    position: number;
+  }>;
+  
+  removeAll?: boolean;
+}
+
+export interface ConfigureBoardGuidesQueryPayload {
+  shapeIds?: string[]; // Boards to configure
+  
+  action: 'set' | 'add' | 'clear';
+  
+  guides?: Array<{
+    type: 'column' | 'row' | 'square';
+    display?: boolean;
+    
+    // Common params
+    color?: string;
+    
+    // Column/Row params
+    alignment?: 'stretch' | 'left' | 'center' | 'right';
+    size?: number;
+    margin?: number;
+    itemLength?: number;
+    gutter?: number;
+  }>;
+}
+
 
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
@@ -470,7 +510,9 @@ export type ClientQueryPayload =
   | RenamePageQueryPayload
   | ZIndexQueryPayload
   | ConfigureFlexLayoutQueryPayload
-  | ConfigureGridLayoutQueryPayload;
+  | ConfigureGridLayoutQueryPayload
+  | ConfigureRulerGuidesQueryPayload
+  | ConfigureBoardGuidesQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -897,6 +939,20 @@ export interface ConfigureGridLayoutResponsePayload {
   containerPropertiesSet?: string[];
   childPropertiesSet?: string[];
   affectedChildren?: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface ConfigureRulerGuidesResponsePayload {
+  scope: 'page' | 'board';
+  configuredShapes?: Array<{ id: string; name?: string }>;
+  guidesAdded?: number;
+  guidesRemoved?: number;
+  undoInfo?: UndoInfo;
+}
+
+export interface ConfigureBoardGuidesResponsePayload {
+  configuredShapes: Array<{ id: string; name?: string }>;
+  guidesSet?: number;
   undoInfo?: UndoInfo;
 }
 
