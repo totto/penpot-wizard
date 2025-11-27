@@ -163,6 +163,7 @@ When using the resize-selection tool:
       'read-viewport-settings',
       'upload-media-from-data',
       'configure-flex-layout',
+      'configure-grid-layout',
       'dump-selection', //Dev tool for debugging
 
     ],
