@@ -58,6 +58,7 @@ import {
   ZIndexQueryPayload,
   ConfigureFlexLayoutQueryPayload,
   ConfigureGridLayoutQueryPayload,
+  ConfigureRulerGuidesQueryPayload,
 } from '../types/types';
 
 import {
@@ -137,6 +138,7 @@ import {
   uploadMediaFromData,
   configureFlexLayoutTool,
   configureGridLayoutTool,
+  configureRulerGuidesTool,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -484,6 +486,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.CONFIGURE_GRID_LAYOUT:
       responseMessage = await configureGridLayoutTool(payload as unknown as ConfigureGridLayoutQueryPayload);
+      break;
+
+    case ClientQueryType.CONFIGURE_RULER_GUIDES:
+      responseMessage = await configureRulerGuidesTool(payload as unknown as ConfigureRulerGuidesQueryPayload);
       break;
 
     default:
