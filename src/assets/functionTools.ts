@@ -26,6 +26,7 @@ import {
   ZIndexQueryPayload,
   ConfigureFlexLayoutQueryPayload,
   ConfigureGridLayoutQueryPayload,
+  ConfigureRulerGuidesQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -1227,6 +1228,35 @@ export const functionTools: FunctionTool[] = [
     }),
     function: async (args: ConfigureGridLayoutQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.CONFIGURE_GRID_LAYOUT, args);
+      return response;
+    },
+  },
+  {
+    id: 'configure-ruler-guides',
+    name: 'configureRulerGuides',
+    description: `
+      Configures ruler guides for the page or selected boards.
+      Ruler guides are the blue lines dragged from rulers.
+      Can add or remove guides at specific positions.
+    `,
+    inputSchema: z.object({
+      scope: z.enum(['page', 'board']).describe('Scope of the guides. "page" applies to the current page. "board" applies to selected boards.'),
+      shapeIds: z.array(z.string()).optional().describe('List of board IDs if scope is "board". If omitted and scope is "board", applies to current selection.'),
+      
+      addGuides: z.array(z.object({
+        orientation: z.enum(['horizontal', 'vertical']),
+        position: z.number(),
+      })).optional().describe('List of guides to add.'),
+      
+      removeGuides: z.array(z.object({
+        orientation: z.enum(['horizontal', 'vertical']),
+        position: z.number(),
+      })).optional().describe('List of guides to remove. Matches by orientation and position.'),
+      
+      removeAll: z.boolean().optional().describe('If true, removes all guides in the specified scope.'),
+    }),
+    function: async (args: ConfigureRulerGuidesQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CONFIGURE_RULER_GUIDES, args);
       return response;
     },
   },
