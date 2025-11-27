@@ -9712,12 +9712,10 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
           if (layoutCell) {
              const lc = layoutCell as any;
              
-             if (childProperties.columnStart !== undefined) { lc.columnStart = childProperties.columnStart; childPropsSet.push('columnStart'); }
-             if (childProperties.columnSpan !== undefined) { lc.columnSpan = childProperties.columnSpan; childPropsSet.push('columnSpan'); }
-             if (childProperties.columnEnd !== undefined) { lc.columnEnd = childProperties.columnEnd; childPropsSet.push('columnEnd'); }
-             if (childProperties.rowStart !== undefined) { lc.rowStart = childProperties.rowStart; childPropsSet.push('rowStart'); }
+             if (childProperties.row !== undefined) { lc.row = childProperties.row; childPropsSet.push('row'); }
+             if (childProperties.column !== undefined) { lc.column = childProperties.column; childPropsSet.push('column'); }
              if (childProperties.rowSpan !== undefined) { lc.rowSpan = childProperties.rowSpan; childPropsSet.push('rowSpan'); }
-             if (childProperties.rowEnd !== undefined) { lc.rowEnd = childProperties.rowEnd; childPropsSet.push('rowEnd'); }
+             if (childProperties.columnSpan !== undefined) { lc.columnSpan = childProperties.columnSpan; childPropsSet.push('columnSpan'); }
              
              if (childProperties.justifySelf) { lc.justifySelf = childProperties.justifySelf; childPropsSet.push('justifySelf'); }
              if (childProperties.alignSelf) { lc.alignSelf = childProperties.alignSelf; childPropsSet.push('alignSelf'); }
