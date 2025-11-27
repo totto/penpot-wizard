@@ -9615,7 +9615,8 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
       if (addRows) {
         for (const row of addRows) {
           if (row.index !== undefined) {
-            grid.addRowAtIndex(row.type as any, row.index, row.value ?? undefined);
+            const value = row.value ?? (row.type === 'flex' ? 1 : 100);
+            grid.addRowAtIndex(row.index, row.type as any, value);
           } else {
             grid.addRow(row.type as any, row.value ?? undefined);
           }
@@ -9626,7 +9627,8 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
       if (addColumns) {
         for (const col of addColumns) {
           if (col.index !== undefined) {
-            grid.addColumnAtIndex(col.type as any, col.index, col.value ?? undefined);
+            const value = col.value ?? (col.type === 'flex' ? 1 : 100);
+            grid.addColumnAtIndex(col.index, col.type as any, value);
           } else {
             grid.addColumn(col.type as any, col.value ?? undefined);
           }
