@@ -9259,3 +9259,155 @@ export async function readShapeColors(payload: ReadShapeColorsQueryPayload): Pro
     };
   }
 }
+
+export async function readLibraryContext(payload: ReadLibraryContextQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const localLib = penpot.library.local;
+    const connectedLibs = penpot.library.connected || [];
+
+    const localLibraryData = {
+      name: localLib.name,
+      colorsCount: localLib.colors ? localLib.colors.length : 0,
+      typographiesCount: localLib.typographies ? localLib.typographies.length : 0,
+      componentsCount: localLib.components ? localLib.components.length : 0,
+    };
+
+    const connectedLibrariesData = connectedLibs.map(lib => ({
+      id: lib.id,
+      name: lib.name,
+      colorsCount: lib.colors ? lib.colors.length : 0,
+      typographiesCount: lib.typographies ? lib.typographies.length : 0,
+      componentsCount: lib.components ? lib.components.length : 0,
+    }));
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.READ_LIBRARY_CONTEXT,
+      success: true,
+      message: `Read library context: Local + ${connectedLibs.length} connected libraries`,
+      payload: {
+        localLibrary: localLibraryData,
+        connectedLibraries: connectedLibrariesData,
+      } as ReadLibraryContextResponsePayload,
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.READ_LIBRARY_CONTEXT,
+      success: false,
+      message: `Error reading library context: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function readPluginLocalStorage(payload: ReadPluginLocalStorageQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { key } = payload;
+    const data: Record<string, string> = {};
+
+    if (key) {
+      // @ts-ignore - Assuming getPluginData exists on root
+      const value = penpot.root.getPluginData(key);
+      if (value) {
+        data[key] = value;
+      }
+    } else {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.READ_PLUGIN_LOCAL_STORAGE,
+        success: true,
+        message: 'No key provided. Reading all keys is not supported yet.',
+        payload: { data: {} } as ReadPluginLocalStorageResponsePayload,
+      };
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.READ_PLUGIN_LOCAL_STORAGE,
+      success: true,
+      message: `Read plugin data for key: ${key}`,
+      payload: {
+        data,
+      } as ReadPluginLocalStorageResponsePayload,
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.READ_PLUGIN_LOCAL_STORAGE,
+      success: false,
+      message: `Error reading plugin storage: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function readViewportSettings(payload: ReadViewportSettingsQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const viewport = penpot.viewport;
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.READ_VIEWPORT_SETTINGS,
+      success: true,
+      message: `Read viewport settings: zoom=${viewport.zoom}, center=(${viewport.center.x}, ${viewport.center.y})`,
+      payload: {
+        zoom: viewport.zoom,
+        center: {
+          x: viewport.center.x,
+          y: viewport.center.y,
+        },
+      } as ReadViewportSettingsResponsePayload,
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.READ_VIEWPORT_SETTINGS,
+      success: false,
+      message: `Error reading viewport settings: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { url, name } = payload;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.UPLOAD_MEDIA_FROM_DATA,
+        success: false,
+        message: `Failed to fetch image from URL: ${response.statusText}`,
+      };
+    }
+
+    const blob = await response.blob();
+    const imageData = await penpot.uploadMediaData(name || 'uploaded-image', blob, 'image/png');
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.UPLOAD_MEDIA_FROM_DATA,
+      success: true,
+      message: `Successfully uploaded image: ${imageData.name}`,
+      payload: {
+        imageData: {
+          id: imageData.id,
+          name: imageData.name,
+          width: imageData.width,
+          height: imageData.height,
+        },
+      } as UploadMediaFromDataResponsePayload,
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.UPLOAD_MEDIA_FROM_DATA,
+      success: false,
+      message: `Error uploading media: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
