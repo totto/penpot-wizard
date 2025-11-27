@@ -100,6 +100,8 @@ import {
   RenamePageResponsePayload,
   ZIndexQueryPayload,
   ZIndexResponsePayload,
+  ConfigureFlexLayoutQueryPayload,
+  ConfigureFlexLayoutResponsePayload,
 } from "../types/types";
 import {
   ReadShapeColorsQueryPayload,
@@ -9256,6 +9258,253 @@ export async function readShapeColors(payload: ReadShapeColorsQueryPayload): Pro
       type: ClientQueryType.READ_SHAPE_COLORS,
       success: false,
       message: `Error reading shape colors: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+export async function configureFlexLayoutTool(payload: ConfigureFlexLayoutQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const {
+      shapeIds,
+      remove,
+      dir,
+      wrap,
+      alignItems,
+      alignContent,
+      justifyItems,
+      justifyContent,
+      rowGap,
+      columnGap,
+      topPadding,
+      rightPadding,
+      bottomPadding,
+      leftPadding,
+      horizontalPadding,
+      verticalPadding,
+      horizontalSizing,
+      verticalSizing,
+      childProperties,
+    } = payload;
+
+    // Resolve shapes
+    let shapes: Shape[] = [];
+    if (shapeIds && shapeIds.length > 0) {
+      // We need to find these shapes. getSelectionForAction only returns current selection.
+      // We might need a helper to find shapes by ID if they are not selected.
+      // But for now, let's assume we operate on selection if shapeIds is null,
+      // OR if shapeIds is provided, we try to find them in the current page.
+      // Since we don't have a direct "getShapeById" helper exposed here easily without traversing,
+      // and getSelectionForAction is safe, let's stick to selection if shapeIds is empty.
+      // If shapeIds IS provided, we should try to look them up.
+      // However, the standard pattern in this plugin seems to be "operate on selection".
+      // Let's use selection if shapeIds is missing.
+      // If shapeIds is present, we'll try to find them in the selection first, or fallback to page search?
+      // For safety and consistency with other tools, let's prioritize selection.
+      // But if the user explicitly passes IDs (e.g. from a previous step), we should respect it.
+      // Let's try to find them in the current page.
+      const page = penpot.currentPage;
+      if (page) {
+        shapes = shapeIds.map(id => page.getShapeById(id)).filter((s): s is Shape => !!s);
+      }
+    } else {
+      shapes = getSelectionForAction();
+    }
+
+    if (!shapes || shapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CONFIGURE_FLEX_LAYOUT,
+        success: false,
+        message: 'No shapes found to configure.',
+      };
+    }
+
+    const configuredShapes: Array<{ id: string; name?: string }> = [];
+    const affectedChildren: Array<{ id: string; name?: string }> = [];
+    const containerPropsSet: string[] = [];
+    const childPropsSet: string[] = [];
+
+    for (const shape of shapes) {
+      if (shape.type !== 'board') {
+        // Only boards support flex layout
+        continue;
+      }
+
+      const board = shape as Board;
+
+      // 1. Handle Removal
+      if (remove) {
+        if (board.flex) {
+          board.flex.remove();
+          configuredShapes.push({ id: board.id, name: board.name });
+        }
+        // Also remove grid if present? The tool is configure-flex-layout.
+        // If the user says "remove", they probably mean "remove layout".
+        if (board.grid) {
+          board.grid.remove();
+        }
+        continue; // Done with this shape
+      }
+
+      // 2. Get or Create Flex Layout
+      // If it has a grid layout, we should probably remove it first to switch to flex
+      if (board.grid) {
+        board.grid.remove();
+      }
+
+      let flex = board.flex;
+      if (!flex) {
+        flex = board.addFlexLayout();
+      }
+
+      // 3. Apply Container Properties
+      if (dir) { flex.dir = dir; containerPropsSet.push('dir'); }
+      if (wrap) { flex.wrap = wrap; containerPropsSet.push('wrap'); }
+      if (alignItems) { flex.alignItems = alignItems; containerPropsSet.push('alignItems'); }
+      if (alignContent) { flex.alignContent = alignContent; containerPropsSet.push('alignContent'); }
+      if (justifyItems) { flex.justifyItems = justifyItems; containerPropsSet.push('justifyItems'); }
+      if (justifyContent) { flex.justifyContent = justifyContent; containerPropsSet.push('justifyContent'); }
+      if (rowGap !== undefined) { flex.rowGap = rowGap; containerPropsSet.push('rowGap'); }
+      if (columnGap !== undefined) { flex.columnGap = columnGap; containerPropsSet.push('columnGap'); }
+      
+      // Padding
+      if (topPadding !== undefined) { flex.topPadding = topPadding; containerPropsSet.push('topPadding'); }
+      if (rightPadding !== undefined) { flex.rightPadding = rightPadding; containerPropsSet.push('rightPadding'); }
+      if (bottomPadding !== undefined) { flex.bottomPadding = bottomPadding; containerPropsSet.push('bottomPadding'); }
+      if (leftPadding !== undefined) { flex.leftPadding = leftPadding; containerPropsSet.push('leftPadding'); }
+      if (horizontalPadding !== undefined) { flex.horizontalPadding = horizontalPadding; containerPropsSet.push('horizontalPadding'); }
+      if (verticalPadding !== undefined) { flex.verticalPadding = verticalPadding; containerPropsSet.push('verticalPadding'); }
+
+      // Sizing
+      if (horizontalSizing) { flex.horizontalSizing = horizontalSizing; containerPropsSet.push('horizontalSizing'); }
+      if (verticalSizing) { flex.verticalSizing = verticalSizing; containerPropsSet.push('verticalSizing'); }
+
+      configuredShapes.push({ id: board.id, name: board.name });
+
+      // 4. Apply Child Properties
+      if (childProperties) {
+        const childrenToUpdate: Shape[] = [];
+        
+        if (childProperties.shapeIds && childProperties.shapeIds.length > 0) {
+          // Find specific children
+          // We need to look within the board's children
+          // board.children is a readonly array of shapes
+          const targetIds = new Set(childProperties.shapeIds);
+          childrenToUpdate.push(...board.children.filter(child => targetIds.has(child.id)));
+        } else {
+          // Apply to all children
+          childrenToUpdate.push(...board.children);
+        }
+
+        for (const child of childrenToUpdate) {
+          // Access layoutChild property
+          // Note: The API docs say `layoutChild` is on Shape (or specific shapes).
+          // Let's check if we can write to it.
+          // The interface says `layoutChild?: Readonly<LayoutChildProperties>`.
+          // Wait, READONLY?
+          // Let's check the Board interface again.
+          // `layoutChild?: Readonly<LayoutChildProperties>`
+          // If it's readonly, how do we set it?
+          // Usually in Penpot API, properties are getters/setters.
+          // But if it returns a Readonly object, maybe we can't mutate the object itself,
+          // but we might be able to assign a NEW object to `layoutChild`?
+          // Or maybe the properties on the object are mutable?
+          // "Readonly<LayoutChildProperties>" suggests the properties are readonly.
+          // Let's check if there's a method to set layout properties.
+          // Or maybe `child.layoutChild` is just a getter, and we set properties directly on `child`?
+          // No, `LayoutChildProperties` are specific (like `alignSelf`).
+          // Let's check `Shape` interface or `LayoutChildProperties` usage.
+          
+          // Actually, looking at `Board` interface again:
+          // `layoutChild` is optional and readonly.
+          // This usually means the *reference* is readonly, but maybe the object is mutable?
+          // OR, maybe we set it like `child.layoutChild = { ... }`?
+          // If the property is `readonly layoutChild`, we can't assign to it.
+          
+          // Let's re-read the API docs for `LayoutChildProperties`.
+          // It's an interface.
+          // How do we apply it?
+          // Maybe `child.alignSelf = ...`?
+          // No, `alignSelf` is part of `LayoutChildProperties`.
+          
+          // Let's check if `Shape` has these properties directly.
+          // `Shape` extends `ShapeBase`.
+          // `ShapeBase` has `x`, `y`, `width`, `height`, etc.
+          
+          // Let's check `FlexLayout` or `GridLayout` interfaces again.
+          // They don't have methods to set child props.
+          
+          // Wait, if `layoutChild` is readonly, maybe we can't change it via plugin API yet?
+          // That would be a major blocker.
+          // Let's check `Board` properties again.
+          // `layoutChild` is listed.
+          
+          // Let's try to find an example of setting child layout props.
+          // I'll search the codebase for `layoutChild` usage.
+          
+          // If I can't find it, I'll assume for now that I can modify the properties OF the object returned by `layoutChild`.
+          // e.g. `child.layoutChild.alignSelf = 'center'`.
+          // If `layoutChild` is undefined, maybe it's not in a layout?
+          // But it IS in a layout (the board).
+          
+          // Let's assume we can write to the properties of `layoutChild`.
+          // If `child.layoutChild` is null/undefined, we might not be able to set it.
+          // But if it's a child of a flex board, it should have it.
+          
+          const layoutChild = child.layoutChild;
+          if (layoutChild) {
+             // We cast to any to bypass readonly check if necessary, or just try to assign.
+             // In TS, if it's Readonly<T>, we can't assign.
+             // But at runtime it might work.
+             // However, to satisfy TS, we might need `(layoutChild as any).alignSelf = ...`
+             
+             const lc = layoutChild as any;
+             
+             if (childProperties.absolute !== undefined) { lc.absolute = childProperties.absolute; childPropsSet.push('absolute'); }
+             if (childProperties.zIndex !== undefined) { lc.zIndex = childProperties.zIndex; childPropsSet.push('zIndex'); }
+             if (childProperties.horizontalSizing) { lc.horizontalSizing = childProperties.horizontalSizing; childPropsSet.push('horizontalSizing'); }
+             if (childProperties.verticalSizing) { lc.verticalSizing = childProperties.verticalSizing; childPropsSet.push('verticalSizing'); }
+             if (childProperties.alignSelf) { lc.alignSelf = childProperties.alignSelf; childPropsSet.push('alignSelf'); }
+             
+             // Margins
+             if (childProperties.topMargin !== undefined) { lc.topMargin = childProperties.topMargin; childPropsSet.push('topMargin'); }
+             if (childProperties.rightMargin !== undefined) { lc.rightMargin = childProperties.rightMargin; childPropsSet.push('rightMargin'); }
+             if (childProperties.bottomMargin !== undefined) { lc.bottomMargin = childProperties.bottomMargin; childPropsSet.push('bottomMargin'); }
+             if (childProperties.leftMargin !== undefined) { lc.leftMargin = childProperties.leftMargin; childPropsSet.push('leftMargin'); }
+             if (childProperties.horizontalMargin !== undefined) { lc.horizontalMargin = childProperties.horizontalMargin; childPropsSet.push('horizontalMargin'); }
+             if (childProperties.verticalMargin !== undefined) { lc.verticalMargin = childProperties.verticalMargin; childPropsSet.push('verticalMargin'); }
+             
+             // Constraints
+             if (childProperties.minWidth !== undefined) { lc.minWidth = childProperties.minWidth; childPropsSet.push('minWidth'); }
+             if (childProperties.maxWidth !== undefined) { lc.maxWidth = childProperties.maxWidth; childPropsSet.push('maxWidth'); }
+             if (childProperties.minHeight !== undefined) { lc.minHeight = childProperties.minHeight; childPropsSet.push('minHeight'); }
+             if (childProperties.maxHeight !== undefined) { lc.maxHeight = childProperties.maxHeight; childPropsSet.push('maxHeight'); }
+             
+             affectedChildren.push({ id: child.id, name: child.name });
+          }
+        }
+      }
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CONFIGURE_FLEX_LAYOUT,
+      success: true,
+      message: `Configured flex layout for ${configuredShapes.length} shapes`,
+      payload: {
+        configuredShapes,
+        layoutRemoved: !!remove,
+        containerPropertiesSet: [...new Set(containerPropsSet)],
+        childPropertiesSet: [...new Set(childPropsSet)],
+        affectedChildren,
+      } as ConfigureFlexLayoutResponsePayload,
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CONFIGURE_FLEX_LAYOUT,
+      success: false,
+      message: `Error configuring flex layout: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
