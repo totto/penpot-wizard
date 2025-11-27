@@ -27,6 +27,7 @@ import {
   ConfigureFlexLayoutQueryPayload,
   ConfigureGridLayoutQueryPayload,
   ConfigureRulerGuidesQueryPayload,
+  ConfigureBoardGuidesQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -1257,6 +1258,37 @@ export const functionTools: FunctionTool[] = [
     }),
     function: async (args: ConfigureRulerGuidesQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.CONFIGURE_RULER_GUIDES, args);
+      return response;
+    },
+  },
+  {
+    id: 'configure-board-guides',
+    name: 'configureBoardGuides',
+    description: `
+      Configures board guides (column/row/square grids) for selected boards.
+      These are the layout guides visible within boards for alignment.
+      Can set, add, or clear guides.
+    `,
+    inputSchema: z.object({
+      shapeIds: z.array(z.string()).optional().describe('Board IDs to configure. If omitted, applies to current selection.'),
+      
+      action: z.enum(['set', 'add', 'clear']).describe('Action to perform. "set" replaces all guides, "add" appends guides, "clear" removes all guides.'),
+      
+      guides: z.array(z.object({
+        type: z.enum(['column', 'row', 'square']).describe('Type of guide.'),
+        display: z.boolean().optional().describe('Whether the guide is visible.'),
+        color: z.string().optional().describe('Color of the guide (hex format).'),
+        
+        // Column/Row specific
+        alignment: z.enum(['stretch', 'left', 'center', 'right']).optional().describe('Alignment for column/row guides.'),
+        size: z.number().optional().describe('Size (width for columns, height for rows).'),
+        margin: z.number().optional().describe('Margin around the guide area.'),
+        itemLength: z.number().optional().describe('Length of each item in the guide.'),
+        gutter: z.number().optional().describe('Gutter (spacing) between guide items.'),
+      })).optional().describe('List of guides to set or add. Required for "set" and "add" actions.'),
+    }),
+    function: async (args: ConfigureBoardGuidesQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CONFIGURE_BOARD_GUIDES, args);
       return response;
     },
   },
