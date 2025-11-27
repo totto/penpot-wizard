@@ -9291,36 +9291,70 @@ export async function configureFlexLayoutTool(payload: ConfigureFlexLayoutQueryP
       childProperties,
     } = payload;
 
-    // Resolve shapes
-    let shapes: Shape[] = [];
-    if (shapeIds && shapeIds.length > 0) {
-      // We need to find these shapes. getSelectionForAction only returns current selection.
-      // We might need a helper to find shapes by ID if they are not selected.
-      // But for now, let's assume we operate on selection if shapeIds is null,
-      // OR if shapeIds is provided, we try to find them in the current page.
-      // Since we don't have a direct "getShapeById" helper exposed here easily without traversing,
-      // and getSelectionForAction is safe, let's stick to selection if shapeIds is empty.
-      // If shapeIds IS provided, we should try to look them up.
-      // However, the standard pattern in this plugin seems to be "operate on selection".
-      // Let's use selection if shapeIds is missing.
-      // If shapeIds is present, we'll try to find them in the selection first, or fallback to page search?
-      // For safety and consistency with other tools, let's prioritize selection.
-      // But if the user explicitly passes IDs (e.g. from a previous step), we should respect it.
-      // Let's try to find them in the current page.
-      const page = penpot.currentPage;
-      if (page) {
-        shapes = shapeIds.map(id => page.getShapeById(id)).filter((s): s is Shape => !!s);
+    // Determine if this is a child-only configuration (no container properties specified)
+    const hasContainerProps = remove !== undefined || dir !== undefined || wrap !== undefined ||
+      alignItems !== undefined || alignContent !== undefined || justifyItems !== undefined ||
+      justifyContent !== undefined || rowGap !== undefined || columnGap !== undefined ||
+      topPadding !== undefined || rightPadding !== undefined || bottomPadding !== undefined ||
+      leftPadding !== undefined || horizontalPadding !== undefined || verticalPadding !== undefined ||
+      horizontalSizing !== undefined || verticalSizing !== undefined;
+    
+    const isChildOnlyMode = !hasContainerProps && childProperties !== undefined;
+
+    // Resolve shapes based on mode
+    let boards: Board[] = [];
+    let specificChildShapes: Shape[] = [];
+
+    if (isChildOnlyMode) {
+      // Child-only mode: resolve child shapes and find their parent boards
+      if (childProperties.shapeIds && childProperties.shapeIds.length > 0) {
+        const page = penpot.currentPage;
+        if (page) {
+          specificChildShapes = childProperties.shapeIds.map(id => page.getShapeById(id)).filter((s): s is Shape => !!s);
+        }
+      } else {
+        specificChildShapes = getSelectionForAction();
+      }
+
+      // Find unique parent boards from child shapes
+      const parentBoardsMap = new Map<string, Board>();
+      for (const child of specificChildShapes) {
+        const parent = (child as any).parent;
+        if (parent && parent.type === 'board' && (parent as Board).flex) {
+          parentBoardsMap.set(parent.id, parent);
+        }
+      }
+      boards = Array.from(parentBoardsMap.values());
+
+      if (boards.length === 0) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.CONFIGURE_FLEX_LAYOUT,
+          success: false,
+          message: 'Selected shapes are not inside a flex container.',
+        };
       }
     } else {
-      shapes = getSelectionForAction();
+      // Container mode: resolve boards directly
+      let shapes: Shape[] = [];
+      if (shapeIds && shapeIds.length > 0) {
+        const page = penpot.currentPage;
+        if (page) {
+          shapes = shapeIds.map(id => page.getShapeById(id)).filter((s): s is Shape => !!s);
+        }
+      } else {
+        shapes = getSelectionForAction();
+      }
+      
+      boards = shapes.filter(s => s.type === 'board') as Board[];
     }
 
-    if (!shapes || shapes.length === 0) {
+    if (boards.length === 0) {
       return {
         ...pluginResponse,
         type: ClientQueryType.CONFIGURE_FLEX_LAYOUT,
         success: false,
-        message: 'No shapes found to configure.',
+        message: isChildOnlyMode ? 'No parent flex boards found.' : 'No boards found to configure.',
       };
     }
 
@@ -9329,71 +9363,57 @@ export async function configureFlexLayoutTool(payload: ConfigureFlexLayoutQueryP
     const containerPropsSet: string[] = [];
     const childPropsSet: string[] = [];
 
-    for (const shape of shapes) {
-      if (shape.type !== 'board') {
-        // Only boards support flex layout
-        continue;
-      }
-
-      const board = shape as Board;
-
+    for (const board of boards) {
       // 1. Handle Removal
       if (remove) {
         if (board.flex) {
           board.flex.remove();
           configuredShapes.push({ id: board.id, name: board.name });
         }
-        // Also remove grid if present? The tool is configure-flex-layout.
-        // If the user says "remove", they probably mean "remove layout".
-        if (board.grid) {
-          board.grid.remove();
-        }
-        continue; // Done with this shape
+        continue; // Skip further configuration
       }
 
-      // 2. Get or Create Flex Layout
-      // If it has a grid layout, we should probably remove it first to switch to flex
-      if (board.grid) {
-        board.grid.remove();
-      }
-
+      // 2. Ensure Flex Layout Exists
       let flex = board.flex;
-      if (!flex) {
+      if (!flex && hasContainerProps) {
         flex = board.addFlexLayout();
       }
 
       // 3. Apply Container Properties
-      if (dir) { flex.dir = dir; containerPropsSet.push('dir'); }
-      if (wrap) { flex.wrap = wrap; containerPropsSet.push('wrap'); }
-      if (alignItems) { flex.alignItems = alignItems; containerPropsSet.push('alignItems'); }
-      if (alignContent) { flex.alignContent = alignContent; containerPropsSet.push('alignContent'); }
-      if (justifyItems) { flex.justifyItems = justifyItems; containerPropsSet.push('justifyItems'); }
-      if (justifyContent) { flex.justifyContent = justifyContent; containerPropsSet.push('justifyContent'); }
-      if (rowGap !== undefined) { flex.rowGap = rowGap; containerPropsSet.push('rowGap'); }
-      if (columnGap !== undefined) { flex.columnGap = columnGap; containerPropsSet.push('columnGap'); }
-      
-      // Padding
-      if (topPadding !== undefined) { flex.topPadding = topPadding; containerPropsSet.push('topPadding'); }
-      if (rightPadding !== undefined) { flex.rightPadding = rightPadding; containerPropsSet.push('rightPadding'); }
-      if (bottomPadding !== undefined) { flex.bottomPadding = bottomPadding; containerPropsSet.push('bottomPadding'); }
-      if (leftPadding !== undefined) { flex.leftPadding = leftPadding; containerPropsSet.push('leftPadding'); }
-      if (horizontalPadding !== undefined) { flex.horizontalPadding = horizontalPadding; containerPropsSet.push('horizontalPadding'); }
-      if (verticalPadding !== undefined) { flex.verticalPadding = verticalPadding; containerPropsSet.push('verticalPadding'); }
+      if (flex && hasContainerProps) {
+        if (dir) { flex.dir = dir; containerPropsSet.push('dir'); }
+        if (wrap) { flex.wrap = wrap; containerPropsSet.push('wrap'); }
+        if (alignItems) { flex.alignItems = alignItems; containerPropsSet.push('alignItems'); }
+        if (alignContent) { flex.alignContent = alignContent; containerPropsSet.push('alignContent'); }
+        if (justifyItems) { flex.justifyItems = justifyItems; containerPropsSet.push('justifyItems'); }
+        if (justifyContent) { flex.justifyContent = justifyContent; containerPropsSet.push('justifyContent'); }
+        if (rowGap !== undefined) { flex.rowGap = rowGap; containerPropsSet.push('rowGap'); }
+        if (columnGap !== undefined) { flex.columnGap = columnGap; containerPropsSet.push('columnGap'); }
 
-      // Sizing
-      if (horizontalSizing) { flex.horizontalSizing = horizontalSizing; containerPropsSet.push('horizontalSizing'); }
-      if (verticalSizing) { flex.verticalSizing = verticalSizing; containerPropsSet.push('verticalSizing'); }
+        // Padding
+        if (topPadding !== undefined) { flex.topPadding = topPadding; containerPropsSet.push('topPadding'); }
+        if (rightPadding !== undefined) { flex.rightPadding = rightPadding; containerPropsSet.push('rightPadding'); }
+        if (bottomPadding !== undefined) { flex.bottomPadding = bottomPadding; containerPropsSet.push('bottomPadding'); }
+        if (leftPadding !== undefined) { flex.leftPadding = leftPadding; containerPropsSet.push('leftPadding'); }
+        if (horizontalPadding !== undefined) { flex.horizontalPadding = horizontalPadding; containerPropsSet.push('horizontalPadding'); }
+        if (verticalPadding !== undefined) { flex.verticalPadding = verticalPadding; containerPropsSet.push('verticalPadding'); }
 
-      configuredShapes.push({ id: board.id, name: board.name });
+        // Sizing
+        if (horizontalSizing) { flex.horizontalSizing = horizontalSizing; containerPropsSet.push('horizontalSizing'); }
+        if (verticalSizing) { flex.verticalSizing = verticalSizing; containerPropsSet.push('verticalSizing'); }
+
+        configuredShapes.push({ id: board.id, name: board.name });
+      }
 
       // 4. Apply Child Properties
-      if (childProperties) {
+      if (childProperties && flex) {
         const childrenToUpdate: Shape[] = [];
         
-        if (childProperties.shapeIds && childProperties.shapeIds.length > 0) {
+        if (isChildOnlyMode) {
+          // In child-only mode, apply to the specific child shapes that belong to this board
+          childrenToUpdate.push(...specificChildShapes.filter(child => (child as any).parent?.id === board.id));
+        } else if (childProperties.shapeIds && childProperties.shapeIds.length > 0) {
           // Find specific children
-          // We need to look within the board's children
-          // board.children is a readonly array of shapes
           const targetIds = new Set(childProperties.shapeIds);
           childrenToUpdate.push(...board.children.filter(child => targetIds.has(child.id)));
         } else {
@@ -9427,7 +9447,7 @@ export async function configureFlexLayoutTool(payload: ConfigureFlexLayoutQueryP
              if (childProperties.maxWidth !== undefined) { lc.maxWidth = childProperties.maxWidth; childPropsSet.push('maxWidth'); }
              if (childProperties.minHeight !== undefined) { lc.minHeight = childProperties.minHeight; childPropsSet.push('minHeight'); }
              if (childProperties.maxHeight !== undefined) { lc.maxHeight = childProperties.maxHeight; childPropsSet.push('maxHeight'); }
-             
+
              affectedChildren.push({ id: child.id, name: child.name });
           }
         }
@@ -9441,9 +9461,9 @@ export async function configureFlexLayoutTool(payload: ConfigureFlexLayoutQueryP
       message: `Configured flex layout for ${configuredShapes.length} shapes`,
       payload: {
         configuredShapes,
-        layoutRemoved: !!remove,
-        containerPropertiesSet: [...new Set(containerPropsSet)],
-        childPropertiesSet: [...new Set(childPropsSet)],
+        layoutRemoved: remove === true,
+        containerPropertiesSet: Array.from(new Set(containerPropsSet)),
+        childPropertiesSet: Array.from(new Set(childPropsSet)),
         affectedChildren,
       } as ConfigureFlexLayoutResponsePayload,
     };
@@ -9457,7 +9477,6 @@ export async function configureFlexLayoutTool(payload: ConfigureFlexLayoutQueryP
     };
   }
 }
-
 export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryPayload): Promise<PluginResponseMessage> {
   try {
     const {
