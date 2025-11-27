@@ -56,6 +56,7 @@ import {
   ChangePageBackgroundQueryPayload,
   CreatePageQueryPayload,
   ZIndexQueryPayload,
+  ConfigureFlexLayoutQueryPayload,
 } from '../types/types';
 
 import {
@@ -133,6 +134,7 @@ import {
   readPluginLocalStorage,
   readViewportSettings,
   uploadMediaFromData,
+  configureFlexLayoutTool,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -472,6 +474,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.UPLOAD_MEDIA_FROM_DATA:
       responseMessage = await uploadMediaFromData(payload as unknown as UploadMediaFromDataQueryPayload);
+      break;
+
+    case ClientQueryType.CONFIGURE_FLEX_LAYOUT:
+      responseMessage = await configureFlexLayoutTool(payload as unknown as ConfigureFlexLayoutQueryPayload);
       break;
 
     default:
