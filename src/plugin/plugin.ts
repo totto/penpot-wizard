@@ -133,10 +133,6 @@ import {
   createPageTool,
   setLayoutZIndexTool,
   readShapeColors,
-  readLibraryContext,
-  readPluginLocalStorage,
-  readViewportSettings,
-  uploadMediaFromData,
   configureFlexLayoutTool,
   configureGridLayoutTool,
   configureRulerGuidesTool,
@@ -466,21 +462,21 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       responseMessage = await readShapeColors(payload as unknown as ReadShapeColorsQueryPayload);
       break;
 
-    case ClientQueryType.READ_LIBRARY_CONTEXT:
-      responseMessage = await readLibraryContext(payload as unknown as ReadLibraryContextQueryPayload);
-      break;
+    // case ClientQueryType.READ_LIBRARY_CONTEXT:
+    //   responseMessage = await readLibraryContext(payload as unknown as ReadLibraryContextQueryPayload);
+    //   break;
 
-    case ClientQueryType.READ_PLUGIN_LOCAL_STORAGE:
-      responseMessage = await readPluginLocalStorage(payload as unknown as ReadPluginLocalStorageQueryPayload);
-      break;
+    // case ClientQueryType.READ_PLUGIN_LOCAL_STORAGE:
+    //   responseMessage = await readPluginLocalStorage(payload as unknown as ReadPluginLocalStorageQueryPayload);
+    //   break;
 
-    case ClientQueryType.READ_VIEWPORT_SETTINGS:
-      responseMessage = await readViewportSettings(payload as unknown as ReadViewportSettingsQueryPayload);
-      break;
+    // case ClientQueryType.READ_VIEWPORT_SETTINGS:
+    //   responseMessage = await readViewportSettings(payload as unknown as ReadViewportSettingsQueryPayload);
+    //   break;
 
-    case ClientQueryType.UPLOAD_MEDIA_FROM_DATA:
-      responseMessage = await uploadMediaFromData(payload as unknown as UploadMediaFromDataQueryPayload);
-      break;
+    // case ClientQueryType.UPLOAD_MEDIA_FROM_DATA:
+    //   responseMessage = await uploadMediaFromData(payload as unknown as UploadMediaFromDataQueryPayload);
+    //   break;
 
     case ClientQueryType.CONFIGURE_FLEX_LAYOUT:
       responseMessage = await configureFlexLayoutTool(payload as unknown as ConfigureFlexLayoutQueryPayload);
