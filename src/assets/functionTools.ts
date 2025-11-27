@@ -1236,9 +1236,9 @@ export const functionTools: FunctionTool[] = [
     id: 'configure-ruler-guides',
     name: 'configureRulerGuides',
     description: `
-      Configures ruler guides for the page or selected boards.
-      Ruler guides are the blue lines dragged from rulers.
-      Can add or remove guides at specific positions.
+      Configures **Ruler Guides** (thin blue/red lines dragged from rulers) for the page or selected boards.
+      **Does NOT affect Layout Grids (columns/rows overlays).**
+      Can add or remove ruler guides at specific positions.
     `,
     inputSchema: z.object({
       scope: z.enum(['page', 'board']).describe('Scope of the guides. "page" applies to the current page. "board" applies to selected boards.'),
@@ -1265,9 +1265,9 @@ export const functionTools: FunctionTool[] = [
     id: 'configure-board-guides',
     name: 'configureBoardGuides',
     description: `
-      Configures board guides (column/row/square grids) for selected boards.
-      These are the layout guides visible within boards for alignment.
-      Can set, add, or clear guides.
+      Configures **Board Layout Guides** (Column Grids, Row Grids, Square Grids) for selected boards.
+      These are the **red/colored overlays** used for alignment.
+      Use this to add, set, or **clear/remove** column/row grids.
     `,
     inputSchema: z.object({
       shapeIds: z.array(z.string()).optional().describe('Board IDs to configure. If omitted, applies to current selection.'),
