@@ -9505,23 +9505,71 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
       childProperties,
     } = payload;
 
-    // Resolve shapes
-    let shapes: Shape[] = [];
-    if (shapeIds && shapeIds.length > 0) {
-      const page = penpot.currentPage;
-      if (page) {
-        shapes = shapeIds.map(id => page.getShapeById(id)).filter((s): s is Shape => !!s);
+    // Determine if this is a child-only configuration (no container properties specified)
+    const hasContainerProps = remove !== undefined || alignItems !== undefined || alignContent !== undefined ||
+      justifyItems !== undefined || justifyContent !== undefined || rowGap !== undefined || columnGap !== undefined ||
+      topPadding !== undefined || rightPadding !== undefined || bottomPadding !== undefined ||
+      leftPadding !== undefined || horizontalPadding !== undefined || verticalPadding !== undefined ||
+      horizontalSizing !== undefined || verticalSizing !== undefined ||
+      rows !== undefined || columns !== undefined || addRows !== undefined || addColumns !== undefined ||
+      removeRowIndices !== undefined || removeColumnIndices !== undefined;
+    
+    const isChildOnlyMode = !hasContainerProps && childProperties !== undefined;
+
+    // Resolve shapes based on mode
+    let boards: Board[] = [];
+    let specificChildShapes: Shape[] = [];
+
+    if (isChildOnlyMode) {
+      // Child-only mode: resolve child shapes and find their parent boards
+      if (childProperties.shapeIds && childProperties.shapeIds.length > 0) {
+        const page = penpot.currentPage;
+        if (page) {
+          specificChildShapes = childProperties.shapeIds.map(id => page.getShapeById(id)).filter((s): s is Shape => !!s);
+        }
+      } else {
+        specificChildShapes = getSelectionForAction();
+      }
+
+      // Find unique parent boards from child shapes
+      const parentBoardsMap = new Map<string, Board>();
+      for (const child of specificChildShapes) {
+        const parent = (child as any).parent;
+        if (parent && parent.type === 'board' && (parent as Board).grid) {
+          parentBoardsMap.set(parent.id, parent);
+        }
+      }
+      boards = Array.from(parentBoardsMap.values());
+
+      if (boards.length === 0) {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.CONFIGURE_GRID_LAYOUT,
+          success: false,
+          message: 'Selected shapes are not inside a grid container.',
+        };
       }
     } else {
-      shapes = getSelectionForAction();
+      // Container mode: resolve boards directly
+      let shapes: Shape[] = [];
+      if (shapeIds && shapeIds.length > 0) {
+        const page = penpot.currentPage;
+        if (page) {
+          shapes = shapeIds.map(id => page.getShapeById(id)).filter((s): s is Shape => !!s);
+        }
+      } else {
+        shapes = getSelectionForAction();
+      }
+      
+      boards = shapes.filter(s => s.type === 'board') as Board[];
     }
 
-    if (!shapes || shapes.length === 0) {
+    if (boards.length === 0) {
       return {
         ...pluginResponse,
         type: ClientQueryType.CONFIGURE_GRID_LAYOUT,
         success: false,
-        message: 'No shapes found to configure.',
+        message: isChildOnlyMode ? 'No parent grid boards found.' : 'No boards found to configure.',
       };
     }
 
@@ -9530,13 +9578,7 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
     const containerPropsSet: string[] = [];
     const childPropsSet: string[] = [];
 
-    for (const shape of shapes) {
-      if (shape.type !== 'board') {
-        continue;
-      }
-
-      const board = shape as Board;
-
+    for (const board of boards) {
       // 1. Handle Removal
       if (remove) {
         if (board.grid) {
@@ -9555,153 +9597,135 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
       }
 
       let grid = board.grid;
-      if (!grid) {
+      if (!grid && hasContainerProps) {
         grid = board.addGridLayout();
       }
 
       // 3. Apply Container Properties
-      if (alignItems) { grid.alignItems = alignItems; containerPropsSet.push('alignItems'); }
-      if (alignContent) { grid.alignContent = alignContent; containerPropsSet.push('alignContent'); }
-      if (justifyItems) { grid.justifyItems = justifyItems; containerPropsSet.push('justifyItems'); }
-      if (justifyContent) { grid.justifyContent = justifyContent; containerPropsSet.push('justifyContent'); }
-      if (rowGap !== undefined) { grid.rowGap = rowGap; containerPropsSet.push('rowGap'); }
-      if (columnGap !== undefined) { grid.columnGap = columnGap; containerPropsSet.push('columnGap'); }
-      
-      if (topPadding !== undefined) { grid.topPadding = topPadding; containerPropsSet.push('topPadding'); }
-      if (rightPadding !== undefined) { grid.rightPadding = rightPadding; containerPropsSet.push('rightPadding'); }
-      if (bottomPadding !== undefined) { grid.bottomPadding = bottomPadding; containerPropsSet.push('bottomPadding'); }
-      if (leftPadding !== undefined) { grid.leftPadding = leftPadding; containerPropsSet.push('leftPadding'); }
-      if (horizontalPadding !== undefined) { grid.horizontalPadding = horizontalPadding; containerPropsSet.push('horizontalPadding'); }
-      if (verticalPadding !== undefined) { grid.verticalPadding = verticalPadding; containerPropsSet.push('verticalPadding'); }
+      if (grid && hasContainerProps) {
+        if (alignItems) { grid.alignItems = alignItems; containerPropsSet.push('alignItems'); }
+        if (alignContent) { grid.alignContent = alignContent; containerPropsSet.push('alignContent'); }
+        if (justifyItems) { grid.justifyItems = justifyItems; containerPropsSet.push('justifyItems'); }
+        if (justifyContent) { grid.justifyContent = justifyContent; containerPropsSet.push('justifyContent'); }
+        if (rowGap !== undefined) { grid.rowGap = rowGap; containerPropsSet.push('rowGap'); }
+        if (columnGap !== undefined) { grid.columnGap = columnGap; containerPropsSet.push('columnGap'); }
+        
+        if (topPadding !== undefined) { grid.topPadding = topPadding; containerPropsSet.push('topPadding'); }
+        if (rightPadding !== undefined) { grid.rightPadding = rightPadding; containerPropsSet.push('rightPadding'); }
+        if (bottomPadding !== undefined) { grid.bottomPadding = bottomPadding; containerPropsSet.push('bottomPadding'); }
+        if (leftPadding !== undefined) { grid.leftPadding = leftPadding; containerPropsSet.push('leftPadding'); }
+        if (horizontalPadding !== undefined) { grid.horizontalPadding = horizontalPadding; containerPropsSet.push('horizontalPadding'); }
+        if (verticalPadding !== undefined) { grid.verticalPadding = verticalPadding; containerPropsSet.push('verticalPadding'); }
 
-      if (horizontalSizing) { grid.horizontalSizing = horizontalSizing; containerPropsSet.push('horizontalSizing'); }
-      if (verticalSizing) { grid.verticalSizing = verticalSizing; containerPropsSet.push('verticalSizing'); }
+        if (horizontalSizing) { grid.horizontalSizing = horizontalSizing; containerPropsSet.push('horizontalSizing'); }
+        if (verticalSizing) { grid.verticalSizing = verticalSizing; containerPropsSet.push('verticalSizing'); }
 
-      configuredShapes.push({ id: board.id, name: board.name });
+        configuredShapes.push({ id: board.id, name: board.name });
 
-      // 4. Grid Structure
-      // Set all rows/columns (clears existing?)
-      // The API doesn't have "setRows", only add/remove/setRow(index).
-      // If `rows` is provided, we should probably clear existing and add new ones.
-      // Or update existing ones?
-      // "Set all rows" implies replacing the structure.
-      
-      if (rows) {
-        // Remove all existing rows
-        // We need to know how many rows there are. `grid.rows` is Readonly<Track[]>.
-        const currentCount = grid.rows.length;
-        for (let i = currentCount - 1; i >= 0; i--) {
-          grid.removeRow(i);
-        }
-        // Add new rows
-        for (const row of rows) {
-          grid.addRow(row.type as any, row.value ?? undefined);
-        }
-        containerPropsSet.push('rows');
-      }
-
-      if (columns) {
-        const currentCount = grid.columns.length;
-        for (let i = currentCount - 1; i >= 0; i--) {
-          grid.removeColumn(i);
-        }
-        for (const col of columns) {
-          grid.addColumn(col.type as any, col.value ?? undefined);
-        }
-        containerPropsSet.push('columns');
-      }
-
-      // Operations
-      if (addRows) {
-        for (const row of addRows) {
-          if (row.index !== undefined) {
-            const value = row.value ?? (row.type === 'flex' ? 1 : 100);
-            grid.addRowAtIndex(row.index, row.type as any, value);
-          } else {
+        // 4. Grid Structure
+        if (rows) {
+          const currentCount = grid.rows.length;
+          for (let i = currentCount - 1; i >= 0; i--) {
+            grid.removeRow(i);
+          }
+          for (const row of rows) {
             grid.addRow(row.type as any, row.value ?? undefined);
           }
+          containerPropsSet.push('rows');
         }
-        containerPropsSet.push('addRows');
-      }
 
-      if (addColumns) {
-        for (const col of addColumns) {
-          if (col.index !== undefined) {
-            const value = col.value ?? (col.type === 'flex' ? 1 : 100);
-            grid.addColumnAtIndex(col.index, col.type as any, value);
-          } else {
+        if (columns) {
+          const currentCount = grid.columns.length;
+          for (let i = currentCount - 1; i >= 0; i--) {
+            grid.removeColumn(i);
+          }
+          for (const col of columns) {
             grid.addColumn(col.type as any, col.value ?? undefined);
           }
+          containerPropsSet.push('columns');
         }
-        containerPropsSet.push('addColumns');
-      }
 
-      if (removeRowIndices) {
-        // Sort descending to avoid index shift
-        const sorted = [...removeRowIndices].sort((a, b) => b - a);
-        for (const idx of sorted) {
-          // Check bounds? API probably throws if out of bounds.
-          if (idx >= 0 && idx < grid.rows.length) {
-            grid.removeRow(idx);
+        // Operations
+        if (addRows) {
+          for (const row of addRows) {
+            if (row.index !== undefined) {
+              const value = row.value ?? (row.type === 'flex' ? 1 : 100);
+              grid.addRowAtIndex(row.index, row.type as any, value);
+            } else {
+              grid.addRow(row.type as any, row.value ?? undefined);
+            }
           }
+          containerPropsSet.push('addRows');
         }
-        containerPropsSet.push('removeRows');
-      }
 
-      if (removeColumnIndices) {
-        const sorted = [...removeColumnIndices].sort((a, b) => b - a);
-        for (const idx of sorted) {
-          if (idx >= 0 && idx < grid.columns.length) {
-            grid.removeColumn(idx);
+        if (addColumns) {
+          for (const col of addColumns) {
+            if (col.index !== undefined) {
+              const value = col.value ?? (col.type === 'flex' ? 1 : 100);
+              grid.addColumnAtIndex(col.index, col.type as any, value);
+            } else {
+              grid.addColumn(col.type as any, col.value ?? undefined);
+            }
           }
+          containerPropsSet.push('addColumns');
         }
-        containerPropsSet.push('removeColumns');
+
+        if (removeRowIndices) {
+          const sorted = [...removeRowIndices].sort((a, b) => b - a);
+          for (const idx of sorted) {
+            if (idx >= 0 && idx < grid.rows.length) {
+              grid.removeRow(idx);
+            }
+          }
+          containerPropsSet.push('removeRows');
+        }
+
+        if (removeColumnIndices) {
+          const sorted = [...removeColumnIndices].sort((a, b) => b - a);
+          for (const idx of sorted) {
+            if (idx >= 0 && idx < grid.columns.length) {
+              grid.removeColumn(idx);
+            }
+          }
+          containerPropsSet.push('removeColumns');
+        }
       }
 
-      // 5. Child Properties
-      if (childProperties) {
+      // 5. Apply Child Properties
+      if (childProperties && grid) {
         const childrenToUpdate: Shape[] = [];
-        if (childProperties.shapeIds && childProperties.shapeIds.length > 0) {
+        
+        if (isChildOnlyMode) {
+          // In child-only mode, apply to the specific child shapes that belong to this board
+          childrenToUpdate.push(...specificChildShapes.filter(child => (child as any).parent?.id === board.id));
+        } else if (childProperties.shapeIds && childProperties.shapeIds.length > 0) {
+          // Find specific children
           const targetIds = new Set(childProperties.shapeIds);
           childrenToUpdate.push(...board.children.filter(child => targetIds.has(child.id)));
         } else {
+          // Apply to all children
           childrenToUpdate.push(...board.children);
         }
 
         for (const child of childrenToUpdate) {
-          // LayoutChildProperties
-          const layoutChild = child.layoutChild as any;
-          if (layoutChild) {
-             if (childProperties.absolute !== undefined) { layoutChild.absolute = childProperties.absolute; childPropsSet.push('absolute'); }
-             if (childProperties.zIndex !== undefined) { layoutChild.zIndex = childProperties.zIndex; childPropsSet.push('zIndex'); }
-             if (childProperties.horizontalSizing) { layoutChild.horizontalSizing = childProperties.horizontalSizing; childPropsSet.push('horizontalSizing'); }
-             if (childProperties.verticalSizing) { layoutChild.verticalSizing = childProperties.verticalSizing; childPropsSet.push('verticalSizing'); }
-             if (childProperties.alignSelf) { layoutChild.alignSelf = childProperties.alignSelf; childPropsSet.push('alignSelf'); }
-             if (childProperties.justifySelf) { layoutChild.justifySelf = childProperties.justifySelf; childPropsSet.push('justifySelf'); }
-             
-             if (childProperties.topMargin !== undefined) { layoutChild.topMargin = childProperties.topMargin; childPropsSet.push('topMargin'); }
-             if (childProperties.rightMargin !== undefined) { layoutChild.rightMargin = childProperties.rightMargin; childPropsSet.push('rightMargin'); }
-             if (childProperties.bottomMargin !== undefined) { layoutChild.bottomMargin = childProperties.bottomMargin; childPropsSet.push('bottomMargin'); }
-             if (childProperties.leftMargin !== undefined) { layoutChild.leftMargin = childProperties.leftMargin; childPropsSet.push('leftMargin'); }
-             if (childProperties.horizontalMargin !== undefined) { layoutChild.horizontalMargin = childProperties.horizontalMargin; childPropsSet.push('horizontalMargin'); }
-             if (childProperties.verticalMargin !== undefined) { layoutChild.verticalMargin = childProperties.verticalMargin; childPropsSet.push('verticalMargin'); }
-             
-             if (childProperties.minWidth !== undefined) { layoutChild.minWidth = childProperties.minWidth; childPropsSet.push('minWidth'); }
-             if (childProperties.maxWidth !== undefined) { layoutChild.maxWidth = childProperties.maxWidth; childPropsSet.push('maxWidth'); }
-             if (childProperties.minHeight !== undefined) { layoutChild.minHeight = childProperties.minHeight; childPropsSet.push('minHeight'); }
-             if (childProperties.maxHeight !== undefined) { layoutChild.maxHeight = childProperties.maxHeight; childPropsSet.push('maxHeight'); }
-          }
-
-          // LayoutCellProperties
-          const layoutCell = child.layoutCell as any;
+          const layoutCell = child.layoutCell;
           if (layoutCell) {
-            if (childProperties.row !== undefined) { layoutCell.row = childProperties.row; childPropsSet.push('row'); }
-            if (childProperties.column !== undefined) { layoutCell.column = childProperties.column; childPropsSet.push('column'); }
-            if (childProperties.rowSpan !== undefined) { layoutCell.rowSpan = childProperties.rowSpan; childPropsSet.push('rowSpan'); }
-            if (childProperties.columnSpan !== undefined) { layoutCell.columnSpan = childProperties.columnSpan; childPropsSet.push('columnSpan'); }
+             const lc = layoutCell as any;
+             
+             if (childProperties.columnStart !== undefined) { lc.columnStart = childProperties.columnStart; childPropsSet.push('columnStart'); }
+             if (childProperties.columnSpan !== undefined) { lc.columnSpan = childProperties.columnSpan; childPropsSet.push('columnSpan'); }
+             if (childProperties.columnEnd !== undefined) { lc.columnEnd = childProperties.columnEnd; childPropsSet.push('columnEnd'); }
+             if (childProperties.rowStart !== undefined) { lc.rowStart = childProperties.rowStart; childPropsSet.push('rowStart'); }
+             if (childProperties.rowSpan !== undefined) { lc.rowSpan = childProperties.rowSpan; childPropsSet.push('rowSpan'); }
+             if (childProperties.rowEnd !== undefined) { lc.rowEnd = childProperties.rowEnd; childPropsSet.push('rowEnd'); }
+             
+             if (childProperties.justifySelf) { lc.justifySelf = childProperties.justifySelf; childPropsSet.push('justifySelf'); }
+             if (childProperties.alignSelf) { lc.alignSelf = childProperties.alignSelf; childPropsSet.push('alignSelf'); }
+             
+             if (childProperties.zIndex !== undefined) { lc.zIndex = childProperties.zIndex; childPropsSet.push('zIndex'); }
+
+             affectedChildren.push({ id: child.id, name: child.name });
           }
-          
-          affectedChildren.push({ id: child.id, name: child.name });
         }
       }
     }
@@ -9713,9 +9737,9 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
       message: `Configured grid layout for ${configuredShapes.length} shapes`,
       payload: {
         configuredShapes,
-        layoutRemoved: !!remove,
-        containerPropertiesSet: [...new Set(containerPropsSet)],
-        childPropertiesSet: [...new Set(childPropsSet)],
+        layoutRemoved: remove === true,
+        containerPropertiesSet: Array.from(new Set(containerPropsSet)),
+        childPropertiesSet: Array.from(new Set(childPropsSet)),
         affectedChildren,
       } as ConfigureGridLayoutResponsePayload,
     };
@@ -9729,7 +9753,6 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
     };
   }
 }
-
 export async function configureRulerGuidesTool(payload: ConfigureRulerGuidesQueryPayload): Promise<PluginResponseMessage> {
   try {
     const { scope, shapeIds, addGuides, removeGuides, removeAll } = payload;
