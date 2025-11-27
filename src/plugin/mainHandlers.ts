@@ -104,6 +104,8 @@ import {
   ConfigureFlexLayoutResponsePayload,
   ConfigureGridLayoutQueryPayload,
   ConfigureGridLayoutResponsePayload,
+  ConfigureRulerGuidesQueryPayload,
+  ConfigureRulerGuidesResponsePayload,
 } from "../types/types";
 import {
   ReadShapeColorsQueryPayload,
@@ -9758,6 +9760,118 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
       type: ClientQueryType.CONFIGURE_GRID_LAYOUT,
       success: false,
       message: `Error configuring grid layout: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function configureRulerGuidesTool(payload: ConfigureRulerGuidesQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { scope, shapeIds, addGuides, removeGuides, removeAll } = payload;
+    const configuredShapes: Array<{ id: string; name?: string }> = [];
+    let guidesAdded = 0;
+    let guidesRemoved = 0;
+
+    const targets: Array<Page | Board> = [];
+
+    if (scope === 'page') {
+      const page = penpot.currentPage;
+      if (page) {
+        targets.push(page);
+        configuredShapes.push({ id: page.id, name: page.name });
+      }
+    } else {
+      // Board scope
+      let shapes: Shape[] = [];
+      if (shapeIds && shapeIds.length > 0) {
+        const page = penpot.currentPage;
+        if (page) {
+          shapes = shapeIds.map(id => page.getShapeById(id)).filter((s): s is Shape => !!s);
+        }
+      } else {
+        shapes = getSelectionForAction();
+      }
+
+      for (const shape of shapes) {
+        if (shape.type === 'board') {
+          targets.push(shape as Board);
+          configuredShapes.push({ id: shape.id, name: shape.name });
+        }
+      }
+    }
+
+    if (targets.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CONFIGURE_RULER_GUIDES,
+        success: false,
+        message: 'No targets found to configure guides.',
+      };
+    }
+
+    for (const target of targets) {
+      // 1. Remove All
+      if (removeAll) {
+        const guides = target.rulerGuides;
+        // We need to copy the array because we are modifying it?
+        // Or does removeRulerGuide modify the live array?
+        // Usually yes.
+        // It's safer to iterate a copy or backwards.
+        // But target.rulerGuides returns a Readonly array, likely a snapshot or proxy.
+        // Let's try to remove one by one.
+        // Wait, if I remove one, the list might change.
+        // Let's collect guides to remove first.
+        const toRemove = [...guides];
+        for (const guide of toRemove) {
+          target.removeRulerGuide(guide);
+          guidesRemoved++;
+        }
+      }
+
+      // 2. Remove Specific Guides
+      if (removeGuides && !removeAll) {
+        const currentGuides = target.rulerGuides;
+        for (const guideToRemove of removeGuides) {
+          // Find matching guide
+          const match = currentGuides.find(g => 
+            g.orientation === guideToRemove.orientation && 
+            Math.abs(g.position - guideToRemove.position) < 0.01
+          );
+          
+          if (match) {
+            target.removeRulerGuide(match);
+            guidesRemoved++;
+          }
+        }
+      }
+
+      // 3. Add Guides
+      if (addGuides) {
+        for (const guideToAdd of addGuides) {
+          target.addRulerGuide(guideToAdd.orientation, guideToAdd.position);
+          guidesAdded++;
+        }
+      }
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CONFIGURE_RULER_GUIDES,
+      success: true,
+      message: `Configured ruler guides. Added: ${guidesAdded}, Removed: ${guidesRemoved}`,
+      payload: {
+        scope,
+        configuredShapes,
+        guidesAdded,
+        guidesRemoved,
+      } as ConfigureRulerGuidesResponsePayload,
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CONFIGURE_RULER_GUIDES,
+      success: false,
+      message: `Error configuring ruler guides: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
