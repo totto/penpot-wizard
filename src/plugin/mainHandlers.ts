@@ -9402,67 +9402,10 @@ export async function configureFlexLayoutTool(payload: ConfigureFlexLayoutQueryP
         }
 
         for (const child of childrenToUpdate) {
-          // Access layoutChild property
-          // Note: The API docs say `layoutChild` is on Shape (or specific shapes).
-          // Let's check if we can write to it.
-          // The interface says `layoutChild?: Readonly<LayoutChildProperties>`.
-          // Wait, READONLY?
-          // Let's check the Board interface again.
-          // `layoutChild?: Readonly<LayoutChildProperties>`
-          // If it's readonly, how do we set it?
-          // Usually in Penpot API, properties are getters/setters.
-          // But if it returns a Readonly object, maybe we can't mutate the object itself,
-          // but we might be able to assign a NEW object to `layoutChild`?
-          // Or maybe the properties on the object are mutable?
-          // "Readonly<LayoutChildProperties>" suggests the properties are readonly.
-          // Let's check if there's a method to set layout properties.
-          // Or maybe `child.layoutChild` is just a getter, and we set properties directly on `child`?
-          // No, `LayoutChildProperties` are specific (like `alignSelf`).
-          // Let's check `Shape` interface or `LayoutChildProperties` usage.
-          
-          // Actually, looking at `Board` interface again:
-          // `layoutChild` is optional and readonly.
-          // This usually means the *reference* is readonly, but maybe the object is mutable?
-          // OR, maybe we set it like `child.layoutChild = { ... }`?
-          // If the property is `readonly layoutChild`, we can't assign to it.
-          
-          // Let's re-read the API docs for `LayoutChildProperties`.
-          // It's an interface.
-          // How do we apply it?
-          // Maybe `child.alignSelf = ...`?
-          // No, `alignSelf` is part of `LayoutChildProperties`.
-          
-          // Let's check if `Shape` has these properties directly.
-          // `Shape` extends `ShapeBase`.
-          // `ShapeBase` has `x`, `y`, `width`, `height`, etc.
-          
-          // Let's check `FlexLayout` or `GridLayout` interfaces again.
-          // They don't have methods to set child props.
-          
-          // Wait, if `layoutChild` is readonly, maybe we can't change it via plugin API yet?
-          // That would be a major blocker.
-          // Let's check `Board` properties again.
-          // `layoutChild` is listed.
-          
-          // Let's try to find an example of setting child layout props.
-          // I'll search the codebase for `layoutChild` usage.
-          
-          // If I can't find it, I'll assume for now that I can modify the properties OF the object returned by `layoutChild`.
-          // e.g. `child.layoutChild.alignSelf = 'center'`.
-          // If `layoutChild` is undefined, maybe it's not in a layout?
-          // But it IS in a layout (the board).
-          
-          // Let's assume we can write to the properties of `layoutChild`.
-          // If `child.layoutChild` is null/undefined, we might not be able to set it.
-          // But if it's a child of a flex board, it should have it.
-          
+          // layoutChild is typed as Readonly<LayoutChildProperties> in the API.
+          // Use type assertion to bypass TypeScript's readonly constraint.
           const layoutChild = child.layoutChild;
           if (layoutChild) {
-             // We cast to any to bypass readonly check if necessary, or just try to assign.
-             // In TS, if it's Readonly<T>, we can't assign.
-             // But at runtime it might work.
-             // However, to satisfy TS, we might need `(layoutChild as any).alignSelf = ...`
-             
              const lc = layoutChild as any;
              
              if (childProperties.absolute !== undefined) { lc.absolute = childProperties.absolute; childPropsSet.push('absolute'); }
@@ -9813,16 +9756,8 @@ export async function configureRulerGuidesTool(payload: ConfigureRulerGuidesQuer
     for (const target of targets) {
       // 1. Remove All
       if (removeAll) {
-        const guides = target.rulerGuides;
-        // We need to copy the array because we are modifying it?
-        // Or does removeRulerGuide modify the live array?
-        // Usually yes.
-        // It's safer to iterate a copy or backwards.
-        // But target.rulerGuides returns a Readonly array, likely a snapshot or proxy.
-        // Let's try to remove one by one.
-        // Wait, if I remove one, the list might change.
-        // Let's collect guides to remove first.
-        const toRemove = [...guides];
+        // Copy array before removing to avoid modification during iteration
+        const toRemove = [...target.rulerGuides];
         for (const guide of toRemove) {
           target.removeRulerGuide(guide);
           guidesRemoved++;
@@ -9908,29 +9843,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
 
     for (const board of boards) {
       if (action === 'clear') {
-        // Remove all guides
-        // The board.guides property is Readonly<Guide[]>, we need to find how to clear it.
-        // Let's check if there's a method like clearGuides() or setGuides([]).
-        // Based on the API, there's likely board.guides = [] or board.setGuides([]).
-        // Since I don't have the exact API docs for this, I'll assume we can reassign.
-        // If board.guides is readonly, we might have a method.
-        // Let's try (board as any).guides = []; as a workaround.
-        
-        // Actually, checking the API structure, there should be something like:
-        // board.columnGuides, board.rowGuides, board.squareGuides
-        // or
-        // board.guides which is an array.
-        
-        // Let me check the structure. From the type definition we created:
-        // guides?: Array<{ type: 'column' | 'row' | 'square'; ... }>
-        
-        // The Penpot API likely has:
-        // board.columnGuides?: ColumnGuide
-        // board.rowGuides?: RowGuide
-        // board.squareGuides?: SquareGuide
-        
-        // To clear, we set them to undefined or null?
-        // Let's assume:
+        // Clear all guide types by setting to undefined
         (board as any).columnGuides = undefined;
         (board as any).rowGuides = undefined;
         (board as any).squareGuides = undefined;
