@@ -162,6 +162,7 @@ When using the resize-selection tool:
       'read-plugin-local-storage',
       'read-viewport-settings',
       'upload-media-from-data',
+      'configure-flex-layout',
       'dump-selection', //Dev tool for debugging
 
     ],
