@@ -9898,29 +9898,36 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
         
         if (guides) {
           for (const guide of guides) {
-            // Calculate size from count if provided
-            let calculatedSize = guide.size;
-            if (guide.count && !guide.size && (guide.type === 'column' || guide.type === 'row')) {
-              const dimension = guide.type === 'column' ? board.width : board.height;
-              const margin = guide.margin ?? 0;
-              const gutter = guide.gutter ?? 0;
-              const size = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
-              if (!isNaN(size) && size > 0) {
-                calculatedSize = Math.round(size); // Round to integer to avoid schema errors
-              }
-            }
-            
             if (guide.type === 'column' || guide.type === 'row') {
               const params: any = {
                 color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
               };
               
-              // If size is specified, default to 'left' alignment if not specified
-              if (calculatedSize !== undefined) {
-                params.type = guide.alignment === 'center' || guide.alignment === 'right' ? guide.alignment : 'left';
-                params.size = calculatedSize;
-              } else if (guide.alignment) {
-                params.type = guide.alignment;
+              const alignment = guide.alignment ?? 'stretch';
+              params.type = alignment;
+
+              if (alignment === 'stretch') {
+                // For stretch alignment, size represents the number of columns/rows (count)
+                if (guide.count) {
+                  params.size = guide.count;
+                } else if (guide.size) {
+                   // Fallback if size was passed as count
+                  params.size = guide.size;
+                }
+              } else {
+                // For fixed alignment (left/center/right), size represents pixel width
+                if (guide.size) {
+                  params.size = guide.size;
+                } else if (guide.count) {
+                  // Calculate pixel width from count for fixed grids
+                  const dimension = guide.type === 'column' ? board.width : board.height;
+                  const margin = guide.margin ?? 0;
+                  const gutter = guide.gutter ?? 0;
+                  const calculatedSize = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
+                  if (!isNaN(calculatedSize) && calculatedSize > 0) {
+                    params.size = Math.round(calculatedSize);
+                  }
+                }
               }
 
               if (guide.margin !== undefined) params.margin = guide.margin;
@@ -9958,32 +9965,52 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
         
         if (guides) {
           for (const guide of guides) {
-            // Calculate size from count if provided
-            let calculatedSize = guide.size;
-            if (guide.count && !guide.size && (guide.type === 'column' || guide.type === 'row')) {
-              const dimension = guide.type === 'column' ? board.width : board.height;
-              const margin = guide.margin ?? 0;
-              const gutter = guide.gutter ?? 0;
-              const size = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
-              if (!isNaN(size) && size > 0) {
-                calculatedSize = Math.round(size); // Round to integer
-              }
-            }
-            
             // Remove existing guide of same type
-            const filteredGuides = existingGuides.filter(g => g.type !== guide.type);
+            // const filteredGuides = existingGuides.filter(g => g.type !== guide.type); // Don't filter, we want to add? No, usually we replace same type? 
+            // Actually, Penpot allows multiple guides of same type? 
+            // The user said "Add", so we should probably append. 
+            // But usually you only have one main grid. 
+            // Let's keep the logic to append, but maybe we should check if we are replacing?
+            // The previous logic was `filteredGuides.push`. Wait, `filteredGuides` was filtering out same type.
+            // So "Add" was actually "Replace guides of this type".
+            // Let's stick to that for now to avoid duplicates if that was the intent.
+            // But "Add" usually means append.
+            // However, `filteredGuides` implies replacement.
+            // Let's assume we want to APPEND if it's a different configuration, but maybe replace if it conflicts?
+            // Let's just append for now to be safe with "Add".
+            // Wait, looking at previous code: `const filteredGuides = existingGuides.filter(g => g.type !== guide.type);`
+            // This explicitly REMOVES existing guides of the same type.
+            // So "Add" behaves like "Set for this type".
+            // I will keep this behavior for consistency with previous implementation unless I see a reason not to.
             
+            const filteredGuides = existingGuides.filter(g => g.type !== guide.type);
+
             if (guide.type === 'column' || guide.type === 'row') {
               const params: any = {
                 color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
               };
               
-              // If size is specified, default to 'left' alignment if not specified
-              if (calculatedSize !== undefined) {
-                params.type = guide.alignment === 'center' || guide.alignment === 'right' ? guide.alignment : 'left';
-                params.size = calculatedSize;
-              } else if (guide.alignment) {
-                params.type = guide.alignment;
+              const alignment = guide.alignment ?? 'stretch';
+              params.type = alignment;
+
+              if (alignment === 'stretch') {
+                 if (guide.count) {
+                  params.size = guide.count;
+                } else if (guide.size) {
+                  params.size = guide.size;
+                }
+              } else {
+                if (guide.size) {
+                  params.size = guide.size;
+                } else if (guide.count) {
+                  const dimension = guide.type === 'column' ? board.width : board.height;
+                  const margin = guide.margin ?? 0;
+                  const gutter = guide.gutter ?? 0;
+                  const calculatedSize = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
+                  if (!isNaN(calculatedSize) && calculatedSize > 0) {
+                    params.size = Math.round(calculatedSize);
+                  }
+                }
               }
 
               if (guide.margin !== undefined) params.margin = guide.margin;
