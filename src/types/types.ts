@@ -970,6 +970,7 @@ export interface SelectionInfoItem {
   height: number;
   rotation?: number;
   opacity?: number;
+  guides?: any[]; // For debugging board guides
 }
 
 export interface GetSelectionInfoResponsePayload {
