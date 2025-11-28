@@ -9904,7 +9904,10 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               const dimension = guide.type === 'column' ? board.width : board.height;
               const margin = guide.margin ?? 0;
               const gutter = guide.gutter ?? 0;
-              calculatedSize = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
+              const size = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
+              if (!isNaN(size) && size > 0) {
+                calculatedSize = size;
+              }
             }
             
             if (guide.type === 'column' || guide.type === 'row') {
@@ -9912,8 +9915,15 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
                 color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
               };
               
-              if (guide.alignment) params.type = guide.alignment;
-              if (calculatedSize !== undefined) params.size = calculatedSize;
+              // If size is specified, default to 'left' alignment if not specified, 
+              // as 'stretch' might conflict with explicit size
+              if (calculatedSize !== undefined) {
+                params.type = guide.alignment === 'center' || guide.alignment === 'right' ? guide.alignment : 'left';
+                params.size = calculatedSize;
+              } else if (guide.alignment) {
+                params.type = guide.alignment;
+              }
+
               if (guide.margin !== undefined) params.margin = guide.margin;
               if (guide.itemLength !== undefined) params.itemLength = guide.itemLength;
               if (guide.gutter !== undefined) params.gutter = guide.gutter;
@@ -9955,7 +9965,10 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               const dimension = guide.type === 'column' ? board.width : board.height;
               const margin = guide.margin ?? 0;
               const gutter = guide.gutter ?? 0;
-              calculatedSize = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
+              const size = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
+              if (!isNaN(size) && size > 0) {
+                calculatedSize = size;
+              }
             }
             
             // Remove existing guide of same type
@@ -9966,8 +9979,14 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
                 color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
               };
               
-              if (guide.alignment) params.type = guide.alignment;
-              if (calculatedSize !== undefined) params.size = calculatedSize;
+              // If size is specified, default to 'left' alignment if not specified
+              if (calculatedSize !== undefined) {
+                params.type = guide.alignment === 'center' || guide.alignment === 'right' ? guide.alignment : 'left';
+                params.size = calculatedSize;
+              } else if (guide.alignment) {
+                params.type = guide.alignment;
+              }
+
               if (guide.margin !== undefined) params.margin = guide.margin;
               if (guide.itemLength !== undefined) params.itemLength = guide.itemLength;
               if (guide.gutter !== undefined) params.gutter = guide.gutter;
