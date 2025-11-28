@@ -9906,7 +9906,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               const gutter = guide.gutter ?? 0;
               const size = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
               if (!isNaN(size) && size > 0) {
-                calculatedSize = size;
+                calculatedSize = Math.round(size); // Round to integer to avoid schema errors
               }
             }
             
@@ -9915,8 +9915,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
                 color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
               };
               
-              // If size is specified, default to 'left' alignment if not specified, 
-              // as 'stretch' might conflict with explicit size
+              // If size is specified, default to 'left' alignment if not specified
               if (calculatedSize !== undefined) {
                 params.type = guide.alignment === 'center' || guide.alignment === 'right' ? guide.alignment : 'left';
                 params.size = calculatedSize;
@@ -9955,7 +9954,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
         configuredShapes.push({ id: board.id, name: board.name });
       } else if (action === 'add') {
         // Add guides to existing ones
-        const existingGuides = [...board.guides];
+        const existingGuides = board.guides ? [...board.guides] : [];
         
         if (guides) {
           for (const guide of guides) {
@@ -9967,7 +9966,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               const gutter = guide.gutter ?? 0;
               const size = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
               if (!isNaN(size) && size > 0) {
-                calculatedSize = size;
+                calculatedSize = Math.round(size); // Round to integer
               }
             }
             
