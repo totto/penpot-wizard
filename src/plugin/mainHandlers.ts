@@ -9885,24 +9885,17 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
 
     for (const board of boards) {
       if (action === 'clear') {
-        // Clear all guide types by setting to undefined
-        (board as any).columnGuides = undefined;
-        (board as any).rowGuides = undefined;
-        (board as any).squareGuides = undefined;
-        
+        // Clear all guides
+        board.guides = [];
         configuredShapes.push({ id: board.id, name: board.name });
-        guidesSet = 0; // Cleared
+        guidesSet = 0;
         continue;
       }
 
       if (action === 'set') {
         // Replace all guides
-        // First clear
-        (board as any).columnGuides = undefined;
-        (board as any).rowGuides = undefined;
-        (board as any).squareGuides = undefined;
+        const newGuides: any[] = [];
         
-        // Then set new ones
         if (guides) {
           for (const guide of guides) {
             // Calculate size from count if provided
@@ -9914,46 +9907,40 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               calculatedSize = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
             }
             
-            if (guide.type === 'column') {
-              (board as any).columnGuides = {
-                type: 'column',
-                display: guide.display,
-                color: guide.color ? { color: guide.color, opacity: 1 } : undefined,
-                alignment: guide.alignment,
-                size: calculatedSize,
-                margin: guide.margin,
-                itemLength: guide.itemLength,
-                gutter: guide.gutter,
-              };
-              guidesSet++;
-            } else if (guide.type === 'row') {
-              (board as any).rowGuides = {
-                type: 'row',
-                display: guide.display,
-                color: guide.color,
-                alignment: guide.alignment,
-                size: calculatedSize,
-                margin: guide.margin,
-                itemLength: guide.itemLength,
-                gutter: guide.gutter,
-              };
+            if (guide.type === 'column' || guide.type === 'row') {
+              newGuides.push({
+                type: guide.type,
+                display: guide.display ?? true,
+                params: {
+                  color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
+                  type: guide.alignment ?? 'stretch',
+                  size: calculatedSize,
+                  margin: guide.margin,
+                  itemLength: guide.itemLength,
+                  gutter: guide.gutter,
+                },
+              });
               guidesSet++;
             } else if (guide.type === 'square') {
-              (board as any).squareGuides = {
+              newGuides.push({
                 type: 'square',
-                display: guide.display,
-                color: guide.color ? { color: guide.color, opacity: 1 } : undefined,
-                size: guide.size,
-              };
+                display: guide.display ?? true,
+                params: {
+                  color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
+                  size: guide.size,
+                },
+              });
               guidesSet++;
             }
           }
         }
+        
+        board.guides = newGuides;
         configuredShapes.push({ id: board.id, name: board.name });
       } else if (action === 'add') {
-        // Add guides (but board only has one of each type, so 'add' means 'set if not present'?)
-        // Or 'add' could mean 'update if present, set if not'.
-        // Let's interpret 'add' as 'set' for each type provided.
+        // Add guides to existing ones
+        const existingGuides = [...board.guides];
+        
         if (guides) {
           for (const guide of guides) {
             // Calculate size from count if provided
@@ -9965,39 +9952,36 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               calculatedSize = (dimension - 2 * margin - (guide.count - 1) * gutter) / guide.count;
             }
             
-            if (guide.type === 'column') {
-              (board as any).columnGuides = {
-                type: 'column',
-                display: guide.display,
-                color: guide.color ? { color: guide.color, opacity: 1 } : undefined,
-                alignment: guide.alignment,
-                size: calculatedSize,
-                margin: guide.margin,
-                itemLength: guide.itemLength,
-                gutter: guide.gutter,
-              };
-              guidesSet++;
-            } else if (guide.type === 'row') {
-              (board as any).rowGuides = {
-                type: 'row',
-                display: guide.display,
-                color: guide.color ? { color: guide.color, opacity: 1 } : undefined,
-                alignment: guide.alignment,
-                size: calculatedSize,
-                margin: guide.margin,
-                itemLength: guide.itemLength,
-                gutter: guide.gutter,
-              };
+            // Remove existing guide of same type
+            const filteredGuides = existingGuides.filter(g => g.type !== guide.type);
+            
+            if (guide.type === 'column' || guide.type === 'row') {
+              filteredGuides.push({
+                type: guide.type,
+                display: guide.display ?? true,
+                params: {
+                  color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
+                  type: guide.alignment ?? 'stretch',
+                  size: calculatedSize,
+                  margin: guide.margin,
+                  itemLength: guide.itemLength,
+                  gutter: guide.gutter,
+                },
+              });
               guidesSet++;
             } else if (guide.type === 'square') {
-              (board as any).squareGuides = {
+              filteredGuides.push({
                 type: 'square',
-                display: guide.display,
-                color: guide.color,
-                size: guide.size,
-              };
+                display: guide.display ?? true,
+                params: {
+                  color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
+                  size: guide.size,
+                },
+              });
               guidesSet++;
             }
+            
+            board.guides = filteredGuides;
           }
         }
         configuredShapes.push({ id: board.id, name: board.name });
