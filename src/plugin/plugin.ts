@@ -56,6 +56,10 @@ import {
   ChangePageBackgroundQueryPayload,
   CreatePageQueryPayload,
   ZIndexQueryPayload,
+  ConfigureFlexLayoutQueryPayload,
+  ConfigureGridLayoutQueryPayload,
+  ConfigureRulerGuidesQueryPayload,
+  ConfigureBoardGuidesQueryPayload,
 } from '../types/types';
 
 import {
@@ -129,10 +133,10 @@ import {
   createPageTool,
   setLayoutZIndexTool,
   readShapeColors,
-  readLibraryContext,
-  readPluginLocalStorage,
-  readViewportSettings,
-  uploadMediaFromData,
+  configureFlexLayoutTool,
+  configureGridLayoutTool,
+  configureRulerGuidesTool,
+  configureBoardGuidesTool,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -458,20 +462,21 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       responseMessage = await readShapeColors(payload as unknown as ReadShapeColorsQueryPayload);
       break;
 
-    case ClientQueryType.READ_LIBRARY_CONTEXT:
-      responseMessage = await readLibraryContext(payload as unknown as ReadLibraryContextQueryPayload);
+
+    case ClientQueryType.CONFIGURE_FLEX_LAYOUT:
+      responseMessage = await configureFlexLayoutTool(payload as unknown as ConfigureFlexLayoutQueryPayload);
       break;
 
-    case ClientQueryType.READ_PLUGIN_LOCAL_STORAGE:
-      responseMessage = await readPluginLocalStorage(payload as unknown as ReadPluginLocalStorageQueryPayload);
+    case ClientQueryType.CONFIGURE_GRID_LAYOUT:
+      responseMessage = await configureGridLayoutTool(payload as unknown as ConfigureGridLayoutQueryPayload);
       break;
 
-    case ClientQueryType.READ_VIEWPORT_SETTINGS:
-      responseMessage = await readViewportSettings(payload as unknown as ReadViewportSettingsQueryPayload);
+    case ClientQueryType.CONFIGURE_RULER_GUIDES:
+      responseMessage = await configureRulerGuidesTool(payload as unknown as ConfigureRulerGuidesQueryPayload);
       break;
 
-    case ClientQueryType.UPLOAD_MEDIA_FROM_DATA:
-      responseMessage = await uploadMediaFromData(payload as unknown as UploadMediaFromDataQueryPayload);
+    case ClientQueryType.CONFIGURE_BOARD_GUIDES:
+      responseMessage = await configureBoardGuidesTool(payload as unknown as ConfigureBoardGuidesQueryPayload);
       break;
 
     default:

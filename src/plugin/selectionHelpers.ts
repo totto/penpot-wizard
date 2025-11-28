@@ -49,6 +49,7 @@ export function readSelectionInfo(): SelectionInfoItem[] {
       height: typeof shape.height === 'number' ? shape.height : 0,
       rotation: typeof shape.rotation === 'number' ? shape.rotation : undefined,
       opacity: typeof shape.opacity === 'number' ? shape.opacity : undefined,
+      guides: shape.type === 'board' ? shape.guides : undefined,
     }));
 
     console.log(`✅ Read info for ${info.length} selected shapes`);

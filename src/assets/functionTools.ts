@@ -24,6 +24,10 @@ import {
   ChangePageBackgroundQueryPayload,
   CreatePageQueryPayload,
   ZIndexQueryPayload,
+  ConfigureFlexLayoutQueryPayload,
+  ConfigureGridLayoutQueryPayload,
+  ConfigureRulerGuidesQueryPayload,
+  ConfigureBoardGuidesQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -1086,6 +1090,209 @@ export const functionTools: FunctionTool[] = [
     }),
     function: async (args: UploadMediaFromDataQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.UPLOAD_MEDIA_FROM_DATA, args as any);
+      return response;
+    },
+  },
+  {
+    id: 'configure-flex-layout',
+    name: 'configureFlexLayout',
+    description: `
+      Configures flex layout properties for selected boards or groups.
+      Can set container properties (direction, wrap, alignment, gaps, padding, sizing)
+      and child properties (sizing, margins, alignment, z-index).
+      Can also remove flex layout from the container.
+    `,
+    inputSchema: z.object({
+      shapeIds: z.array(z.string()).optional().describe('Optional list of shape IDs to apply the layout to. If omitted, applies to current selection.'),
+      remove: z.boolean().optional().describe('If true, removes the flex layout from the container.'),
+      dir: z.enum(['row', 'row-reverse', 'column', 'column-reverse']).optional().describe('Flex direction.'),
+      wrap: z.enum(['wrap', 'nowrap']).optional().describe('Flex wrap behavior.'),
+      alignItems: z.enum(['start', 'end', 'center', 'stretch']).optional().describe('Alignment of items along the cross axis.'),
+      alignContent: z.enum(['start', 'end', 'center', 'space-between', 'space-around', 'space-evenly', 'stretch']).optional().describe('Alignment of content lines along the cross axis.'),
+      justifyItems: z.enum(['start', 'end', 'center', 'stretch']).optional().describe('Justification of items along the main axis.'),
+      justifyContent: z.enum(['start', 'center', 'end', 'space-between', 'space-around', 'space-evenly', 'stretch']).optional().describe('Justification of content along the main axis.'),
+      rowGap: z.number().optional().describe('Gap between rows.'),
+      columnGap: z.number().optional().describe('Gap between columns.'),
+      topPadding: z.number().optional().describe('Top padding.'),
+      rightPadding: z.number().optional().describe('Right padding.'),
+      bottomPadding: z.number().optional().describe('Bottom padding.'),
+      leftPadding: z.number().optional().describe('Left padding.'),
+      horizontalPadding: z.number().optional().describe('Horizontal padding (sets both left and right).'),
+      verticalPadding: z.number().optional().describe('Vertical padding (sets both top and bottom).'),
+      horizontalSizing: z.enum(['fit-content', 'fill', 'auto']).optional().describe('Horizontal sizing behavior of the container.'),
+      verticalSizing: z.enum(['fit-content', 'fill', 'auto']).optional().describe('Vertical sizing behavior of the container.'),
+      childProperties: z.object({
+        shapeIds: z.array(z.string()).optional().describe('Specific children to modify. If omitted, applies to all children.'),
+        absolute: z.boolean().optional().describe('If true, positions the child absolutely within the container.'),
+        zIndex: z.number().optional().describe('Z-index of the child.'),
+        horizontalSizing: z.enum(['auto', 'fill', 'fix']).optional().describe('Horizontal sizing behavior of the child.'),
+        verticalSizing: z.enum(['auto', 'fill', 'fix']).optional().describe('Vertical sizing behavior of the child.'),
+        alignSelf: z.enum(['auto', 'start', 'center', 'end', 'stretch']).optional().describe('Alignment of the child along the cross axis, overriding container alignItems.'),
+        topMargin: z.number().optional().describe('Top margin.'),
+        rightMargin: z.number().optional().describe('Right margin.'),
+        bottomMargin: z.number().optional().describe('Bottom margin.'),
+        leftMargin: z.number().optional().describe('Left margin.'),
+        horizontalMargin: z.number().optional().describe('Horizontal margin (sets both left and right).'),
+        verticalMargin: z.number().optional().describe('Vertical margin (sets both top and bottom).'),
+        minWidth: z.number().optional().describe('Minimum width constraint.'),
+        maxWidth: z.number().optional().describe('Maximum width constraint.'),
+        minHeight: z.number().optional().describe('Minimum height constraint.'),
+        maxHeight: z.number().optional().describe('Maximum height constraint.'),
+      }).optional().describe('Properties to apply to children of the flex container.'),
+    }),
+    function: async (args: ConfigureFlexLayoutQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CONFIGURE_FLEX_LAYOUT, args);
+      return response;
+    },
+  },
+  {
+    id: 'configure-grid-layout',
+    name: 'configureGridLayout',
+    description: `
+      Configures grid layout properties for selected boards.
+      Can set container properties (alignment, gaps, padding, sizing),
+      define grid structure (rows/columns using flex/fixed/percent/auto tracks),
+      and configure child properties (placement in rows/columns, spans, alignment).
+    `,
+    inputSchema: z.object({
+      shapeIds: z.array(z.string()).optional().describe('Optional list of shape IDs to apply the layout to. If omitted, applies to current selection.'),
+      remove: z.boolean().optional().describe('If true, removes the grid layout from the container.'),
+      
+      // Container Props
+      alignItems: z.enum(['start', 'end', 'center', 'stretch']).optional().describe('Alignment of items in their cells.'),
+      alignContent: z.enum(['start', 'end', 'center', 'space-between', 'space-around', 'space-evenly', 'stretch']).optional().describe('Alignment of the grid within the container.'),
+      justifyItems: z.enum(['start', 'end', 'center', 'stretch']).optional().describe('Justification of items in their cells.'),
+      justifyContent: z.enum(['start', 'center', 'end', 'space-between', 'space-around', 'space-evenly', 'stretch']).optional().describe('Justification of the grid within the container.'),
+      rowGap: z.number().optional().describe('Gap between rows.'),
+      columnGap: z.number().optional().describe('Gap between columns.'),
+      topPadding: z.number().optional().describe('Top padding.'),
+      rightPadding: z.number().optional().describe('Right padding.'),
+      bottomPadding: z.number().optional().describe('Bottom padding.'),
+      leftPadding: z.number().optional().describe('Left padding.'),
+      horizontalPadding: z.number().optional().describe('Horizontal padding (sets both left and right).'),
+      verticalPadding: z.number().optional().describe('Vertical padding (sets both top and bottom).'),
+      horizontalSizing: z.enum(['fit-content', 'fill', 'auto']).optional().describe('Horizontal sizing behavior of the container.'),
+      verticalSizing: z.enum(['fit-content', 'fill', 'auto']).optional().describe('Vertical sizing behavior of the container.'),
+
+      // Grid Structure
+      rows: z.array(z.object({
+        type: z.enum(['flex', 'fixed', 'percent', 'auto']),
+        value: z.number().nullable(),
+      })).optional().describe('Set all rows. Overwrites existing rows.'),
+      columns: z.array(z.object({
+        type: z.enum(['flex', 'fixed', 'percent', 'auto']),
+        value: z.number().nullable(),
+      })).optional().describe('Set all columns. Overwrites existing columns.'),
+      
+      addRows: z.array(z.object({
+        type: z.enum(['flex', 'fixed', 'percent', 'auto']),
+        value: z.number().nullable(),
+        index: z.number().optional(),
+      })).optional().describe('Add specific rows.'),
+      addColumns: z.array(z.object({
+        type: z.enum(['flex', 'fixed', 'percent', 'auto']),
+        value: z.number().nullable(),
+        index: z.number().optional(),
+      })).optional().describe('Add specific columns.'),
+      
+      removeRowIndices: z.array(z.number()).optional().describe('Indices of rows to remove.'),
+      removeColumnIndices: z.array(z.number()).optional().describe('Indices of columns to remove.'),
+
+      // Child Props
+      childProperties: z.object({
+        shapeIds: z.array(z.string()).optional().describe('Specific children to modify. If omitted, applies to all children.'),
+        absolute: z.boolean().optional().describe('If true, positions the child absolutely within the container.'),
+        zIndex: z.number().optional().describe('Z-index of the child.'),
+        horizontalSizing: z.enum(['auto', 'fill', 'fix']).optional().describe('Horizontal sizing behavior of the child.'),
+        verticalSizing: z.enum(['auto', 'fill', 'fix']).optional().describe('Vertical sizing behavior of the child.'),
+        alignSelf: z.enum(['auto', 'start', 'center', 'end', 'stretch']).optional().describe('Alignment of the child along the cross axis.'),
+        justifySelf: z.enum(['auto', 'start', 'center', 'end', 'stretch']).optional().describe('Justification of the child along the main axis.'),
+        
+        topMargin: z.number().optional(),
+        rightMargin: z.number().optional(),
+        bottomMargin: z.number().optional(),
+        leftMargin: z.number().optional(),
+        horizontalMargin: z.number().optional(),
+        verticalMargin: z.number().optional(),
+        
+        minWidth: z.number().optional(),
+        maxWidth: z.number().optional(),
+        minHeight: z.number().optional(),
+        maxHeight: z.number().optional(),
+
+        // Grid Cell Props
+        row: z.number().optional().describe('Row index to place the child in.'),
+        column: z.number().optional().describe('Column index to place the child in.'),
+        rowSpan: z.number().optional().describe('Number of rows the child should span.'),
+        columnSpan: z.number().optional().describe('Number of columns the child should span.'),
+      }).optional().describe('Properties to apply to children of the grid container.'),
+    }),
+    function: async (args: ConfigureGridLayoutQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CONFIGURE_GRID_LAYOUT, args);
+      return response;
+    },
+  },
+  {
+    id: 'configure-ruler-guides',
+    name: 'configureRulerGuides',
+    description: `
+      Configures **Ruler Guides** (thin blue/red lines dragged from rulers) for the page or selected boards.
+      **Default tool for "add guide" or "create guide" commands.**
+      **Does NOT affect Layout Grids (columns/rows overlays).**
+      Can add or remove ruler guides at specific positions.
+    `,
+    inputSchema: z.object({
+      scope: z.enum(['page', 'board']).describe('Scope of the guides. "page" applies to the current page. "board" applies to selected boards.'),
+      shapeIds: z.array(z.string()).optional().describe('List of board IDs if scope is "board". If omitted and scope is "board", applies to current selection.'),
+      
+      addGuides: z.array(z.object({
+        orientation: z.enum(['horizontal', 'vertical']),
+        position: z.number(),
+      })).optional().describe('List of guides to add.'),
+      
+      removeGuides: z.array(z.object({
+        orientation: z.enum(['horizontal', 'vertical']),
+        position: z.number(),
+      })).optional().describe('List of guides to remove. Matches by orientation and position.'),
+      
+      removeAll: z.boolean().optional().describe('If true, removes all guides in the specified scope.'),
+    }),
+    function: async (args: ConfigureRulerGuidesQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CONFIGURE_RULER_GUIDES, args);
+      return response;
+    },
+  },
+  {
+    id: 'configure-board-guides',
+    name: 'configureBoardGuides',
+    description: `
+      Configures **Board Layout Guides** (Column Grids, Row Grids, Square Grids) for selected boards.
+      These are the **red/colored overlays** used for alignment.
+      Use this to add, set, or **clear/remove** column/row grids.
+      
+      *For debugging info, see: docs/LAYOUT_TOOLS_INFO_AND_DEBUG.MD*
+    `,
+    inputSchema: z.object({
+      shapeIds: z.array(z.string()).optional().describe('Board IDs to configure. If omitted, applies to current selection.'),
+      
+      action: z.enum(['set', 'add', 'clear']).describe('Action to perform. "set" replaces all guides, "add" appends guides, "clear" removes all guides.'),
+      
+      guides: z.array(z.object({
+        type: z.enum(['column', 'row', 'square']).describe('Type of guide.'),
+        display: z.boolean().optional().describe('Whether the guide is visible.'),
+        color: z.string().optional().describe('Color of the guide (hex format).'),
+        
+        // Column/Row specific
+        count: z.number().optional().describe('Number of columns/rows to create. If specified, the plugin will calculate the size automatically based on board dimensions.'),
+        alignment: z.enum(['stretch', 'left', 'center', 'right']).optional().describe('Alignment for column/row guides.'),
+        size: z.number().optional().describe('Size (width for columns, height for rows). For N-column grids, calculate: size = (boardWidth - 2*margin - (N-1)*gutter) / N. Alternatively, use the count property.'),
+        margin: z.number().optional().describe('Margin around the guide area.'),
+        itemLength: z.number().optional().describe('DEPRECATED: Length of each individual item within the guide. This is NOT the number of columns/rows.'),
+        gutter: z.number().optional().describe('Gutter (spacing) between guide items.'),
+      })).optional().describe('List of guides to set or add. Required for "set" and "add" actions.'),
+    }),
+    function: async (args: ConfigureBoardGuidesQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CONFIGURE_BOARD_GUIDES, args);
       return response;
     },
   },

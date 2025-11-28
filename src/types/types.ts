@@ -85,6 +85,10 @@ export enum ClientQueryType {
   READ_PLUGIN_LOCAL_STORAGE = 'READ_PLUGIN_LOCAL_STORAGE',
   READ_VIEWPORT_SETTINGS = 'READ_VIEWPORT_SETTINGS',
   UPLOAD_MEDIA_FROM_DATA = 'UPLOAD_MEDIA_FROM_DATA',
+  CONFIGURE_FLEX_LAYOUT = 'CONFIGURE_FLEX_LAYOUT',
+  CONFIGURE_GRID_LAYOUT = 'CONFIGURE_GRID_LAYOUT',
+  CONFIGURE_RULER_GUIDES = 'CONFIGURE_RULER_GUIDES',
+  CONFIGURE_BOARD_GUIDES = 'CONFIGURE_BOARD_GUIDES',
 }
 
 export enum PenpotShapeType {
@@ -138,7 +142,9 @@ export interface ClientMessage {
   | ToggleSelectionProportionLockQueryPayload
   | FlipSelectionHorizontalQueryPayload
   | FlipSelectionVerticalQueryPayload
-  | ZIndexQueryPayload;
+  | ZIndexQueryPayload
+  | ConfigureFlexLayoutQueryPayload
+  | ConfigureGridLayoutQueryPayload;
 
 }
 
@@ -318,6 +324,146 @@ export interface ZIndexQueryPayload {
   index?: number; // Optional, for 'set-index' action
 }
 
+export interface ConfigureFlexLayoutQueryPayload {
+  shapeIds?: string[]; // If omitted, use current selection
+  
+  // Container properties
+  remove?: boolean; // If true, remove the flex layout
+  dir?: 'row' | 'row-reverse' | 'column' | 'column-reverse';
+  wrap?: 'wrap' | 'nowrap';
+  alignItems?: 'start' | 'end' | 'center' | 'stretch';
+  alignContent?: 'start' | 'end' | 'center' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
+  justifyItems?: 'start' | 'end' | 'center' | 'stretch';
+  justifyContent?: 'start' | 'center' | 'end' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
+  rowGap?: number;
+  columnGap?: number;
+  topPadding?: number;
+  rightPadding?: number;
+  bottomPadding?: number;
+  leftPadding?: number;
+  horizontalPadding?: number;
+  verticalPadding?: number;
+  horizontalSizing?: 'fit-content' | 'fill' | 'auto';
+  verticalSizing?: 'fit-content' | 'fill' | 'auto';
+  
+  // Child properties (apply to children within the layout)
+  childProperties?: {
+    shapeIds?: string[]; // Specific children to modify (if omitted, apply to all children)
+    absolute?: boolean;
+    zIndex?: number;
+    horizontalSizing?: 'auto' | 'fill' | 'fix';
+    verticalSizing?: 'auto' | 'fill' | 'fix';
+    alignSelf?: 'auto' | 'start' | 'center' | 'end' | 'stretch';
+    topMargin?: number;
+    rightMargin?: number;
+    bottomMargin?: number;
+    leftMargin?: number;
+    horizontalMargin?: number;
+    verticalMargin?: number;
+    minWidth?: number;
+    maxWidth?: number;
+    minHeight?: number;
+    maxHeight?: number;
+  };
+}
+
+export interface ConfigureGridLayoutQueryPayload {
+  shapeIds?: string[];
+  remove?: boolean;
+
+  // Container properties
+  alignItems?: 'start' | 'end' | 'center' | 'stretch';
+  alignContent?: 'start' | 'end' | 'center' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
+  justifyItems?: 'start' | 'end' | 'center' | 'stretch';
+  justifyContent?: 'start' | 'center' | 'end' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
+  rowGap?: number;
+  columnGap?: number;
+  topPadding?: number;
+  rightPadding?: number;
+  bottomPadding?: number;
+  leftPadding?: number;
+  horizontalPadding?: number;
+  verticalPadding?: number;
+  horizontalSizing?: 'fit-content' | 'fill' | 'auto';
+  verticalSizing?: 'fit-content' | 'fill' | 'auto';
+
+  // Grid Structure
+  rows?: Array<{ type: 'flex' | 'fixed' | 'percent' | 'auto'; value: number | null }>;
+  columns?: Array<{ type: 'flex' | 'fixed' | 'percent' | 'auto'; value: number | null }>;
+  
+  // Operations
+  addRows?: Array<{ type: 'flex' | 'fixed' | 'percent' | 'auto'; value: number | null; index?: number }>;
+  addColumns?: Array<{ type: 'flex' | 'fixed' | 'percent' | 'auto'; value: number | null; index?: number }>;
+  removeRowIndices?: number[];
+  removeColumnIndices?: number[];
+
+  // Child properties (including Grid Cell properties)
+  childProperties?: {
+    shapeIds?: string[];
+    absolute?: boolean;
+    zIndex?: number;
+    horizontalSizing?: 'auto' | 'fill' | 'fix';
+    verticalSizing?: 'auto' | 'fill' | 'fix';
+    alignSelf?: 'auto' | 'start' | 'center' | 'end' | 'stretch';
+    justifySelf?: 'auto' | 'start' | 'center' | 'end' | 'stretch'; // Grid specific
+    topMargin?: number;
+    rightMargin?: number;
+    bottomMargin?: number;
+    leftMargin?: number;
+    horizontalMargin?: number;
+    verticalMargin?: number;
+    minWidth?: number;
+    maxWidth?: number;
+    minHeight?: number;
+    maxHeight?: number;
+    
+    // Grid Cell Properties
+    row?: number;
+    column?: number;
+    rowSpan?: number;
+    columnSpan?: number;
+  };
+}
+
+export interface ConfigureRulerGuidesQueryPayload {
+  scope: 'page' | 'board';
+  shapeIds?: string[]; // For board scope
+
+  addGuides?: Array<{
+    orientation: 'horizontal' | 'vertical';
+    position: number;
+  }>;
+  
+  removeGuides?: Array<{
+    orientation: 'horizontal' | 'vertical';
+    position: number;
+  }>;
+  
+  removeAll?: boolean;
+}
+
+export interface ConfigureBoardGuidesQueryPayload {
+  shapeIds?: string[]; // Boards to configure
+  
+  action: 'set' | 'add' | 'clear';
+  
+  guides?: Array<{
+    type: 'column' | 'row' | 'square';
+    display?: boolean;
+    
+    // Common params
+    color?: string;
+    
+    // Column/Row params
+    count?: number; // Number of columns/rows (will calculate size automatically)
+    alignment?: 'stretch' | 'left' | 'center' | 'right';
+    size?: number;
+    margin?: number;
+    itemLength?: number;
+    gutter?: number;
+  }>;
+}
+
 
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
@@ -363,7 +509,11 @@ export type ClientQueryPayload =
   | CreatePageQueryPayload
   | ChangePageBackgroundQueryPayload
   | RenamePageQueryPayload
-  | ZIndexQueryPayload;
+  | ZIndexQueryPayload
+  | ConfigureFlexLayoutQueryPayload
+  | ConfigureGridLayoutQueryPayload
+  | ConfigureRulerGuidesQueryPayload
+  | ConfigureBoardGuidesQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -775,6 +925,38 @@ export interface ZIndexResponsePayload {
   undoInfo?: UndoInfo;
 }
 
+export interface ConfigureFlexLayoutResponsePayload {
+  configuredShapes: Array<{ id: string; name?: string }>;
+  layoutRemoved?: boolean;
+  containerPropertiesSet?: string[]; // List of container properties that were set
+  childPropertiesSet?: string[]; // List of child properties that were set
+  affectedChildren?: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface ConfigureGridLayoutResponsePayload {
+  configuredShapes: Array<{ id: string; name?: string }>;
+  layoutRemoved?: boolean;
+  containerPropertiesSet?: string[];
+  childPropertiesSet?: string[];
+  affectedChildren?: Array<{ id: string; name?: string }>;
+  undoInfo?: UndoInfo;
+}
+
+export interface ConfigureRulerGuidesResponsePayload {
+  scope: 'page' | 'board';
+  configuredShapes?: Array<{ id: string; name?: string }>;
+  guidesAdded?: number;
+  guidesRemoved?: number;
+  undoInfo?: UndoInfo;
+}
+
+export interface ConfigureBoardGuidesResponsePayload {
+  configuredShapes: Array<{ id: string; name?: string }>;
+  guidesSet?: number;
+  undoInfo?: UndoInfo;
+}
+
 
 export type GetSelectionInfoQueryPayload = Record<string, never>;
 
@@ -788,6 +970,7 @@ export interface SelectionInfoItem {
   height: number;
   rotation?: number;
   opacity?: number;
+  guides?: any[]; // For debugging board guides
 }
 
 export interface GetSelectionInfoResponsePayload {

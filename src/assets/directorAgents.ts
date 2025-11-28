@@ -162,7 +162,15 @@ When using the resize-selection tool:
       'read-plugin-local-storage',
       'read-viewport-settings',
       'upload-media-from-data',
-      'dump-selection', //Dev tool for debugging
+      'configure-flex-layout',
+      'configure-grid-layout',
+      'configure-ruler-guides',
+      'configure-board-guides',
+
+
+// NOTE: Debugging dev tools
+      //'dump-selection', //Dev tool for debugging -> Only uncomment for debugging purposes 
+      //otherwise don't expose this tool to the user
 
     ],
 
