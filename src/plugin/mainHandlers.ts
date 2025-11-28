@@ -10058,11 +10058,35 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
     };
 
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    
+    // Check if it's the schema validation error
+    if (errorMsg.includes('malli.core/invalid-schema')) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CONFIGURE_BOARD_GUIDES,
+        success: false,
+        message: `⚠️ **Board Guides API Issue**
+
+The Penpot board guides API is rejecting the request with a schema validation error, despite our payload matching the documented API structure exactly. This appears to be a Penpot bug.
+
+**Your options:**
+
+1. **Manual workaround**: Right-click the board → "Board options" → Configure "Column grid", "Row grid", or "Square grid" manually in the Penpot UI.
+
+2. **Ruler guides alternative**: I can create ruler guides instead (vertical/horizontal lines at specific positions). These are different from board grids but might help. Would you like me to try this?
+
+3. **Report bug**: This issue should be reported to the Penpot team at https://github.com/penpot/penpot-plugins/issues
+
+What would you like to do?`,
+      };
+    }
+    
     return {
       ...pluginResponse,
       type: ClientQueryType.CONFIGURE_BOARD_GUIDES,
       success: false,
-      message: `Error configuring board guides: ${error instanceof Error ? error.message : String(error)}`,
+      message: `Error configuring board guides: ${errorMsg}`,
     };
   }
 }
