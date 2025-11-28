@@ -9908,27 +9908,33 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
             }
             
             if (guide.type === 'column' || guide.type === 'row') {
+              const params: any = {
+                color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
+              };
+              
+              if (guide.alignment) params.type = guide.alignment;
+              if (calculatedSize !== undefined) params.size = calculatedSize;
+              if (guide.margin !== undefined) params.margin = guide.margin;
+              if (guide.itemLength !== undefined) params.itemLength = guide.itemLength;
+              if (guide.gutter !== undefined) params.gutter = guide.gutter;
+
               newGuides.push({
                 type: guide.type,
                 display: guide.display ?? true,
-                params: {
-                  color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
-                  type: guide.alignment ?? 'stretch',
-                  size: calculatedSize,
-                  margin: guide.margin,
-                  itemLength: guide.itemLength,
-                  gutter: guide.gutter,
-                },
+                params,
               });
               guidesSet++;
             } else if (guide.type === 'square') {
+              const params: any = {
+                color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
+              };
+              
+              if (guide.size !== undefined) params.size = guide.size;
+
               newGuides.push({
                 type: 'square',
                 display: guide.display ?? true,
-                params: {
-                  color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
-                  size: guide.size,
-                },
+                params,
               });
               guidesSet++;
             }
@@ -9956,27 +9962,33 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
             const filteredGuides = existingGuides.filter(g => g.type !== guide.type);
             
             if (guide.type === 'column' || guide.type === 'row') {
+              const params: any = {
+                color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
+              };
+              
+              if (guide.alignment) params.type = guide.alignment;
+              if (calculatedSize !== undefined) params.size = calculatedSize;
+              if (guide.margin !== undefined) params.margin = guide.margin;
+              if (guide.itemLength !== undefined) params.itemLength = guide.itemLength;
+              if (guide.gutter !== undefined) params.gutter = guide.gutter;
+
               filteredGuides.push({
                 type: guide.type,
                 display: guide.display ?? true,
-                params: {
-                  color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
-                  type: guide.alignment ?? 'stretch',
-                  size: calculatedSize,
-                  margin: guide.margin,
-                  itemLength: guide.itemLength,
-                  gutter: guide.gutter,
-                },
+                params,
               });
               guidesSet++;
             } else if (guide.type === 'square') {
+              const params: any = {
+                color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
+              };
+              
+              if (guide.size !== undefined) params.size = guide.size;
+
               filteredGuides.push({
                 type: 'square',
                 display: guide.display ?? true,
-                params: {
-                  color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
-                  size: guide.size,
-                },
+                params,
               });
               guidesSet++;
             }
