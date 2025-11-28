@@ -10072,11 +10072,16 @@ The Penpot board guides API is rejecting the request with a schema validation er
 
 **Your options:**
 
-1. **Manual workaround**: Right-click the board → "Board options" → Configure "Column grid", "Row grid", or "Square grid" manually in the Penpot UI.
+1. **Manual workaround**
+   Right-click the board → "Board options" → Configure "Column grid", "Row grid", or "Square grid" manually in the Penpot UI.
 
-2. **Ruler guides alternative**: I can create ruler guides instead (vertical/horizontal lines at specific positions). These are different from board grids but might help. Would you like me to try this?
+2. **Ruler guides alternative**
+   I can create ruler guides instead (vertical/horizontal lines at specific positions). These are different from board grids but might help. Would you like me to try this?
 
-3. **Report bug**: This issue should be reported to the Penpot team at https://github.com/penpot/penpot-plugins/issues
+3. **Report bug**
+   This issue should be reported to the Penpot team at https://github.com/penpot/penpot-plugins/issues
+
+*For developers: See docs/LAYOUT_TOOLS_INFO_AND_DEBUG.MD for detailed debugging info.*
 
 What would you like to do?`,
       };

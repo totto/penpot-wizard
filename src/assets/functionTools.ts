@@ -1269,6 +1269,8 @@ export const functionTools: FunctionTool[] = [
       Configures **Board Layout Guides** (Column Grids, Row Grids, Square Grids) for selected boards.
       These are the **red/colored overlays** used for alignment.
       Use this to add, set, or **clear/remove** column/row grids.
+      
+      *For debugging info, see: docs/LAYOUT_TOOLS_INFO_AND_DEBUG.MD*
     `,
     inputSchema: z.object({
       shapeIds: z.array(z.string()).optional().describe('Board IDs to configure. If omitted, applies to current selection.'),
