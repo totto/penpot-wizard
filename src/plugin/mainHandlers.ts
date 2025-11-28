@@ -9900,7 +9900,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
           for (const guide of guides) {
             if (guide.type === 'column' || guide.type === 'row') {
               const params: any = {
-                color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
+                color: guide.color ? { color: guide.color, opacity: 0.1 } : { color: '#FF0000', opacity: 0.1 },
               };
               
               const alignment = guide.alignment ?? 'stretch';
@@ -9930,9 +9930,10 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
                 }
               }
 
-              if (guide.margin !== undefined) params.margin = guide.margin;
+              // Always include margin and gutter (Penpot schema might require them)
+              params.margin = guide.margin ?? 0;
+              params.gutter = guide.gutter ?? 0;
               if (guide.itemLength !== undefined) params.itemLength = guide.itemLength;
-              if (guide.gutter !== undefined) params.gutter = guide.gutter;
 
               newGuides.push({
                 type: guide.type,
@@ -9987,7 +9988,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
 
             if (guide.type === 'column' || guide.type === 'row') {
               const params: any = {
-                color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
+                color: guide.color ? { color: guide.color, opacity: 0.1 } : { color: '#FF0000', opacity: 0.1 },
               };
               
               const alignment = guide.alignment ?? 'stretch';
@@ -10013,9 +10014,9 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
                 }
               }
 
-              if (guide.margin !== undefined) params.margin = guide.margin;
+              params.margin = guide.margin ?? 0;
+              params.gutter = guide.gutter ?? 0;
               if (guide.itemLength !== undefined) params.itemLength = guide.itemLength;
-              if (guide.gutter !== undefined) params.gutter = guide.gutter;
 
               filteredGuides.push({
                 type: guide.type,
