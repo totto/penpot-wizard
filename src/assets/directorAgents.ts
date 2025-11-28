@@ -166,7 +166,11 @@ When using the resize-selection tool:
       'configure-grid-layout',
       'configure-ruler-guides',
       'configure-board-guides',
-      'dump-selection', //Dev tool for debugging
+
+
+// NOTE: Debugging dev tools
+      //'dump-selection', //Dev tool for debugging -> Only uncomment for debugging purposes 
+      //otherwise don't expose this tool to the user
 
     ],
 
