@@ -1337,3 +1337,18 @@ export interface StreamingMessage {
   error?: string;
 }
 
+
+export interface GetCurrentThemeResponsePayload {
+  theme: 'light' | 'dark';
+}
+
+export interface FileVersion {
+  id: string;
+  label: string;
+  isAutosave: boolean;
+  createdAt: string;
+}
+
+export interface GetFileVersionsResponsePayload {
+  versions: FileVersion[];
+}

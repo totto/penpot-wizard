@@ -108,6 +108,8 @@ import {
   ConfigureRulerGuidesResponsePayload,
   ConfigureBoardGuidesQueryPayload,
   ConfigureBoardGuidesResponsePayload,
+  GetCurrentThemeResponsePayload,
+  GetFileVersionsResponsePayload,
 } from "../types/types";
 import {
   ReadShapeColorsQueryPayload,
@@ -10243,6 +10245,69 @@ What would you like to do?`,
       type: ClientQueryType.CONFIGURE_BOARD_GUIDES,
       success: false,
       message: `Error configuring board guides: ${errorMsg}`,
+    };
+  }
+}
+
+export async function getCurrentThemeTool(): Promise<PluginResponseMessage> {
+  try {
+    const theme = penpot.theme;
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_CURRENT_THEME,
+      message: `Current theme is ${theme}`,
+      payload: {
+        theme: theme as 'light' | 'dark',
+      } as GetCurrentThemeResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_CURRENT_THEME,
+      success: false,
+      message: `Error getting current theme: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function getFileVersionsTool(): Promise<PluginResponseMessage> {
+  try {
+    if (!penpot.currentFile) {
+      throw new Error('No current file available');
+    }
+
+    // Cast to any to access findVersions if not in standard types
+    const currentFile = penpot.currentFile as any;
+
+    if (!currentFile.findVersions) {
+      throw new Error('findVersions API not available');
+    }
+
+    const versions = await currentFile.findVersions();
+
+    const processedVersions = versions.map((version: { id?: string; label?: string; isAutosave?: boolean; createdAt?: unknown }) => ({
+      id: version.id || '',
+      label: version.label || '',
+      isAutosave: version.isAutosave || false,
+      createdAt: typeof version.createdAt === 'string' ? version.createdAt : '',
+    }));
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_FILE_VERSIONS,
+      message: 'File versions retrieved successfully',
+      success: true,
+      payload: {
+        versions: processedVersions,
+      } as GetFileVersionsResponsePayload,
+    };
+
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_FILE_VERSIONS,
+      success: false,
+      message: `Error retrieving file versions: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

@@ -99,9 +99,7 @@ import {
   applyRadialGradientTool,
   getCurrentPage,
   getAvailableFonts,
-  getCurrentTheme,
   getActiveUsers,
-  getFileVersions,
   createLibraryColor,
   createLibraryFont,
   createLibraryComponent,
@@ -137,6 +135,8 @@ import {
   configureGridLayoutTool,
   configureRulerGuidesTool,
   configureBoardGuidesTool,
+  getCurrentThemeTool,
+  getFileVersionsTool,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -324,7 +324,7 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       break;
 
     case ClientQueryType.GET_CURRENT_THEME:
-      responseMessage = getCurrentTheme();
+      responseMessage = await getCurrentThemeTool();
       break;
 
     case ClientQueryType.GET_ACTIVE_USERS:
@@ -333,7 +333,7 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
 
     case ClientQueryType.GET_FILE_VERSIONS:
-      responseMessage = await getFileVersions();
+      responseMessage = await getFileVersionsTool();
       break;
 
 
