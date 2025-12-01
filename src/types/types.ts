@@ -89,6 +89,7 @@ export enum ClientQueryType {
   CONFIGURE_GRID_LAYOUT = 'CONFIGURE_GRID_LAYOUT',
   CONFIGURE_RULER_GUIDES = 'CONFIGURE_RULER_GUIDES',
   CONFIGURE_BOARD_GUIDES = 'CONFIGURE_BOARD_GUIDES',
+  BATCH_CREATE_PAGES = 'BATCH_CREATE_PAGES',
 }
 
 export enum PenpotShapeType {
@@ -465,6 +466,17 @@ export interface ConfigureBoardGuidesQueryPayload {
 }
 
 
+export interface BatchCreatePagesQueryPayload {
+  pageNames: string[];
+}
+
+export interface BatchCreatePagesResponsePayload {
+  pages: Array<{
+    id: string;
+    name: string;
+  }>;
+}
+
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
   | AddImageQueryPayload
@@ -513,7 +525,8 @@ export type ClientQueryPayload =
   | ConfigureFlexLayoutQueryPayload
   | ConfigureGridLayoutQueryPayload
   | ConfigureRulerGuidesQueryPayload
-  | ConfigureBoardGuidesQueryPayload;
+  | ConfigureBoardGuidesQueryPayload
+  | BatchCreatePagesQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -1223,7 +1236,8 @@ export type PluginResponsePayload =
   | OpenPageResponsePayload
   | CreatePageResponsePayload
   | ChangePageBackgroundResponsePayload
-  | RenamePageResponsePayload;
+  | RenamePageResponsePayload
+  | BatchCreatePagesResponsePayload;
 
 // Response for ungrouping shapes
 export interface UngroupResponsePayload {
