@@ -56,6 +56,7 @@ import {
   ChangePageBackgroundQueryPayload,
   CreatePageQueryPayload,
   BatchCreatePagesQueryPayload,
+  BatchCreateComponentsQueryPayload,
   ZIndexQueryPayload,
   ConfigureFlexLayoutQueryPayload,
   ConfigureGridLayoutQueryPayload,
@@ -131,6 +132,7 @@ import {
   changePageBackgroundTool,
   createPageTool,
   batchCreatePagesTool,
+  batchCreateComponentsTool,
   setLayoutZIndexTool,
   readShapeColors,
   configureFlexLayoutTool,
@@ -458,6 +460,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.BATCH_CREATE_PAGES:
       responseMessage = await batchCreatePagesTool(payload as unknown as BatchCreatePagesQueryPayload);
+      break;
+
+    case ClientQueryType.BATCH_CREATE_COMPONENTS:
+      responseMessage = await batchCreateComponentsTool(payload as unknown as BatchCreateComponentsQueryPayload);
       break;
 
     case ClientQueryType.Z_INDEX_ACTION:
