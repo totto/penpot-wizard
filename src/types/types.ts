@@ -91,6 +91,7 @@ export enum ClientQueryType {
   CONFIGURE_BOARD_GUIDES = 'CONFIGURE_BOARD_GUIDES',
   BATCH_CREATE_PAGES = 'BATCH_CREATE_PAGES',
   BATCH_CREATE_COMPONENTS = 'BATCH_CREATE_COMPONENTS',
+  GET_COLOR_PALETTE = 'GET_COLOR_PALETTE',
 }
 
 export enum PenpotShapeType {
@@ -492,6 +493,19 @@ export interface BatchCreateComponentsResponsePayload {
   }>;
 }
 
+export type GetColorPaletteQueryPayload = Record<string, never>;
+
+export interface GetColorPaletteResponsePayload {
+  colors: Array<{
+    id: string;
+    name: string;
+    color: string; // Hex color value
+    opacity?: number;
+    path?: string;
+  }>;
+}
+
+
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
   | AddImageQueryPayload
@@ -542,7 +556,8 @@ export type ClientQueryPayload =
   | ConfigureRulerGuidesQueryPayload
   | ConfigureBoardGuidesQueryPayload
   | BatchCreatePagesQueryPayload
-  | BatchCreateComponentsQueryPayload;
+  | BatchCreateComponentsQueryPayload
+  | GetColorPaletteQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -1254,7 +1269,8 @@ export type PluginResponsePayload =
   | ChangePageBackgroundResponsePayload
   | RenamePageResponsePayload
   | BatchCreatePagesResponsePayload
-  | BatchCreateComponentsResponsePayload;
+  | BatchCreateComponentsResponsePayload
+  | GetColorPaletteResponsePayload;
 
 // Response for ungrouping shapes
 export interface UngroupResponsePayload {
