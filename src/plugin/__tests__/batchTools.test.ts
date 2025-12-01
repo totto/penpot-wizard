@@ -1,10 +1,11 @@
-import { batchCreatePagesTool, batchCreateComponentsTool } from '../mainHandlers';
+import { batchCreatePagesTool, batchCreateComponentsTool, getColorPaletteTool } from '../mainHandlers';
 import { 
   ClientQueryType, 
   BatchCreatePagesQueryPayload, 
   BatchCreatePagesResponsePayload,
   BatchCreateComponentsQueryPayload,
-  BatchCreateComponentsResponsePayload
+  BatchCreateComponentsResponsePayload,
+  GetColorPaletteResponsePayload
 } from '../../types/types';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
@@ -143,5 +144,63 @@ describe('batchCreateComponentsTool', () => {
 
     expect(result.success).toBe(true);
     expect(mockPenpot.library.local.createComponent).not.toHaveBeenCalled();
+  });
+});
+
+describe('getColorPaletteTool', () => {
+  const mockColor1 = { 
+    id: 'color-1', 
+    name: 'Primary', 
+    color: '#FF0000', 
+    opacity: 1,
+    path: 'Brand/Primary'
+  };
+  const mockColor2 = { 
+    id: 'color-2', 
+    name: 'Secondary', 
+    color: '#00FF00', 
+    opacity: 0.5 
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    
+    // Mock library.local.colors
+    mockPenpot.library = {
+      local: {
+        colors: [mockColor1, mockColor2],
+      },
+    };
+  });
+
+  it('retrieves all colors from the library', async () => {
+    const result = await getColorPaletteTool();
+
+    expect(result.success).toBe(true);
+    
+    const responsePayload = result.payload as GetColorPaletteResponsePayload;
+    expect(responsePayload.colors).toHaveLength(2);
+    expect(responsePayload.colors[0]).toEqual(mockColor1);
+    expect(responsePayload.colors[1]).toEqual(mockColor2);
+  });
+
+  it('handles empty library gracefully', async () => {
+    mockPenpot.library.local.colors = [];
+
+    const result = await getColorPaletteTool();
+
+    expect(result.success).toBe(true);
+    const responsePayload = result.payload as GetColorPaletteResponsePayload;
+    expect(responsePayload.colors).toHaveLength(0);
+  });
+
+  it('handles missing library gracefully', async () => {
+    mockPenpot.library = undefined;
+
+    const result = await getColorPaletteTool();
+
+    expect(result.success).toBe(true);
+    const responsePayload = result.payload as GetColorPaletteResponsePayload;
+    expect(responsePayload.colors).toHaveLength(0);
   });
 });
