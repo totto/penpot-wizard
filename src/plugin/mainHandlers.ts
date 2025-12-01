@@ -104,6 +104,8 @@ import {
   BatchCreateComponentsResponsePayload,
   ExportProjectQueryPayload,
   ExportProjectResponsePayload,
+  UseSizePresetQueryPayload,
+  UseSizePresetResponsePayload,
   ZIndexQueryPayload,
   ZIndexResponsePayload,
   ConfigureFlexLayoutQueryPayload,
@@ -10460,6 +10462,96 @@ export async function exportProjectTool(payload: ExportProjectQueryPayload): Pro
       type: ClientQueryType.EXPORT_PROJECT,
       success: false,
       message: `Error exporting project: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function useSizePresetTool(payload: UseSizePresetQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { presetName, shapeIds } = payload;
+    
+    // Define size presets
+    const presets: Record<string, { width: number; height: number }> = {
+      'iphone-14': { width: 390, height: 844 },
+      'iphone-14-pro': { width: 393, height: 852 },
+      'iphone-14-plus': { width: 428, height: 926 },
+      'iphone-14-pro-max': { width: 430, height: 932 },
+      'ipad-mini': { width: 744, height: 1133 },
+      'ipad-pro-11': { width: 834, height: 1194 },
+      'ipad-pro-12-9': { width: 1024, height: 1366 },
+      'macbook-air': { width: 1280, height: 832 },
+      'macbook-pro-14': { width: 1512, height: 982 },
+      'macbook-pro-16': { width: 1728, height: 1117 },
+      'desktop-1440': { width: 1440, height: 1024 },
+      'desktop-1920': { width: 1920, height: 1080 },
+      'a4': { width: 595, height: 842 },
+      'letter': { width: 612, height: 792 },
+      'instagram-post': { width: 1080, height: 1080 },
+      'instagram-story': { width: 1080, height: 1920 },
+      'twitter-header': { width: 1500, height: 500 },
+      'facebook-cover': { width: 820, height: 312 },
+    };
+    
+    // Check if preset exists
+    const preset = presets[presetName.toLowerCase()];
+    if (!preset) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.USE_SIZE_PRESET,
+        success: false,
+        message: `Unknown preset: ${presetName}. Available presets: ${Object.keys(presets).join(', ')}`,
+      };
+    }
+    
+    // Get shapes to resize
+    let shapesToResize: Shape[];
+    if (shapeIds && shapeIds.length > 0) {
+      shapesToResize = shapeIds
+        .map(id => penpot.selection.find(s => s.id === id))
+        .filter((s): s is Shape => !!s);
+    } else {
+      shapesToResize = getSelectionForAction();
+    }
+    
+    if (shapesToResize.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.USE_SIZE_PRESET,
+        success: false,
+        message: 'No shapes selected or found to resize',
+      };
+    }
+    
+    // Resize shapes
+    const updatedShapes: Array<{ id: string; name: string; width: number; height: number }> = [];
+    
+    for (const shape of shapesToResize) {
+      shape.resize(preset.width, preset.height);
+      updatedShapes.push({
+        id: shape.id,
+        name: shape.name,
+        width: preset.width,
+        height: preset.height,
+      });
+    }
+    
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.USE_SIZE_PRESET,
+      success: true,
+      message: `Resized ${updatedShapes.length} shape(s) to ${presetName} (${preset.width}x${preset.height})`,
+      payload: {
+        success: true,
+        message: `Applied ${presetName} preset`,
+        updatedShapes,
+      } as UseSizePresetResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.USE_SIZE_PRESET,
+      success: false,
+      message: `Error applying size preset: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
