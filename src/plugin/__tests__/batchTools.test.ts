@@ -1,4 +1,4 @@
-import { batchCreatePagesTool, batchCreateComponentsTool, getColorPaletteTool, exportProjectTool } from '../mainHandlers';
+import { batchCreatePagesTool, batchCreateComponentsTool, getColorPaletteTool, exportProjectTool, useSizePresetTool } from '../mainHandlers';
 import { 
   ClientQueryType, 
   BatchCreatePagesQueryPayload, 
@@ -7,7 +7,9 @@ import {
   BatchCreateComponentsResponsePayload,
   GetColorPaletteResponsePayload,
   ExportProjectQueryPayload,
-  ExportProjectResponsePayload
+  ExportProjectResponsePayload,
+  UseSizePresetQueryPayload,
+  UseSizePresetResponsePayload
 } from '../../types/types';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
@@ -248,5 +250,59 @@ describe('exportProjectTool', () => {
     expect(result.success).toBe(false);
     expect(result.message).toContain('Error exporting project');
     expect(result.message).toContain('Export failed');
+  });
+});
+
+describe('useSizePresetTool', () => {
+  const mockShape1 = { 
+    id: 'shape-1', 
+    name: 'Rectangle',
+    resize: vi.fn(),
+  };
+  const mockShape2 = { 
+    id: 'shape-2', 
+    name: 'Board',
+    resize: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    
+    // Mock selection
+    mockPenpot.selection = [mockShape1, mockShape2];
+  });
+
+  it('resizes shapes to a valid preset', async () => {
+    const payload: UseSizePresetQueryPayload = { presetName: 'iphone-14' };
+    
+    const result = await useSizePresetTool(payload);
+
+    expect(result.success).toBe(true);
+    expect(mockShape1.resize).toHaveBeenCalledWith(390, 844);
+    expect(mockShape2.resize).toHaveBeenCalledWith(390, 844);
+    
+    const responsePayload = result.payload as UseSizePresetResponsePayload;
+    expect(responsePayload.updatedShapes).toHaveLength(2);
+    expect(responsePayload.updatedShapes[0].width).toBe(390);
+    expect(responsePayload.updatedShapes[0].height).toBe(844);
+  });
+
+  it('handles unknown preset gracefully', async () => {
+    const payload: UseSizePresetQueryPayload = { presetName: 'unknown-preset' };
+
+    const result = await useSizePresetTool(payload);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Unknown preset');
+    expect(mockShape1.resize).not.toHaveBeenCalled();
+  });
+
+  it('handles empty selection gracefully', async () => {
+    mockPenpot.selection = [];
+
+    const result = await useSizePresetTool({ presetName: 'iphone-14' });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('No shapes selected');
   });
 });
