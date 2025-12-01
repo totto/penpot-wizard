@@ -10425,3 +10425,41 @@ export function getColorPaletteTool(): PluginResponseMessage {
     };
   }
 }
+
+export async function exportProjectTool(payload: ExportProjectQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Note: penpot.file.export() might not be fully supported in all contexts or might behave differently.
+    // This implementation assumes it triggers a download or returns a file blob.
+    // If it requires user interaction, it might need a different approach.
+    
+    // Check if export is available
+    // @ts-ignore - penpot.file might not be in the types yet
+    if (penpot.file && typeof penpot.file.export === 'function') {
+       // @ts-ignore
+       await penpot.file.export(payload.filename);
+       
+       return {
+        ...pluginResponse,
+        type: ClientQueryType.EXPORT_PROJECT,
+        success: true,
+        message: 'Project export initiated successfully',
+        payload: { success: true, message: 'Export started' } as ExportProjectResponsePayload,
+      };
+    } else {
+       // Fallback or error if API not found
+       return {
+        ...pluginResponse,
+        type: ClientQueryType.EXPORT_PROJECT,
+        success: false,
+        message: 'Export API not available in this Penpot version',
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.EXPORT_PROJECT,
+      success: false,
+      message: `Error exporting project: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
