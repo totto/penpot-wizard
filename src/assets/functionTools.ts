@@ -31,6 +31,7 @@ import {
   BatchCreatePagesQueryPayload,
   BatchCreateComponentsQueryPayload,
   ExportProjectQueryPayload,
+  UseSizePresetQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -1405,6 +1406,47 @@ export const exportProjectTool = {
 };
 
 functionTools.push(exportProjectTool);
+
+export const useSizePresetTool = {
+  id: "use-size-preset",
+  name: "useSizePreset",
+  description: `
+    Resize selected shapes to a predefined size preset.
+    Available presets:
+    - 'iphone-14': 390x844
+    - 'iphone-14-pro': 393x852
+    - 'iphone-14-plus': 428x926
+    - 'iphone-14-pro-max': 430x932
+    - 'ipad-mini': 744x1133
+    - 'ipad-pro-11': 834x1194
+    - 'ipad-pro-12-9': 1024x1366
+    - 'macbook-air': 1280x832
+    - 'macbook-pro-14': 1512x982
+    - 'macbook-pro-16': 1728x1117
+    - 'desktop-1440': 1440x1024
+    - 'desktop-1920': 1920x1080
+    - 'a4': 595x842 (72dpi)
+    - 'letter': 612x792 (72dpi)
+    - 'instagram-post': 1080x1080
+    - 'instagram-story': 1080x1920
+    - 'twitter-header': 1500x500
+    - 'facebook-cover': 820x312
+  `,
+  inputSchema: z.object({
+    presetName: z.string().describe('Name of the size preset to apply (e.g., "iphone-14", "instagram-post")'),
+    shapeIds: z.array(z.string()).optional().describe('Optional list of shape IDs to resize. If omitted, resizes current selection.'),
+  }),
+  function: async (args) => {
+    const payload: UseSizePresetQueryPayload = {
+      presetName: args.presetName,
+      shapeIds: args.shapeIds,
+    };
+    const response = await sendMessageToPlugin(ClientQueryType.USE_SIZE_PRESET, payload);
+    return response;
+  },
+};
+
+functionTools.push(useSizePresetTool);
 
 
 
