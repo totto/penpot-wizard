@@ -30,6 +30,7 @@ import {
   ConfigureBoardGuidesQueryPayload,
   BatchCreatePagesQueryPayload,
   BatchCreateComponentsQueryPayload,
+  ExportProjectQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -1382,6 +1383,28 @@ export const getColorPaletteTool = {
 };
 
 functionTools.push(getColorPaletteTool);
+
+export const exportProjectTool = {
+  id: "export-project",
+  name: "exportProject",
+  description: `
+    Export the current project as a .penpot file.
+    This will trigger a browser download of the project file.
+    Optionally provide a filename (without extension).
+  `,
+  inputSchema: z.object({
+    filename: z.string().optional().describe('Optional filename for the exported project (without extension)'),
+  }),
+  function: async (args) => {
+    const payload: ExportProjectQueryPayload = {
+      filename: args.filename,
+    };
+    const response = await sendMessageToPlugin(ClientQueryType.EXPORT_PROJECT, payload);
+    return response;
+  },
+};
+
+functionTools.push(exportProjectTool);
 
 
 
