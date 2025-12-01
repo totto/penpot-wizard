@@ -93,6 +93,7 @@ export enum ClientQueryType {
   BATCH_CREATE_COMPONENTS = 'BATCH_CREATE_COMPONENTS',
   GET_COLOR_PALETTE = 'GET_COLOR_PALETTE',
   EXPORT_PROJECT = 'EXPORT_PROJECT',
+  USE_SIZE_PRESET = 'USE_SIZE_PRESET',
 }
 
 export enum PenpotShapeType {
@@ -515,6 +516,17 @@ export interface ExportProjectResponsePayload {
   message: string;
 }
 
+export interface UseSizePresetQueryPayload {
+  presetName: string;
+  shapeIds?: string[];
+}
+
+export interface UseSizePresetResponsePayload {
+  success: boolean;
+  message: string;
+  updatedShapes: Array<{ id: string; name: string; width: number; height: number }>;
+}
+
 
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
@@ -568,7 +580,8 @@ export type ClientQueryPayload =
   | BatchCreatePagesQueryPayload
   | BatchCreateComponentsQueryPayload
   | GetColorPaletteQueryPayload
-  | ExportProjectQueryPayload;
+  | ExportProjectQueryPayload
+  | UseSizePresetQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -1282,7 +1295,8 @@ export type PluginResponsePayload =
   | BatchCreatePagesResponsePayload
   | BatchCreateComponentsResponsePayload
   | GetColorPaletteResponsePayload
-  | ExportProjectResponsePayload;
+  | ExportProjectResponsePayload
+  | UseSizePresetResponsePayload;
 
 // Response for ungrouping shapes
 export interface UngroupResponsePayload {
