@@ -58,6 +58,7 @@ import {
   BatchCreatePagesQueryPayload,
   BatchCreateComponentsQueryPayload,
   ExportProjectQueryPayload,
+  UseSizePresetQueryPayload,
   ZIndexQueryPayload,
   ConfigureFlexLayoutQueryPayload,
   ConfigureGridLayoutQueryPayload,
@@ -144,6 +145,7 @@ import {
   getFileVersionsTool,
   getColorPaletteTool,
   exportProjectTool,
+  useSizePresetTool,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -500,6 +502,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.EXPORT_PROJECT:
       responseMessage = await exportProjectTool(payload as unknown as ExportProjectQueryPayload);
+      break;
+
+    case ClientQueryType.USE_SIZE_PRESET:
+      responseMessage = await useSizePresetTool(payload as unknown as UseSizePresetQueryPayload);
       break;
 
     default:
