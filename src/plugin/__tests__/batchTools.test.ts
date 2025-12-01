@@ -1,11 +1,13 @@
-import { batchCreatePagesTool, batchCreateComponentsTool, getColorPaletteTool } from '../mainHandlers';
+import { batchCreatePagesTool, batchCreateComponentsTool, getColorPaletteTool, exportProjectTool } from '../mainHandlers';
 import { 
   ClientQueryType, 
   BatchCreatePagesQueryPayload, 
   BatchCreatePagesResponsePayload,
   BatchCreateComponentsQueryPayload,
   BatchCreateComponentsResponsePayload,
-  GetColorPaletteResponsePayload
+  GetColorPaletteResponsePayload,
+  ExportProjectQueryPayload,
+  ExportProjectResponsePayload
 } from '../../types/types';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
@@ -202,5 +204,49 @@ describe('getColorPaletteTool', () => {
     expect(result.success).toBe(true);
     const responsePayload = result.payload as GetColorPaletteResponsePayload;
     expect(responsePayload.colors).toHaveLength(0);
+  });
+});
+
+describe('exportProjectTool', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    
+    // Mock penpot.file.export
+    mockPenpot.file = {
+      export: vi.fn(),
+    };
+  });
+
+  it('initiates project export successfully', async () => {
+    const payload: ExportProjectQueryPayload = { filename: 'MyProject' };
+    
+    const result = await exportProjectTool(payload);
+
+    expect(result.success).toBe(true);
+    expect(mockPenpot.file.export).toHaveBeenCalledWith('MyProject');
+    
+    const responsePayload = result.payload as ExportProjectResponsePayload;
+    expect(responsePayload.success).toBe(true);
+    expect(responsePayload.message).toBe('Export started');
+  });
+
+  it('handles missing export API gracefully', async () => {
+    // Simulate missing API
+    mockPenpot.file = undefined;
+
+    const result = await exportProjectTool({});
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Export API not available');
+  });
+
+  it('handles export errors gracefully', async () => {
+    mockPenpot.file.export.mockRejectedValue(new Error('Export failed'));
+
+    const result = await exportProjectTool({});
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Error exporting project');
+    expect(result.message).toContain('Export failed');
   });
 });
