@@ -28,6 +28,7 @@ import {
   ConfigureGridLayoutQueryPayload,
   ConfigureRulerGuidesQueryPayload,
   ConfigureBoardGuidesQueryPayload,
+  BatchCreatePagesQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -974,6 +975,25 @@ export const functionTools: FunctionTool[] = [
     }),
     function: async (args: CreatePageQueryPayload) => {
       const response = await sendMessageToPlugin(ClientQueryType.CREATE_PAGE, args);
+      return response;
+    },
+  },
+  {
+    id: 'batch-create-pages',
+    name: 'batchCreatePages',
+    description: `
+      Use this tool to create multiple pages at once.
+      It takes an array of page names and creates them in order.
+      Returns the list of created pages with their IDs and names.
+    `,
+    inputSchema: z.object({
+      pageNames: z.array(z.string()).min(1).describe('Array of names for the new pages'),
+    }),
+    function: async (args) => {
+      const payload: BatchCreatePagesQueryPayload = {
+        pageNames: args.pageNames,
+      };
+      const response = await sendMessageToPlugin(ClientQueryType.BATCH_CREATE_PAGES, payload);
       return response;
     },
   },
