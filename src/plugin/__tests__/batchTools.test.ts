@@ -85,9 +85,9 @@ describe('batchCreateComponentsTool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Mock shapes.get
-    mockPenpot.shapes = {
-      get: vi.fn((id) => {
+    // Mock currentPage.getShapeById
+    mockPenpot.currentPage = {
+      getShapeById: vi.fn((id) => {
         if (id === 'shape-1') return mockShape1;
         if (id === 'shape-2') return mockShape2;
         return undefined;
