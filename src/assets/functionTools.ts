@@ -29,6 +29,7 @@ import {
   ConfigureRulerGuidesQueryPayload,
   ConfigureBoardGuidesQueryPayload,
   BatchCreatePagesQueryPayload,
+  BatchCreateComponentsQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -994,6 +995,28 @@ export const functionTools: FunctionTool[] = [
         pageNames: args.pageNames,
       };
       const response = await sendMessageToPlugin(ClientQueryType.BATCH_CREATE_PAGES, payload);
+      return response;
+    },
+  },
+  {
+    id: 'batch-create-components',
+    name: 'batchCreateComponents',
+    description: `
+      Use this tool to create multiple components at once from selections.
+      It takes an array of component definitions, each with a name and a list of shape IDs to include.
+      Returns the list of created components with their IDs and names.
+    `,
+    inputSchema: z.object({
+      components: z.array(z.object({
+        name: z.string().describe('Name for the new component'),
+        shapeIds: z.array(z.string()).min(1).describe('Array of shape IDs to include in the component'),
+      })).min(1).describe('Array of components to create'),
+    }),
+    function: async (args) => {
+      const payload: BatchCreateComponentsQueryPayload = {
+        components: args.components,
+      };
+      const response = await sendMessageToPlugin(ClientQueryType.BATCH_CREATE_COMPONENTS, payload);
       return response;
     },
   },
