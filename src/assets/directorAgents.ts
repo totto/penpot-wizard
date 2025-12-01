@@ -166,7 +166,11 @@ When using the resize-selection tool:
       'configure-grid-layout',
       'configure-ruler-guides',
       'configure-board-guides',
-
+      'use-size-preset',
+      'batch-create-pages',
+      'batch-create-components',
+      'get-color-palette',
+      'export-project',
 
 // NOTE: Debugging dev tools
       //'dump-selection', //Dev tool for debugging -> Only uncomment for debugging purposes 
