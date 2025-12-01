@@ -1367,4 +1367,21 @@ export const functionTools: FunctionTool[] = [
   },
 ];
 
+export const getColorPaletteTool = {
+  id: "get-color-palette",
+  name: "getColorPalette",
+  description: `
+    Retrieve all colors from the local library.
+    Returns an array of color objects with metadata (id, name, color hex, opacity, path).
+  `,
+  inputSchema: z.object({}),
+  function: async () => {
+    const response = await sendMessageToPlugin(ClientQueryType.GET_COLOR_PALETTE, undefined);
+    return response;
+  },
+};
+
+functionTools.push(getColorPaletteTool);
+
+
 
