@@ -141,6 +141,7 @@ import {
   configureBoardGuidesTool,
   getCurrentThemeTool,
   getFileVersionsTool,
+  getColorPaletteTool,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -489,6 +490,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.CONFIGURE_BOARD_GUIDES:
       responseMessage = await configureBoardGuidesTool(payload as unknown as ConfigureBoardGuidesQueryPayload);
+      break;
+
+    case ClientQueryType.GET_COLOR_PALETTE:
+      responseMessage = await getColorPaletteTool();
       break;
 
     default:
