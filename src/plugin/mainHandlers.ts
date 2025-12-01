@@ -9230,10 +9230,26 @@ export async function batchCreateComponentsTool(payload: BatchCreateComponentsQu
   try {
     const { components } = payload;
     const createdComponents: Array<{ id: string; name: string }> = [];
+    const currentPage = penpot.currentPage;
+
+    if (!currentPage) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.BATCH_CREATE_COMPONENTS,
+        success: false,
+        message: 'No active page found',
+      };
+    }
 
     for (const compDef of components) {
       const shapes = compDef.shapeIds
-        .map(id => penpot.shapes.get(id))
+        .map(id => {
+          try {
+            return currentPage.getShapeById(id);
+          } catch {
+            return undefined;
+          }
+        })
         .filter((s): s is Shape => s !== undefined);
 
       if (shapes.length > 0) {
@@ -9249,7 +9265,7 @@ export async function batchCreateComponentsTool(payload: BatchCreateComponentsQu
       ...pluginResponse,
       type: ClientQueryType.BATCH_CREATE_COMPONENTS,
       success: true,
-      message: `Successfully created ${createdComponents.length} components`,
+      message: `Successfully created ${createdComponents.length} component(s)`,
       payload: {
         components: createdComponents,
       } as BatchCreateComponentsResponsePayload,
