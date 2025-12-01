@@ -98,6 +98,8 @@ import {
   ChangePageBackgroundResponsePayload,
   RenamePageQueryPayload,
   RenamePageResponsePayload,
+  BatchCreatePagesQueryPayload,
+  BatchCreatePagesResponsePayload,
   ZIndexQueryPayload,
   ZIndexResponsePayload,
   ConfigureFlexLayoutQueryPayload,
@@ -9182,6 +9184,38 @@ export async function createPageTool(payload: CreatePageQueryPayload): Promise<P
       type: ClientQueryType.CREATE_PAGE,
       success: false,
       message: `Error creating page: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function batchCreatePagesTool(payload: BatchCreatePagesQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { pageNames } = payload;
+    const createdPages: Array<{ id: string; name: string }> = [];
+
+    for (const name of pageNames) {
+      const newPage = penpot.createPage();
+      if (name && name.trim() !== '') {
+        newPage.name = name.trim();
+      }
+      createdPages.push({ id: newPage.id, name: newPage.name });
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.BATCH_CREATE_PAGES,
+      success: true,
+      message: `Successfully created ${createdPages.length} pages`,
+      payload: {
+        pages: createdPages,
+      } as BatchCreatePagesResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.BATCH_CREATE_PAGES,
+      success: false,
+      message: `Error creating pages: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
