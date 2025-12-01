@@ -100,6 +100,8 @@ import {
   RenamePageResponsePayload,
   BatchCreatePagesQueryPayload,
   BatchCreatePagesResponsePayload,
+  BatchCreateComponentsQueryPayload,
+  BatchCreateComponentsResponsePayload,
   ZIndexQueryPayload,
   ZIndexResponsePayload,
   ConfigureFlexLayoutQueryPayload,
@@ -9216,6 +9218,44 @@ export async function batchCreatePagesTool(payload: BatchCreatePagesQueryPayload
       type: ClientQueryType.BATCH_CREATE_PAGES,
       success: false,
       message: `Error creating pages: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function batchCreateComponentsTool(payload: BatchCreateComponentsQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { components } = payload;
+    const createdComponents: Array<{ id: string; name: string }> = [];
+
+    for (const compDef of components) {
+      const shapes = compDef.shapeIds
+        .map(id => penpot.shapes.get(id))
+        .filter((s): s is Shape => s !== undefined);
+
+      if (shapes.length > 0) {
+        const component = penpot.library.local.createComponent(shapes);
+        if (component) {
+          component.name = compDef.name;
+          createdComponents.push({ id: component.id, name: component.name });
+        }
+      }
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.BATCH_CREATE_COMPONENTS,
+      success: true,
+      message: `Successfully created ${createdComponents.length} components`,
+      payload: {
+        components: createdComponents,
+      } as BatchCreateComponentsResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.BATCH_CREATE_COMPONENTS,
+      success: false,
+      message: `Error creating components: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
