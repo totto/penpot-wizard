@@ -102,6 +102,8 @@ import {
   BatchCreatePagesResponsePayload,
   BatchCreateComponentsQueryPayload,
   BatchCreateComponentsResponsePayload,
+  ExportProjectQueryPayload,
+  ExportProjectResponsePayload,
   ZIndexQueryPayload,
   ZIndexResponsePayload,
   ConfigureFlexLayoutQueryPayload,
