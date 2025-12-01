@@ -57,6 +57,7 @@ import {
   CreatePageQueryPayload,
   BatchCreatePagesQueryPayload,
   BatchCreateComponentsQueryPayload,
+  ExportProjectQueryPayload,
   ZIndexQueryPayload,
   ConfigureFlexLayoutQueryPayload,
   ConfigureGridLayoutQueryPayload,
@@ -142,6 +143,7 @@ import {
   getCurrentThemeTool,
   getFileVersionsTool,
   getColorPaletteTool,
+  exportProjectTool,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -494,6 +496,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.GET_COLOR_PALETTE:
       responseMessage = await getColorPaletteTool();
+      break;
+
+    case ClientQueryType.EXPORT_PROJECT:
+      responseMessage = await exportProjectTool(payload as unknown as ExportProjectQueryPayload);
       break;
 
     default:
