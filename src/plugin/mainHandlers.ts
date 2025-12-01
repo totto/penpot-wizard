@@ -10385,3 +10385,41 @@ export async function getFileVersionsTool(): Promise<PluginResponseMessage> {
     };
   }
 }
+
+export function getColorPaletteTool(): PluginResponseMessage {
+  try {
+    // Check library API availability
+    if (!penpot.library || !penpot.library.local || !Array.isArray(penpot.library.local.colors)) {
+       return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_COLOR_PALETTE,
+        success: true,
+        message: 'Library colors not available or empty',
+        payload: { colors: [] },
+      };
+    }
+
+    const colors = penpot.library.local.colors.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      color: c.color,
+      opacity: c.opacity,
+      path: c.path,
+    }));
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_COLOR_PALETTE,
+      success: true,
+      message: 'Color palette retrieved successfully',
+      payload: { colors },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_COLOR_PALETTE,
+      success: false,
+      message: `Error retrieving color palette: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
