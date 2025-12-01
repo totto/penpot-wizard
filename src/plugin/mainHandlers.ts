@@ -10486,27 +10486,9 @@ export async function useSizePresetTool(payload: UseSizePresetQueryPayload): Pro
   try {
     const { presetName, shapeIds } = payload;
     
-    // Define size presets
-    const presets: Record<string, { width: number; height: number }> = {
-      'iphone-14': { width: 390, height: 844 },
-      'iphone-14-pro': { width: 393, height: 852 },
-      'iphone-14-plus': { width: 428, height: 926 },
-      'iphone-14-pro-max': { width: 430, height: 932 },
-      'ipad-mini': { width: 744, height: 1133 },
-      'ipad-pro-11': { width: 834, height: 1194 },
-      'ipad-pro-12-9': { width: 1024, height: 1366 },
-      'macbook-air': { width: 1280, height: 832 },
-      'macbook-pro-14': { width: 1512, height: 982 },
-      'macbook-pro-16': { width: 1728, height: 1117 },
-      'desktop-1440': { width: 1440, height: 1024 },
-      'desktop-1920': { width: 1920, height: 1080 },
-      'a4': { width: 595, height: 842 },
-      'letter': { width: 612, height: 792 },
-      'instagram-post': { width: 1080, height: 1080 },
-      'instagram-story': { width: 1080, height: 1920 },
-      'twitter-header': { width: 1500, height: 500 },
-      'facebook-cover': { width: 820, height: 312 },
-    };
+    // Import presets from external JSON file
+    const { getDevicePresets } = await import('@/utils/devicePresets');
+    const presets = getDevicePresets();
     
     // Check if preset exists
     const preset = presets[presetName.toLowerCase()];
@@ -10515,7 +10497,7 @@ export async function useSizePresetTool(payload: UseSizePresetQueryPayload): Pro
         ...pluginResponse,
         type: ClientQueryType.USE_SIZE_PRESET,
         success: false,
-        message: `Unknown preset: ${presetName}. Available presets: ${Object.keys(presets).join(', ')}`,
+        message: `Unknown preset: ${presetName}. Use common presets like: iphone-16, desktop-1920, instagram-story, a4`,
       };
     }
     
