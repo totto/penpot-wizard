@@ -56,13 +56,13 @@ export interface ReadViewportSettingsResponsePayload {
   center: { x: number; y: number };
 }
 
-// UploadMediaFromData Types
-export interface UploadMediaFromDataQueryPayload {
+// UploadMediaToLibrary Types
+export interface UploadMediaToLibraryQueryPayload {
   url: string; // URL to fetch the image from
   name?: string; // Optional name for the uploaded image
 }
 
-export interface UploadMediaFromDataResponsePayload {
+export interface UploadMediaToLibraryResponsePayload {
   imageData: {
     id: string;
     name: string;
@@ -112,7 +112,7 @@ export enum ClientQueryType {
   READ_LIBRARY_CONTEXT = 'READ_LIBRARY_CONTEXT',
   READ_PLUGIN_LOCAL_STORAGE = 'READ_PLUGIN_LOCAL_STORAGE',
   READ_VIEWPORT_SETTINGS = 'READ_VIEWPORT_SETTINGS',
-  UPLOAD_MEDIA_FROM_DATA = 'UPLOAD_MEDIA_FROM_DATA',
+  UPLOAD_MEDIA_TO_LIBRARY = 'UPLOAD_MEDIA_TO_LIBRARY',
   NAVIGATE_TO_BOARD = 'NAVIGATE_TO_BOARD',
   OPEN_BOARD_AS_OVERLAY = 'OPEN_BOARD_AS_OVERLAY',
   TOGGLE_OVERLAY = 'TOGGLE_OVERLAY',
@@ -643,14 +643,13 @@ export type ClientQueryPayload =
   | SetSelectionBlendModeQueryPayload
   | SetSelectionBoundsQueryPayload
   | CreateLibraryFontPayload
-  | CreateLibraryFontPayload
   | CreateLibraryComponentPayload
   | CloneSelectionQueryPayload
   | ReadShapeColorsQueryPayload
   | ReadLibraryContextQueryPayload
   | ReadPluginLocalStorageQueryPayload
   | ReadViewportSettingsQueryPayload
-  | UploadMediaFromDataQueryPayload
+  | UploadMediaToLibraryQueryPayload
   | NavigateToBoardQueryPayload
   | OpenBoardAsOverlayQueryPayload
   | ToggleOverlayQueryPayload
@@ -690,7 +689,7 @@ export type PluginResponsePayload =
   | ReadLibraryContextResponsePayload
   | ReadPluginLocalStorageResponsePayload
   | ReadViewportSettingsResponsePayload
-  | UploadMediaFromDataResponsePayload
+  | UploadMediaToLibraryResponsePayload
   | NavigateToBoardResponsePayload
   | OpenBoardAsOverlayResponsePayload
   | ToggleOverlayResponsePayload

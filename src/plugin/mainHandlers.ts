@@ -128,8 +128,8 @@ import {
   ReadPluginLocalStorageResponsePayload,
   ReadViewportSettingsQueryPayload,
   ReadViewportSettingsResponsePayload,
-  UploadMediaFromDataQueryPayload,
-  UploadMediaFromDataResponsePayload
+  UploadMediaToLibraryQueryPayload,
+  UploadMediaToLibraryResponsePayload,
 } from "../types/pluginTypes";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
@@ -9457,7 +9457,7 @@ export async function readViewportSettings(payload: ReadViewportSettingsQueryPay
   }
 }
 
-export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPayload): Promise<PluginResponseMessage> {
+export async function uploadMediaToLibrary(payload: UploadMediaToLibraryQueryPayload): Promise<PluginResponseMessage> {
   try {
     const { url, name } = payload;
 
@@ -9465,7 +9465,7 @@ export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPaylo
     if (!response.ok) {
       return {
         ...pluginResponse,
-        type: ClientQueryType.UPLOAD_MEDIA_FROM_DATA,
+        type: ClientQueryType.UPLOAD_MEDIA_TO_LIBRARY,
         success: false,
         message: `Failed to fetch image from URL: ${response.statusText}`,
       };
@@ -9476,7 +9476,7 @@ export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPaylo
 
     return {
       ...pluginResponse,
-      type: ClientQueryType.UPLOAD_MEDIA_FROM_DATA,
+      type: ClientQueryType.UPLOAD_MEDIA_TO_LIBRARY,
       success: true,
       message: `Successfully uploaded image: ${imageData.name}`,
       payload: {
@@ -9486,18 +9486,18 @@ export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPaylo
           width: imageData.width,
           height: imageData.height,
         },
-      } as UploadMediaFromDataResponsePayload,
+      } as UploadMediaToLibraryResponsePayload,
     };
 
   } catch (error) {
     return {
       ...pluginResponse,
-      type: ClientQueryType.UPLOAD_MEDIA_FROM_DATA,
+      type: ClientQueryType.UPLOAD_MEDIA_TO_LIBRARY,
       success: false,
       message: `Error uploading media: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
-}export async function configureFlexLayoutTool(payload: ConfigureFlexLayoutQueryPayload): Promise<PluginResponseMessage> {
+} export async function configureFlexLayoutTool(payload: ConfigureFlexLayoutQueryPayload): Promise<PluginResponseMessage> {
   try {
     const {
       shapeIds,
@@ -9528,7 +9528,7 @@ export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPaylo
       topPadding !== undefined || rightPadding !== undefined || bottomPadding !== undefined ||
       leftPadding !== undefined || horizontalPadding !== undefined || verticalPadding !== undefined ||
       horizontalSizing !== undefined || verticalSizing !== undefined;
-    
+
     const isChildOnlyMode = !hasContainerProps && childProperties !== undefined;
 
     // Resolve shapes based on mode
@@ -9575,7 +9575,7 @@ export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPaylo
       } else {
         shapes = getSelectionForAction();
       }
-      
+
       boards = shapes.filter(s => s.type === 'board') as Board[];
     }
 
@@ -9638,7 +9638,7 @@ export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPaylo
       // 4. Apply Child Properties
       if (childProperties && flex) {
         const childrenToUpdate: Shape[] = [];
-        
+
         if (isChildOnlyMode) {
           // In child-only mode, apply to the specific child shapes that belong to this board
           childrenToUpdate.push(...specificChildShapes.filter(child => (child as any).parent?.id === board.id));
@@ -9656,29 +9656,29 @@ export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPaylo
           // Use type assertion to bypass TypeScript's readonly constraint.
           const layoutChild = child.layoutChild;
           if (layoutChild) {
-             const lc = layoutChild as any;
-             
-             if (childProperties.absolute !== undefined) { lc.absolute = childProperties.absolute; childPropsSet.push('absolute'); }
-             if (childProperties.zIndex !== undefined) { lc.zIndex = childProperties.zIndex; childPropsSet.push('zIndex'); }
-             if (childProperties.horizontalSizing) { lc.horizontalSizing = childProperties.horizontalSizing; childPropsSet.push('horizontalSizing'); }
-             if (childProperties.verticalSizing) { lc.verticalSizing = childProperties.verticalSizing; childPropsSet.push('verticalSizing'); }
-             if (childProperties.alignSelf) { lc.alignSelf = childProperties.alignSelf; childPropsSet.push('alignSelf'); }
-             
-             // Margins
-             if (childProperties.topMargin !== undefined) { lc.topMargin = childProperties.topMargin; childPropsSet.push('topMargin'); }
-             if (childProperties.rightMargin !== undefined) { lc.rightMargin = childProperties.rightMargin; childPropsSet.push('rightMargin'); }
-             if (childProperties.bottomMargin !== undefined) { lc.bottomMargin = childProperties.bottomMargin; childPropsSet.push('bottomMargin'); }
-             if (childProperties.leftMargin !== undefined) { lc.leftMargin = childProperties.leftMargin; childPropsSet.push('leftMargin'); }
-             if (childProperties.horizontalMargin !== undefined) { lc.horizontalMargin = childProperties.horizontalMargin; childPropsSet.push('horizontalMargin'); }
-             if (childProperties.verticalMargin !== undefined) { lc.verticalMargin = childProperties.verticalMargin; childPropsSet.push('verticalMargin'); }
-             
-             // Constraints
-             if (childProperties.minWidth !== undefined) { lc.minWidth = childProperties.minWidth; childPropsSet.push('minWidth'); }
-             if (childProperties.maxWidth !== undefined) { lc.maxWidth = childProperties.maxWidth; childPropsSet.push('maxWidth'); }
-             if (childProperties.minHeight !== undefined) { lc.minHeight = childProperties.minHeight; childPropsSet.push('minHeight'); }
-             if (childProperties.maxHeight !== undefined) { lc.maxHeight = childProperties.maxHeight; childPropsSet.push('maxHeight'); }
+            const lc = layoutChild as any;
 
-             affectedChildren.push({ id: child.id, name: child.name });
+            if (childProperties.absolute !== undefined) { lc.absolute = childProperties.absolute; childPropsSet.push('absolute'); }
+            if (childProperties.zIndex !== undefined) { lc.zIndex = childProperties.zIndex; childPropsSet.push('zIndex'); }
+            if (childProperties.horizontalSizing) { lc.horizontalSizing = childProperties.horizontalSizing; childPropsSet.push('horizontalSizing'); }
+            if (childProperties.verticalSizing) { lc.verticalSizing = childProperties.verticalSizing; childPropsSet.push('verticalSizing'); }
+            if (childProperties.alignSelf) { lc.alignSelf = childProperties.alignSelf; childPropsSet.push('alignSelf'); }
+
+            // Margins
+            if (childProperties.topMargin !== undefined) { lc.topMargin = childProperties.topMargin; childPropsSet.push('topMargin'); }
+            if (childProperties.rightMargin !== undefined) { lc.rightMargin = childProperties.rightMargin; childPropsSet.push('rightMargin'); }
+            if (childProperties.bottomMargin !== undefined) { lc.bottomMargin = childProperties.bottomMargin; childPropsSet.push('bottomMargin'); }
+            if (childProperties.leftMargin !== undefined) { lc.leftMargin = childProperties.leftMargin; childPropsSet.push('leftMargin'); }
+            if (childProperties.horizontalMargin !== undefined) { lc.horizontalMargin = childProperties.horizontalMargin; childPropsSet.push('horizontalMargin'); }
+            if (childProperties.verticalMargin !== undefined) { lc.verticalMargin = childProperties.verticalMargin; childPropsSet.push('verticalMargin'); }
+
+            // Constraints
+            if (childProperties.minWidth !== undefined) { lc.minWidth = childProperties.minWidth; childPropsSet.push('minWidth'); }
+            if (childProperties.maxWidth !== undefined) { lc.maxWidth = childProperties.maxWidth; childPropsSet.push('maxWidth'); }
+            if (childProperties.minHeight !== undefined) { lc.minHeight = childProperties.minHeight; childPropsSet.push('minHeight'); }
+            if (childProperties.maxHeight !== undefined) { lc.maxHeight = childProperties.maxHeight; childPropsSet.push('maxHeight'); }
+
+            affectedChildren.push({ id: child.id, name: child.name });
           }
         }
       }
@@ -9743,7 +9743,7 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
       horizontalSizing !== undefined || verticalSizing !== undefined ||
       rows !== undefined || columns !== undefined || addRows !== undefined || addColumns !== undefined ||
       removeRowIndices !== undefined || removeColumnIndices !== undefined;
-    
+
     const isChildOnlyMode = !hasContainerProps && childProperties !== undefined;
 
     // Resolve shapes based on mode
@@ -9790,7 +9790,7 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
       } else {
         shapes = getSelectionForAction();
       }
-      
+
       boards = shapes.filter(s => s.type === 'board') as Board[];
     }
 
@@ -9839,7 +9839,7 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
         if (justifyContent) { grid.justifyContent = justifyContent; containerPropsSet.push('justifyContent'); }
         if (rowGap !== undefined) { grid.rowGap = rowGap; containerPropsSet.push('rowGap'); }
         if (columnGap !== undefined) { grid.columnGap = columnGap; containerPropsSet.push('columnGap'); }
-        
+
         if (topPadding !== undefined) { grid.topPadding = topPadding; containerPropsSet.push('topPadding'); }
         if (rightPadding !== undefined) { grid.rightPadding = rightPadding; containerPropsSet.push('rightPadding'); }
         if (bottomPadding !== undefined) { grid.bottomPadding = bottomPadding; containerPropsSet.push('bottomPadding'); }
@@ -9924,7 +9924,7 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
       // 5. Apply Child Properties
       if (childProperties && grid) {
         const childrenToUpdate: Shape[] = [];
-        
+
         if (isChildOnlyMode) {
           // In child-only mode, apply to the specific child shapes that belong to this board
           childrenToUpdate.push(...specificChildShapes.filter(child => (child as any).parent?.id === board.id));
@@ -9940,19 +9940,19 @@ export async function configureGridLayoutTool(payload: ConfigureGridLayoutQueryP
         for (const child of childrenToUpdate) {
           const layoutCell = child.layoutCell;
           if (layoutCell) {
-             const lc = layoutCell as any;
-             
-             if (childProperties.row !== undefined) { lc.row = childProperties.row; childPropsSet.push('row'); }
-             if (childProperties.column !== undefined) { lc.column = childProperties.column; childPropsSet.push('column'); }
-             if (childProperties.rowSpan !== undefined) { lc.rowSpan = childProperties.rowSpan; childPropsSet.push('rowSpan'); }
-             if (childProperties.columnSpan !== undefined) { lc.columnSpan = childProperties.columnSpan; childPropsSet.push('columnSpan'); }
-             
-             if (childProperties.justifySelf) { lc.justifySelf = childProperties.justifySelf; childPropsSet.push('justifySelf'); }
-             if (childProperties.alignSelf) { lc.alignSelf = childProperties.alignSelf; childPropsSet.push('alignSelf'); }
-             
-             if (childProperties.zIndex !== undefined) { lc.zIndex = childProperties.zIndex; childPropsSet.push('zIndex'); }
+            const lc = layoutCell as any;
 
-             affectedChildren.push({ id: child.id, name: child.name });
+            if (childProperties.row !== undefined) { lc.row = childProperties.row; childPropsSet.push('row'); }
+            if (childProperties.column !== undefined) { lc.column = childProperties.column; childPropsSet.push('column'); }
+            if (childProperties.rowSpan !== undefined) { lc.rowSpan = childProperties.rowSpan; childPropsSet.push('rowSpan'); }
+            if (childProperties.columnSpan !== undefined) { lc.columnSpan = childProperties.columnSpan; childPropsSet.push('columnSpan'); }
+
+            if (childProperties.justifySelf) { lc.justifySelf = childProperties.justifySelf; childPropsSet.push('justifySelf'); }
+            if (childProperties.alignSelf) { lc.alignSelf = childProperties.alignSelf; childPropsSet.push('alignSelf'); }
+
+            if (childProperties.zIndex !== undefined) { lc.zIndex = childProperties.zIndex; childPropsSet.push('zIndex'); }
+
+            affectedChildren.push({ id: child.id, name: child.name });
           }
         }
       }
@@ -10041,11 +10041,11 @@ export async function configureRulerGuidesTool(payload: ConfigureRulerGuidesQuer
         const currentGuides = target.rulerGuides;
         for (const guideToRemove of removeGuides) {
           // Find matching guide
-          const match = currentGuides.find(g => 
-            g.orientation === guideToRemove.orientation && 
+          const match = currentGuides.find(g =>
+            g.orientation === guideToRemove.orientation &&
             Math.abs(g.position - guideToRemove.position) < 0.01
           );
-          
+
           if (match) {
             target.removeRulerGuide(match);
             guidesRemoved++;
@@ -10127,14 +10127,14 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
       if (action === 'set') {
         // Replace all guides
         const newGuides: any[] = [];
-        
+
         if (guides) {
           for (const guide of guides) {
             if (guide.type === 'column' || guide.type === 'row') {
               const params: any = {
                 color: guide.color ? { color: guide.color, opacity: 0.1 } : { color: '#FF0000', opacity: 0.1 },
               };
-              
+
               const alignment = guide.alignment ?? 'stretch';
               params.type = alignment;
 
@@ -10143,7 +10143,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
                 if (guide.count) {
                   params.size = guide.count;
                 } else if (guide.size) {
-                   // Fallback if size was passed as count
+                  // Fallback if size was passed as count
                   params.size = guide.size;
                 }
               } else {
@@ -10202,7 +10202,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               const params: any = {
                 color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
               };
-              
+
               if (guide.size !== undefined) params.size = guide.size;
 
               newGuides.push({
@@ -10214,13 +10214,13 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
             }
           }
         }
-        
+
         board.guides = newGuides;
         configuredShapes.push({ id: board.id, name: board.name });
       } else if (action === 'add') {
         // Add guides to existing ones
         const existingGuides = board.guides ? [...board.guides] : [];
-        
+
         if (guides) {
           for (const guide of guides) {
             // Remove existing guide of same type
@@ -10240,19 +10240,19 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
             // This explicitly REMOVES existing guides of the same type.
             // So "Add" behaves like "Set for this type".
             // I will keep this behavior for consistency with previous implementation unless I see a reason not to.
-            
+
             const filteredGuides = existingGuides.filter(g => g.type !== guide.type);
 
             if (guide.type === 'column' || guide.type === 'row') {
               const params: any = {
                 color: guide.color ? { color: guide.color, opacity: 0.1 } : { color: '#FF0000', opacity: 0.1 },
               };
-              
+
               const alignment = guide.alignment ?? 'stretch';
               params.type = alignment;
 
               if (alignment === 'stretch') {
-                 if (guide.count) {
+                if (guide.count) {
                   params.size = guide.count;
                 } else if (guide.size) {
                   params.size = guide.size;
@@ -10285,7 +10285,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               const params: any = {
                 color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
               };
-              
+
               if (guide.size !== undefined) params.size = guide.size;
 
               filteredGuides.push({
@@ -10295,7 +10295,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
               });
               guidesSet++;
             }
-            
+
             board.guides = filteredGuides;
           }
         }
@@ -10316,7 +10316,7 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
 
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    
+
     // Check if it's the schema validation error
     if (errorMsg.includes('malli.core/invalid-schema')) {
       return {
@@ -10343,7 +10343,7 @@ The Penpot board guides API is rejecting the request with a schema validation er
 What would you like to do?`,
       };
     }
-    
+
     return {
       ...pluginResponse,
       type: ClientQueryType.CONFIGURE_BOARD_GUIDES,
@@ -10420,7 +10420,7 @@ export function getColorPaletteTool(): PluginResponseMessage {
   try {
     // Check library API availability
     if (!penpot.library || !penpot.library.local || !Array.isArray(penpot.library.local.colors)) {
-       return {
+      return {
         ...pluginResponse,
         type: ClientQueryType.GET_COLOR_PALETTE,
         success: true,
@@ -10459,14 +10459,14 @@ export async function exportProjectTool(payload: ExportProjectQueryPayload): Pro
     // Note: penpot.file.export() might not be fully supported in all contexts or might behave differently.
     // This implementation assumes it triggers a download or returns a file blob.
     // If it requires user interaction, it might need a different approach.
-    
+
     // Check if export is available
     // @ts-ignore - penpot.file might not be in the types yet
     if (penpot.file && typeof penpot.file.export === 'function') {
-       // @ts-ignore
-       await penpot.file.export(payload.filename);
-       
-       return {
+      // @ts-ignore
+      await penpot.file.export(payload.filename);
+
+      return {
         ...pluginResponse,
         type: ClientQueryType.EXPORT_PROJECT,
         success: true,
@@ -10474,8 +10474,8 @@ export async function exportProjectTool(payload: ExportProjectQueryPayload): Pro
         payload: { success: true, message: 'Export started' } as ExportProjectResponsePayload,
       };
     } else {
-       // Fallback or error if API not found
-       return {
+      // Fallback or error if API not found
+      return {
         ...pluginResponse,
         type: ClientQueryType.EXPORT_PROJECT,
         success: false,
@@ -10495,11 +10495,11 @@ export async function exportProjectTool(payload: ExportProjectQueryPayload): Pro
 export async function useSizePresetTool(payload: UseSizePresetQueryPayload): Promise<PluginResponseMessage> {
   try {
     const { presetName, shapeIds } = payload;
-    
+
     // Import presets from constants file
     const { DEVICE_PRESETS } = await import('../constants/devicePresets');
     const presets = DEVICE_PRESETS;
-    
+
     // Check if preset exists
     const preset = presets[presetName.toLowerCase() as keyof typeof presets];
     if (!preset) {
@@ -10510,7 +10510,7 @@ export async function useSizePresetTool(payload: UseSizePresetQueryPayload): Pro
         message: `Unknown preset: ${presetName}. Use common presets like: iphone-16, desktop-1920, instagram-story, a4`,
       };
     }
-    
+
     // Get shapes to resize
     let shapesToResize: Shape[];
     if (shapeIds && shapeIds.length > 0) {
@@ -10520,7 +10520,7 @@ export async function useSizePresetTool(payload: UseSizePresetQueryPayload): Pro
     } else {
       shapesToResize = getSelectionForAction();
     }
-    
+
     if (shapesToResize.length === 0) {
       return {
         ...pluginResponse,
@@ -10529,10 +10529,10 @@ export async function useSizePresetTool(payload: UseSizePresetQueryPayload): Pro
         message: 'No shapes selected or found to resize',
       };
     }
-    
+
     // Resize shapes
     const updatedShapes: Array<{ id: string; name: string; width: number; height: number }> = [];
-    
+
     for (const shape of shapesToResize) {
       shape.resize(preset.width, preset.height);
       updatedShapes.push({
@@ -10542,7 +10542,7 @@ export async function useSizePresetTool(payload: UseSizePresetQueryPayload): Pro
         height: preset.height,
       });
     }
-    
+
     return {
       ...pluginResponse,
       type: ClientQueryType.USE_SIZE_PRESET,
@@ -11003,7 +11003,7 @@ export async function navigatePreviousScreen(payload: NavigatePreviousScreenQuer
     // Filter out board frames - Penpot silently ignores interactions on boards
     const boardFrames = shapesToUpdate.filter(s => s.type === 'board');
     const nonBoardShapes = shapesToUpdate.filter(s => s.type !== 'board');
-    
+
     if (nonBoardShapes.length === 0) {
       return {
         ...pluginResponse,
@@ -11040,7 +11040,7 @@ export async function navigatePreviousScreen(payload: NavigatePreviousScreenQuer
     }
 
     const shapeNames = interactionsAdded.map(id => penpot.selection.find(s => s.id === id)?.name || id).join(', ');
-    const message = boardFrames.length > 0 
+    const message = boardFrames.length > 0
       ? `Added "Navigate Previous Screen" interactions to ${interactionsAdded.length} shape${interactionsAdded.length > 1 ? 's' : ''}: ${shapeNames}. Skipped ${boardFrames.length} board frame${boardFrames.length > 1 ? 's' : ''}.`
       : `Added "Navigate Previous Screen" interactions to ${interactionsAdded.length} shape${interactionsAdded.length > 1 ? 's' : ''}: ${shapeNames}.`;
 
@@ -11098,7 +11098,7 @@ export async function openExternalUrl(payload: OpenExternalUrlQueryPayload): Pro
     // Filter out board frames - Penpot silently ignores interactions on boards
     const boardFrames = shapesToUpdate.filter(s => s.type === 'board');
     const nonBoardShapes = shapesToUpdate.filter(s => s.type !== 'board');
-    
+
     if (nonBoardShapes.length === 0) {
       return {
         ...pluginResponse,
@@ -11135,7 +11135,7 @@ export async function openExternalUrl(payload: OpenExternalUrlQueryPayload): Pro
     }
 
     const shapeNames = interactionsAdded.map(id => penpot.selection.find(s => s.id === id)?.name || id).join(', ');
-    const message = boardFrames.length > 0 
+    const message = boardFrames.length > 0
       ? `Added "Open URL" interactions to ${interactionsAdded.length} shape${interactionsAdded.length > 1 ? 's' : ''}: ${shapeNames}. URL: ${url}. Skipped ${boardFrames.length} board frame${boardFrames.length > 1 ? 's' : ''}.`
       : `Added "Open URL" interactions to ${interactionsAdded.length} shape${interactionsAdded.length > 1 ? 's' : ''}: ${shapeNames}. URL: ${url}`;
 

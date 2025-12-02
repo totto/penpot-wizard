@@ -161,7 +161,7 @@ When using the resize-selection tool:
       'read-library-context',
       'read-plugin-local-storage',
       'read-viewport-settings',
-      'upload-media-from-data',
+      'upload-media-to-library',
       'configure-flex-layout',
       'configure-grid-layout',
       'configure-ruler-guides',
