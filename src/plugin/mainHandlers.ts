@@ -10486,12 +10486,12 @@ export async function useSizePresetTool(payload: UseSizePresetQueryPayload): Pro
   try {
     const { presetName, shapeIds } = payload;
     
-    // Import presets from external JSON file
-    const { getDevicePresets } = await import('@/utils/devicePresets');
-    const presets = getDevicePresets();
+    // Import presets from constants file
+    const { DEVICE_PRESETS } = await import('../constants/devicePresets');
+    const presets = DEVICE_PRESETS;
     
     // Check if preset exists
-    const preset = presets[presetName.toLowerCase()];
+    const preset = presets[presetName.toLowerCase() as keyof typeof presets];
     if (!preset) {
       return {
         ...pluginResponse,
