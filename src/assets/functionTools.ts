@@ -45,7 +45,7 @@ import type {
   SetConstraintsVerticalResponsePayload,
   PluginResponseMessage,
 } from '@/types/types';
-import { ReadShapeColorsQueryPayload, ReadPluginLocalStorageQueryPayload, ReadViewportSettingsQueryPayload, UploadMediaFromDataQueryPayload } from '@/types/pluginTypes';
+import { ReadShapeColorsQueryPayload, ReadPluginLocalStorageQueryPayload, ReadViewportSettingsQueryPayload, UploadMediaToLibraryQueryPayload } from '@/types/pluginTypes';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 import { blendModes } from '@/types/shapeTypes';
@@ -1122,19 +1122,20 @@ export const functionTools: FunctionTool[] = [
     },
   },
   {
-    id: 'upload-media-from-data',
-    name: 'Upload Media From Data',
+    id: 'upload-media-to-library',
+    name: 'uploadMediaToLibrary',
     description: `
-      Uploads an image to Penpot from a URL.
-      Fetches the image from the provided URL and uploads it to the current file's media library.
+      Uploads an image to the current file's media library in Penpot from a URL.
+      Note: this tool stores the image in the project library only and does not create a shape on the canvas.
+      To place an image on the canvas use the 'add-image-from-url' or 'add-image' tools.
       Returns the uploaded image data including id, name, width, and height.
     `,
     inputSchema: z.object({
       url: z.string().describe('URL to fetch the image from'),
       name: z.string().optional().describe('Optional name for the uploaded image'),
     }),
-    function: async (args: UploadMediaFromDataQueryPayload) => {
-      const response = await sendMessageToPlugin(ClientQueryType.UPLOAD_MEDIA_FROM_DATA, args as any);
+    function: async (args: UploadMediaToLibraryQueryPayload) => {
+      const response = await sendMessageToPlugin(ClientQueryType.UPLOAD_MEDIA_TO_LIBRARY, args as any);
       return response;
     },
   },

@@ -128,8 +128,8 @@ import {
   ReadPluginLocalStorageResponsePayload,
   ReadViewportSettingsQueryPayload,
   ReadViewportSettingsResponsePayload,
-  UploadMediaFromDataQueryPayload,
-  UploadMediaFromDataResponsePayload,
+  UploadMediaToLibraryQueryPayload,
+  UploadMediaToLibraryResponsePayload,
 } from "../types/pluginTypes";
 /* eslint-disable-next-line no-restricted-imports */
 import { readSelectionInfo } from './selectionHelpers';
@@ -9457,7 +9457,7 @@ export async function readViewportSettings(payload: ReadViewportSettingsQueryPay
   }
 }
 
-export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPayload): Promise<PluginResponseMessage> {
+export async function uploadMediaToLibrary(payload: UploadMediaToLibraryQueryPayload): Promise<PluginResponseMessage> {
   try {
     const { url, name } = payload;
 
@@ -9465,7 +9465,7 @@ export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPaylo
     if (!response.ok) {
       return {
         ...pluginResponse,
-        type: ClientQueryType.UPLOAD_MEDIA_FROM_DATA,
+        type: ClientQueryType.UPLOAD_MEDIA_TO_LIBRARY,
         success: false,
         message: `Failed to fetch image from URL: ${response.statusText}`,
       };
@@ -9476,7 +9476,7 @@ export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPaylo
 
     return {
       ...pluginResponse,
-      type: ClientQueryType.UPLOAD_MEDIA_FROM_DATA,
+      type: ClientQueryType.UPLOAD_MEDIA_TO_LIBRARY,
       success: true,
       message: `Successfully uploaded image: ${imageData.name}`,
       payload: {
@@ -9486,13 +9486,13 @@ export async function uploadMediaFromData(payload: UploadMediaFromDataQueryPaylo
           width: imageData.width,
           height: imageData.height,
         },
-      } as UploadMediaFromDataResponsePayload,
+      } as UploadMediaToLibraryResponsePayload,
     };
 
   } catch (error) {
     return {
       ...pluginResponse,
-      type: ClientQueryType.UPLOAD_MEDIA_FROM_DATA,
+      type: ClientQueryType.UPLOAD_MEDIA_TO_LIBRARY,
       success: false,
       message: `Error uploading media: ${error instanceof Error ? error.message : String(error)}`,
     };

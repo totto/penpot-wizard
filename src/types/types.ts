@@ -82,7 +82,7 @@ export enum ClientQueryType {
   READ_LIBRARY_CONTEXT = 'READ_LIBRARY_CONTEXT',
   READ_PLUGIN_LOCAL_STORAGE = 'READ_PLUGIN_LOCAL_STORAGE',
   READ_VIEWPORT_SETTINGS = 'READ_VIEWPORT_SETTINGS',
-  UPLOAD_MEDIA_FROM_DATA = 'UPLOAD_MEDIA_FROM_DATA',
+  UPLOAD_MEDIA_TO_LIBRARY = 'UPLOAD_MEDIA_TO_LIBRARY',
   NAVIGATE_TO_BOARD = 'NAVIGATE_TO_BOARD',
   OPEN_BOARD_AS_OVERLAY = 'OPEN_BOARD_AS_OVERLAY',
   TOGGLE_OVERLAY = 'TOGGLE_OVERLAY',
@@ -1263,7 +1263,6 @@ export type PluginResponsePayload =
   | BatchCreatePagesResponsePayload
   | BatchCreateComponentsResponsePayload
   | GetColorPaletteResponsePayload
-  | ExportProjectResponsePayload
   | ExportProjectResponsePayload
   | UseSizePresetResponsePayload;
 
