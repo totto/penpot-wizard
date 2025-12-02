@@ -8254,6 +8254,7 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
   }
 }
 
+// Main delete action: delete selection, serialize shapes to SVG and store in UndoInfo so undo can recreate them.
 export async function deleteSelectionTool(payload: DeleteSelectionQueryPayload): Promise<PluginResponseMessage> {
   try {
     const { shapeIds } = payload ?? {};
@@ -10134,6 +10135,8 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
       if (action === 'clear') {
         // Clear all guides
         board.guides = [];
+        (board as any).columnGuides = undefined;
+        (board as any).rowGuides = undefined;
         configuredShapes.push({ id: board.id, name: board.name });
         guidesSet = 0;
         continue;
@@ -10188,6 +10191,31 @@ export async function configureBoardGuidesTool(payload: ConfigureBoardGuidesQuer
                 params,
               });
               guidesSet++;
+
+              // Also set the specific property for compatibility
+              if (guide.type === 'column') {
+                (board as any).columnGuides = {
+                  type: 'column',
+                  display: guide.display ?? true,
+                  size: params.size,
+                  gutter: params.gutter,
+                  margin: params.margin,
+                  itemLength: params.itemLength,
+                  color: guide.color,
+                  alignment: guide.alignment,
+                };
+              } else if (guide.type === 'row') {
+                (board as any).rowGuides = {
+                  type: 'row',
+                  display: guide.display ?? true,
+                  size: params.size,
+                  gutter: params.gutter,
+                  margin: params.margin,
+                  itemLength: params.itemLength,
+                  color: guide.color,
+                  alignment: guide.alignment,
+                };
+              }
             } else if (guide.type === 'square') {
               const params: any = {
                 color: guide.color ? { color: guide.color, opacity: 1 } : { color: '#FF0000', opacity: 1 },
@@ -10550,6 +10578,877 @@ export async function useSizePresetTool(payload: UseSizePresetQueryPayload): Pro
       type: ClientQueryType.USE_SIZE_PRESET,
       success: false,
       message: `Error applying size preset: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function navigateToBoard(payload: NavigateToBoardQueryPayload): Promise<PluginResponseMessage> {
+  const { boardId, shapeIds, trigger = 'click', delay, preserveScrollPosition, animation = 'dissolve', animationDirection, animationDuration, animationEasing } = payload;
+
+  try {
+    // If boardId is provided, check if the board exists
+    if (boardId) {
+      const board = penpot.currentPage?.getShapeById(boardId);
+      if (!board || board.type !== 'board') {
+        return {
+          ...pluginResponse,
+          type: ClientQueryType.NAVIGATE_TO_BOARD,
+          success: false,
+          message: `Board with id '${boardId}' not found`,
+        };
+      }
+    }
+
+    // Get shapes to add interactions to
+    let shapesToUpdate: Shape[];
+    if (shapeIds && shapeIds.length > 0) {
+      shapesToUpdate = shapeIds
+        .map(id => penpot.currentPage?.getShapeById(id))
+        .filter((s): s is Shape => !!s);
+    } else {
+      shapesToUpdate = getSelectionForAction();
+    }
+
+    if (shapesToUpdate.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.NAVIGATE_TO_BOARD,
+        success: false,
+        message: 'No shapes selected or found to add interactions to',
+      };
+    }
+
+    // Check for board frames - Penpot silently ignores interactions on boards
+    const boardFrames = shapesToUpdate.filter(s => s.type === 'board');
+    const validShapes = shapesToUpdate.filter(s => s.type !== 'board');
+
+    if (validShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.NAVIGATE_TO_BOARD,
+        success: false,
+        message: `Cannot add interactions to board frames. Please select shapes inside the board instead. Found ${boardFrames.length} board(s): ${boardFrames.map(b => b.name).join(', ')}`,
+      };
+    }
+
+    // Resolve the board: prefer id; otherwise use boardName or boardQuery (nameLike)
+    let destinationBoardId = boardId;
+    if (!destinationBoardId) {
+      // For now, since we can't wire destinations, we'll create interactions without destination
+      // and provide instructions for manual completion
+      destinationBoardId = 'placeholder'; // Will be replaced with manual instructions
+    }
+
+    // Create interactions
+    const interactionsAdded: string[] = [];
+    for (const shape of validShapes) {
+      try {
+        // Create the interaction object
+        const interaction = {
+          type: 'navigate-to',
+          // destination omitted - won't be set due to API bug
+        };
+        // Add the interaction
+        shape.addInteraction(trigger, interaction, delay);
+        interactionsAdded.push(shape.id);
+      } catch (shapeError) {
+        console.warn(`Failed to add interaction to shape ${shape.id}:`, shapeError);
+      }
+    }
+
+    if (interactionsAdded.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.NAVIGATE_TO_BOARD,
+        success: false,
+        message: 'Failed to add interactions to any shapes',
+      };
+    }
+
+    const shapeNames = interactionsAdded.map(id => penpot.selection.find(s => s.id === id)?.name || id).join(', ');
+
+    const skipMessage = boardFrames.length > 0 ? ` Skipped ${boardFrames.length} board frame(s): ${boardFrames.map(b => b.name).join(', ')}.` : '';
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.NAVIGATE_TO_BOARD,
+      message: `Added "Navigate To" interactions to ${interactionsAdded.length} shape${interactionsAdded.length > 1 ? 's' : ''}: ${shapeNames}.${skipMessage}
+
+**IMPORTANT: Manual Completion Required**
+
+Due to a Penpot Plugin API limitation, the destination board cannot be set programmatically. To complete the interaction:
+
+1. Open the Prototype panel (right sidebar)
+2. Click on one of the shapes: ${shapeNames}
+3. In the interactions list, click the "Navigate To" interaction
+4. Select the destination board from the dropdown
+5. Configure any additional settings as needed
+
+This workaround ensures you can still create the interactions and manually set the destination.`,
+      payload: {
+        interactionsAdded: interactionsAdded.length,
+        affectedShapes: interactionsAdded,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.NAVIGATE_TO_BOARD,
+      success: false,
+      message: `Error adding navigate-to-board interactions: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * IMPORTANT: Penpot Plugin API Limitation - Open Overlay Interactions
+ * 
+ * This function implements a WORKAROUND for a critical API limitation:
+ * The Penpot Plugin API cannot create "open-overlay" interactions programmatically.
+ * 
+ * WHAT WE TRIED:
+ * 1. Creating open-overlay with destination Board object → API rejects it
+ * 2. Creating open-overlay with destination boardId string → API rejects it
+ * 3. Creating open-overlay without destination (like navigate-to) → API rejects it
+ * 4. Creating open-overlay with minimal skeleton (type only) → API rejects it
+ * 5. Creating open-overlay with all properties (position, background, etc.) → API rejects it
+ * 
+ * WHY IT FAILS:
+ * - The API appears to require a valid `destination` property for open-overlay
+ * - But it rejects both Board objects and boardId strings as destination values
+ * - The UI can create open-overlay without destination, but the Plugin API cannot
+ * - This suggests the Plugin API has stricter validation than the UI
+ * 
+ * THE WORKAROUND:
+ * - Create a "navigate-to" interaction instead (which works without destination)
+ * - Provide clear instructions for the user to manually convert it to "open-overlay"
+ * - This gives users a starting point they can easily modify in the Prototype panel
+ * 
+ * MANUAL STEPS REQUIRED:
+ * 1. Open Prototype panel (right sidebar)
+ * 2. Click the created interaction
+ * 3. Change type from "Navigate To" to "Open Overlay"
+ * 4. Select the destination board
+ * 5. Configure overlay settings (position, background, animation)
+ * 
+ * NOTE: All overlay-specific parameters (position, animation, background, etc.) are
+ * ignored by this function since they cannot be applied to the navigate-to skeleton.
+ * Users must configure these manually after converting the interaction type.
+ */
+export async function openBoardAsOverlay(payload: OpenBoardAsOverlayQueryPayload): Promise<PluginResponseMessage> {
+  const {
+    boardId,
+    shapeIds,
+    trigger = 'click',
+    delay,
+    position,
+    manualPosition,
+    relativeTo,
+    closeOnClickOutside,
+    addBackgroundOverlay,
+    backgroundOverlayColor,
+    backgroundOverlayOpacity,
+    animation = 'dissolve',
+    animationDirection,
+    animationDuration,
+    animationEasing
+  } = payload;
+
+  try {
+    // Get shapes to add interactions to
+    let shapesToUpdate: Shape[];
+    if (shapeIds && shapeIds.length > 0) {
+      shapesToUpdate = shapeIds
+        .map(id => penpot.currentPage?.getShapeById(id))
+        .filter((s): s is Shape => !!s);
+    } else {
+      shapesToUpdate = getSelectionForAction();
+    }
+
+    if (shapesToUpdate.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.OPEN_BOARD_AS_OVERLAY,
+        success: false,
+        message: 'No shapes selected or found to add interactions to',
+      };
+    }
+
+    // Check for board frames - Penpot silently ignores interactions on boards
+    const boardFrames = shapesToUpdate.filter(s => s.type === 'board');
+    const validShapes = shapesToUpdate.filter(s => s.type !== 'board');
+
+    if (validShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.OPEN_BOARD_AS_OVERLAY,
+        success: false,
+        message: `Cannot add interactions to board frames. Please select shapes inside the board instead. Found ${boardFrames.length} board(s): ${boardFrames.map(b => b.name).join(', ')}`,
+      };
+    }
+
+    // Create "navigate-to" interactions as workaround (will be manually converted to "open-overlay")
+    const interactionsAdded: string[] = [];
+    for (const shape of validShapes) {
+      try {
+        // Create a navigate-to interaction (workaround for API limitation)
+        const interaction = {
+          type: 'navigate-to',
+        };
+
+        shape.addInteraction(trigger, interaction, delay);
+        interactionsAdded.push(shape.id);
+      } catch (shapeError) {
+        console.warn(`Failed to add interaction to shape ${shape.id}:`, shapeError);
+      }
+    }
+
+    if (interactionsAdded.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.OPEN_BOARD_AS_OVERLAY,
+        success: false,
+        message: 'Failed to add interactions to any shapes',
+      };
+    }
+
+    const shapeNames = interactionsAdded.map(id => penpot.selection.find(s => s.id === id)?.name || id).join(', ');
+
+    const skipMessage = boardFrames.length > 0 ? ` Skipped ${boardFrames.length} board frame(s): ${boardFrames.map(b => b.name).join(', ')}.` : '';
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.OPEN_BOARD_AS_OVERLAY,
+      message: `Created ${interactionsAdded.length} "Navigate To" interaction${interactionsAdded.length > 1 ? 's' : ''} as workaround for "Open Overlay" (shapes: ${shapeNames}).${skipMessage}
+
+**IMPORTANT: Manual Conversion Required**
+
+Due to Penpot Plugin API limitations, "Open Overlay" interactions cannot be created directly. Instead:
+
+1. Open Prototype panel (right sidebar)
+2. Click on one of the shapes: ${shapeNames}
+3. For each interaction, change type from "Navigate To" to "Open Overlay"
+4. Select the destination board
+5. Configure overlay settings:
+   - Position: ${position || 'centered'}
+   - Close on click outside: ${closeOnClickOutside ? 'Yes' : 'No'}
+   - Background overlay: ${addBackgroundOverlay ? 'Yes' : 'No'}
+   - Animation: ${animation}
+
+This gives you a starting point that can be easily converted to proper overlay interactions.`,
+      payload: {
+        interactionsAdded: interactionsAdded.length,
+        affectedShapes: interactionsAdded,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.OPEN_BOARD_AS_OVERLAY,
+      success: false,
+      message: `Error creating open-overlay interactions: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * IMPORTANT: Penpot Plugin API Limitation - Toggle Overlay Interactions
+ * 
+ * This function implements a WORKAROUND for a critical API limitation:
+ * The Penpot Plugin API does not support "toggle-overlay" interactions.
+ * 
+ * THE WORKAROUND:
+ * - Create a "previous-screen" interaction instead (which works)
+ * - Provide clear instructions for the user to manually change it to "Close Overlay"
+ * - Users can then manually configure it as needed in the Prototype panel
+ * 
+ * MANUAL STEPS REQUIRED:
+ * 1. Open Prototype panel (right sidebar)
+ * 2. Click the created interaction
+ * 3. Change type from "Navigate Back" to "Close Overlay"
+ * 
+ * NOTE: "Toggle Overlay" is not available in Penpot's UI either - users typically
+ * use "Close Overlay" to dismiss overlays.
+ */
+export async function toggleOverlay(payload: ToggleOverlayQueryPayload): Promise<PluginResponseMessage> {
+  const { shapeIds, trigger = 'click', delay } = payload;
+
+  try {
+    // Get shapes to add interactions to
+    let shapesToUpdate: Shape[];
+    if (shapeIds && shapeIds.length > 0) {
+      shapesToUpdate = shapeIds
+        .map(id => penpot.currentPage?.getShapeById(id))
+        .filter((s): s is Shape => !!s);
+    } else {
+      shapesToUpdate = getSelectionForAction();
+    }
+
+    if (shapesToUpdate.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.TOGGLE_OVERLAY,
+        success: false,
+        message: 'No shapes selected or found to add interactions to',
+      };
+    }
+
+    // Check for board frames - Penpot silently ignores interactions on boards
+    const boardFrames = shapesToUpdate.filter(s => s.type === 'board');
+    const validShapes = shapesToUpdate.filter(s => s.type !== 'board');
+
+    if (validShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.TOGGLE_OVERLAY,
+        success: false,
+        message: `Cannot add interactions to board frames. Please select shapes inside the board instead. Found ${boardFrames.length} board(s): ${boardFrames.map(b => b.name).join(', ')}`,
+      };
+    }
+
+    // Create "navigate-previous-screen" interactions as workaround (will be manually converted to "close-overlay")
+    const interactionsAdded: string[] = [];
+    for (const shape of validShapes) {
+      try {
+        // Create a navigate-previous-screen interaction (workaround for API limitation)
+        const interaction = {
+          type: 'previous-screen',
+        };
+
+        shape.addInteraction(trigger, interaction, delay);
+        interactionsAdded.push(shape.id);
+      } catch (shapeError) {
+        console.warn(`Failed to add interaction to shape ${shape.id}:`, shapeError);
+      }
+    }
+
+    if (interactionsAdded.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.TOGGLE_OVERLAY,
+        success: false,
+        message: 'Failed to add interactions to any shapes',
+      };
+    }
+
+    const shapeNames = interactionsAdded.map(id => penpot.selection.find(s => s.id === id)?.name || id).join(', ');
+
+    const skipMessage = boardFrames.length > 0 ? ` Skipped ${boardFrames.length} board frame(s): ${boardFrames.map(b => b.name).join(', ')}.` : '';
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.TOGGLE_OVERLAY,
+      message: `Created ${interactionsAdded.length} "Navigate Previous Screen" interaction${interactionsAdded.length > 1 ? 's' : ''} as workaround for "Toggle Overlay" (shapes: ${shapeNames}).${skipMessage}
+
+**IMPORTANT: Manual Conversion Required**
+
+Due to Penpot Plugin API limitations, "Toggle Overlay" interactions cannot be created directly. Instead:
+
+1. Open Prototype panel (right sidebar)
+2. Click on one of the shapes: ${shapeNames}
+3. For each interaction, change type from "Navigate Back" to "Close Overlay"
+
+This gives you a starting point that can be easily converted to close overlay interactions.`,
+      payload: {
+        interactionsAdded: interactionsAdded.length,
+        affectedShapes: interactionsAdded,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.TOGGLE_OVERLAY,
+      success: false,
+      message: `Error creating toggle-overlay interactions: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function listAllBoards(_payload: ListAllBoardsQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const allShapes = penpot.currentPage.findShapes({ type: 'board' });
+    const boards = allShapes.map((board: any) => ({
+      id: board.id,
+      name: board.name,
+      x: board.x,
+      y: board.y,
+      width: board.width,
+      height: board.height,
+    }));
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.LIST_ALL_BOARDS,
+      message: `Found ${boards.length} board${boards.length !== 1 ? 's' : ''} on the current page`,
+      payload: {
+        boards,
+        totalBoards: boards.length,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.LIST_ALL_BOARDS,
+      success: false,
+      message: `Error listing boards: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function navigatePreviousScreen(payload: NavigatePreviousScreenQueryPayload): Promise<PluginResponseMessage> {
+  const { shapeIds, trigger = 'click', delay } = payload;
+
+  try {
+    // Get shapes to add interactions to
+    let shapesToUpdate: Shape[];
+    if (shapeIds && shapeIds.length > 0) {
+      shapesToUpdate = shapeIds
+        .map(id => penpot.currentPage?.getShapeById(id))
+        .filter((s): s is Shape => !!s);
+    } else {
+      shapesToUpdate = getSelectionForAction();
+    }
+
+    if (shapesToUpdate.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.NAVIGATE_PREVIOUS_SCREEN,
+        success: false,
+        message: 'No shapes selected or found to add interactions to',
+      };
+    }
+
+    // Filter out board frames - Penpot silently ignores interactions on boards
+    const boardFrames = shapesToUpdate.filter(s => s.type === 'board');
+    const nonBoardShapes = shapesToUpdate.filter(s => s.type !== 'board');
+    
+    if (nonBoardShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.NAVIGATE_PREVIOUS_SCREEN,
+        success: false,
+        message: `Cannot add interactions to board frames. Please select shapes inside the board instead. Found ${boardFrames.length} board(s): ${boardFrames.map(b => b.name).join(', ')}`,
+      };
+    }
+
+    // Create interactions
+    const interactionsAdded: string[] = [];
+    let skippedBoards = 0;
+    for (const shape of nonBoardShapes) {
+      try {
+        // Create the interaction object
+        const interaction = {
+          type: 'previous-screen',
+        };
+        // Add the interaction
+        shape.addInteraction(trigger, interaction, delay);
+        interactionsAdded.push(shape.id);
+      } catch (shapeError) {
+        console.warn(`Failed to add interaction to shape ${shape.id}:`, shapeError);
+      }
+    }
+
+    if (interactionsAdded.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.NAVIGATE_PREVIOUS_SCREEN,
+        success: false,
+        message: 'Failed to add interactions to any shapes',
+      };
+    }
+
+    const shapeNames = interactionsAdded.map(id => penpot.selection.find(s => s.id === id)?.name || id).join(', ');
+    const message = boardFrames.length > 0 
+      ? `Added "Navigate Previous Screen" interactions to ${interactionsAdded.length} shape${interactionsAdded.length > 1 ? 's' : ''}: ${shapeNames}. Skipped ${boardFrames.length} board frame${boardFrames.length > 1 ? 's' : ''}.`
+      : `Added "Navigate Previous Screen" interactions to ${interactionsAdded.length} shape${interactionsAdded.length > 1 ? 's' : ''}: ${shapeNames}.`;
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.NAVIGATE_PREVIOUS_SCREEN,
+      message,
+      payload: {
+        interactionsAdded: interactionsAdded.length,
+        affectedShapes: interactionsAdded,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.NAVIGATE_PREVIOUS_SCREEN,
+      success: false,
+      message: `Error adding navigate-previous-screen interactions: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function openExternalUrl(payload: OpenExternalUrlQueryPayload): Promise<PluginResponseMessage> {
+  const { url, shapeIds, trigger = 'click', delay } = payload;
+
+  try {
+    if (!url || typeof url !== 'string' || !url.trim()) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.OPEN_EXTERNAL_URL,
+        success: false,
+        message: 'URL is required and must be a non-empty string',
+      };
+    }
+
+    // Get shapes to add interactions to
+    let shapesToUpdate: Shape[];
+    if (shapeIds && shapeIds.length > 0) {
+      shapesToUpdate = shapeIds
+        .map(id => penpot.currentPage?.getShapeById(id))
+        .filter((s): s is Shape => !!s);
+    } else {
+      shapesToUpdate = getSelectionForAction();
+    }
+
+    if (shapesToUpdate.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.OPEN_EXTERNAL_URL,
+        success: false,
+        message: 'No shapes selected or found to add interactions to',
+      };
+    }
+
+    // Filter out board frames - Penpot silently ignores interactions on boards
+    const boardFrames = shapesToUpdate.filter(s => s.type === 'board');
+    const nonBoardShapes = shapesToUpdate.filter(s => s.type !== 'board');
+    
+    if (nonBoardShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.OPEN_EXTERNAL_URL,
+        success: false,
+        message: `Cannot add interactions to board frames. Please select shapes inside the board instead. Found ${boardFrames.length} board(s): ${boardFrames.map(b => b.name).join(', ')}`,
+      };
+    }
+
+    // Create interactions
+    const interactionsAdded: string[] = [];
+    for (const shape of nonBoardShapes) {
+      try {
+        // Create the interaction object
+        const interaction = {
+          type: 'open-url',
+          url: url.trim(),
+        };
+        // Add the interaction
+        shape.addInteraction(trigger, interaction, delay);
+        interactionsAdded.push(shape.id);
+      } catch (shapeError) {
+        console.warn(`Failed to add interaction to shape ${shape.id}:`, shapeError);
+      }
+    }
+
+    if (interactionsAdded.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.OPEN_EXTERNAL_URL,
+        success: false,
+        message: 'Failed to add interactions to any shapes',
+      };
+    }
+
+    const shapeNames = interactionsAdded.map(id => penpot.selection.find(s => s.id === id)?.name || id).join(', ');
+    const message = boardFrames.length > 0 
+      ? `Added "Open URL" interactions to ${interactionsAdded.length} shape${interactionsAdded.length > 1 ? 's' : ''}: ${shapeNames}. URL: ${url}. Skipped ${boardFrames.length} board frame${boardFrames.length > 1 ? 's' : ''}.`
+      : `Added "Open URL" interactions to ${interactionsAdded.length} shape${interactionsAdded.length > 1 ? 's' : ''}: ${shapeNames}. URL: ${url}`;
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.OPEN_EXTERNAL_URL,
+      message,
+      payload: {
+        interactionsAdded: interactionsAdded.length,
+        affectedShapes: interactionsAdded,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.OPEN_EXTERNAL_URL,
+      success: false,
+      message: `Error adding open-url interactions: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function applyAnimationToSelection(payload: ApplyAnimationToSelectionQueryPayload): Promise<PluginResponseMessage> {
+  const { animationType, direction, duration, easing, shapeIds, confirmDuplicate } = payload;
+
+  try {
+    // Get shapes to update
+    let shapesToUpdate: Shape[];
+    if (shapeIds && shapeIds.length > 0) {
+      shapesToUpdate = shapeIds
+        .map(id => penpot.currentPage?.getShapeById(id))
+        .filter((s): s is Shape => !!s);
+    } else {
+      shapesToUpdate = getSelectionForAction();
+    }
+
+    if (shapesToUpdate.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_ANIMATION_TO_SELECTION,
+        success: false,
+        message: 'No shapes selected or found to update animations',
+      };
+    }
+
+    // Check for board frames
+    const boardFrames = shapesToUpdate.filter(s => s.type === 'board');
+    const validShapes = shapesToUpdate.filter(s => s.type !== 'board');
+
+    if (validShapes.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_ANIMATION_TO_SELECTION,
+        success: false,
+        message: `Cannot modify interactions on board frames. Found ${boardFrames.length} board(s): ${boardFrames.map(b => b.name).join(', ')}`,
+      };
+    }
+
+    // Collect existing interactions
+    const shapesWithInteractions: Array<{ shape: Shape; interactions: any[] }> = [];
+    for (const shape of validShapes) {
+      const interactions = (shape as any).interactions || [];
+      if (interactions.length > 0) {
+        shapesWithInteractions.push({ shape, interactions });
+      }
+    }
+
+    if (shapesWithInteractions.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_ANIMATION_TO_SELECTION,
+        success: true,
+        message: 'No shapes with existing interactions found to update',
+        payload: {
+          interactionsUpdated: 0,
+          affectedShapes: [],
+        },
+      };
+    }
+
+    // If not confirmed and would duplicate, return prompt
+    if (!confirmDuplicate && shapesWithInteractions.some(s => s.interactions.length > 1)) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPLY_ANIMATION_TO_SELECTION,
+        success: true,
+        requiresConfirmation: true,
+        message: `Found shapes with multiple interactions. Updating will duplicate animations. Confirm to proceed.`,
+        payload: {
+          affectedShapes: shapesWithInteractions.map(s => s.shape.id),
+          interactionsToDuplicate: shapesWithInteractions.reduce((sum, s) => sum + s.interactions.length, 0),
+          warning: 'This will duplicate existing interactions with new animation settings.',
+        } as ApplyAnimationToSelectionPromptResponsePayload,
+      };
+    }
+
+    // Update animations
+    let interactionsUpdated = 0;
+    const affectedShapes: string[] = [];
+
+    for (const { shape, interactions } of shapesWithInteractions) {
+      for (const interaction of interactions) {
+        // Modify the existing interaction's animation
+        if (interaction.action) {
+          interaction.action.animation = {
+            type: animationType,
+            direction: direction,
+            duration: duration,
+            easing: easing,
+            way: 'in',
+            offsetEffect: false,
+          };
+        } else {
+          // Fallback: create new interaction if action doesn't exist
+          const newInteraction = JSON.parse(JSON.stringify(interaction));
+          newInteraction.animation = {
+            type: animationType,
+            direction: direction,
+            duration: duration,
+            easing: easing,
+          };
+          shape.addInteraction(newInteraction);
+        }
+        interactionsUpdated++;
+      }
+      affectedShapes.push(shape.id);
+    }
+
+    const skipMessage = boardFrames.length > 0 ? ` Skipped ${boardFrames.length} board frame(s): ${boardFrames.map(b => b.name).join(', ')}.` : '';
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPLY_ANIMATION_TO_SELECTION,
+      message: `Updated animations on ${shapesWithInteractions.length} shape${shapesWithInteractions.length > 1 ? 's' : ''}.${skipMessage}`,
+      payload: {
+        interactionsUpdated,
+        affectedShapes,
+        deleteOriginalInfo: 'To remove original interactions, manually delete them in the Prototype panel.',
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPLY_ANIMATION_TO_SELECTION,
+      success: false,
+      message: `Error updating animations: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function configureInteractionFlow(payload: ConfigureInteractionFlowQueryPayload): Promise<PluginResponseMessage> {
+  const { boardId, boardName, boardQuery, flowName, action } = payload;
+
+  try {
+    if (!penpot.currentPage) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CONFIGURE_INTERACTION_FLOW,
+        success: false,
+        message: 'No active page found',
+      };
+    }
+
+    // Resolve the board: prefer id; otherwise use boardName or boardQuery (nameLike)
+    let resolvedBoardId = boardId;
+    let board: any | undefined;
+    const allShapes = penpot.currentPage.findShapes({ type: 'board' });
+    if (!resolvedBoardId) {
+      // Exact name match
+      if (boardName) {
+        const candidates = allShapes.filter(s => String(s.name ?? '').toLowerCase() === String(boardName ?? '').toLowerCase());
+        if (candidates.length === 1) {
+          board = candidates[0];
+          resolvedBoardId = board.id;
+        } else if (candidates.length > 1) {
+          // Multiple exact-name matches -> ask for confirmation
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.CONFIGURE_INTERACTION_FLOW,
+            success: true,
+            requiresConfirmation: true,
+            message: `Multiple boards match the name "${boardName}". Please specify the board ID or select one.`,
+            payload: {
+              flowName: flowName || boardName,
+              matchedBoards: candidates.map((c: any) => ({ id: c.id, name: c.name })),
+              requiresConfirmation: true,
+              message: `Multiple boards matched: ${candidates.map((c: any) => c.name).join(', ')}`,
+            } as ConfigureInteractionFlowResponsePayload,
+          };
+        }
+      }
+      // nameLike matching (boardQuery)
+      if (!resolvedBoardId && boardQuery) {
+        const candidates = penpot.currentPage.findShapes({ nameLike: boardQuery, type: 'board' });
+        if (candidates.length === 1) {
+          board = candidates[0];
+          resolvedBoardId = board.id;
+        } else if (candidates.length > 1) {
+          return {
+            ...pluginResponse,
+            type: ClientQueryType.CONFIGURE_INTERACTION_FLOW,
+            success: true,
+            requiresConfirmation: true,
+            message: `Multiple boards match the query "${boardQuery}". Please specify which one to use.`,
+            payload: {
+              flowName: flowName || boardQuery,
+              matchedBoards: candidates.map((c: any) => ({ id: c.id, name: c.name })),
+              requiresConfirmation: true,
+              message: `Multiple boards matched: ${candidates.map((c: any) => c.name).join(', ')}`,
+            } as ConfigureInteractionFlowResponsePayload,
+          };
+        }
+      }
+    }
+    // If boardId provided or resolved earlier, find the board in allShapes
+    if (!board && resolvedBoardId) {
+      board = allShapes.find((s: any) => s.id === resolvedBoardId && s.type === 'board');
+    }
+
+    if (!board || board.type !== 'board') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CONFIGURE_INTERACTION_FLOW,
+        success: false,
+        message: `Board with ID ${resolvedBoardId} not found; or the provided name/query didn't match a board`,
+      };
+    }
+
+    // Check for existing flows on this page
+    const existingFlows = penpot.currentPage.flows || [];
+    const flowsForThisBoard = existingFlows.filter(f => f.startingBoard.id === resolvedBoardId);
+
+    // If flows exist for this board and user hasn't specified an action, ask for confirmation
+    if (flowsForThisBoard.length > 0 && !action) {
+      const existingFlowsInfo = flowsForThisBoard.map(f => ({
+        name: f.name,
+        startBoardId: f.startingBoard.id,
+      }));
+
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CONFIGURE_INTERACTION_FLOW,
+        success: true,
+        requiresConfirmation: true,
+        message: `Board "${board.name}" already has ${flowsForThisBoard.length} flow(s). Would you like to create a new flow or update an existing one?`,
+        payload: {
+          flowName: flowName || board.name,
+          startBoardId: resolvedBoardId,
+          existingFlows: existingFlowsInfo,
+          requiresConfirmation: true,
+          message: `Existing flows found: ${flowsForThisBoard.map(f => f.name).join(', ')}. Please specify 'create' or 'update' action.`,
+        } as ConfigureInteractionFlowResponsePayload,
+      };
+    }
+
+    // Handle update action - rename existing flow
+    if (action === 'update' && flowsForThisBoard.length > 0) {
+      const flowToUpdate = flowsForThisBoard[0]; // Update the first flow
+      const newName = flowName || board.name;
+      flowToUpdate.name = newName;
+
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.CONFIGURE_INTERACTION_FLOW,
+        success: true,
+        message: `Updated flow name to "${newName}" for board "${board.name}"`,
+        payload: {
+          flowId: flowToUpdate.startingBoard.id,
+          flowName: newName,
+          startBoardId: resolvedBoardId,
+        } as ConfigureInteractionFlowResponsePayload,
+      };
+    }
+
+    // Create new flow using proper Penpot API
+    const newFlowName = flowName || `Flow from ${board.name}`;
+    const flow = penpot.currentPage.createFlow(newFlowName, board as any);
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CONFIGURE_INTERACTION_FLOW,
+      success: true,
+      message: `Created interaction flow "${newFlowName}" starting at board "${board.name}"`,
+      payload: {
+        flowId: flow.startingBoard.id,
+        flowName: flow.name,
+        startBoardId: resolvedBoardId,
+      } as ConfigureInteractionFlowResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.CONFIGURE_INTERACTION_FLOW,
+      success: false,
+      message: `Error configuring interaction flow: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

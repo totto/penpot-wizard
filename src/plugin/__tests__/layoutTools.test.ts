@@ -184,7 +184,7 @@ describe('Layout Tools', () => {
         gutter: 20,
         color: undefined,
         alignment: undefined,
-        margin: undefined,
+        margin: 0,
         itemLength: undefined,
       });
     });

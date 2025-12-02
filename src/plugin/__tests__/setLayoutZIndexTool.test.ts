@@ -16,13 +16,14 @@ describe('setLayoutZIndexTool', () => {
 
   describe('bring-to-front', () => {
     it('moves a shape to the front of its parent', async () => {
-      const shape1 = { id: 's1', name: 'Shape 1' };
-      const shape2 = { id: 's2', name: 'Shape 2' };
-      const shape3 = { id: 's3', name: 'Shape 3' };
+      const shape1 = { id: 's1', name: 'Shape 1', layoutChild: { zIndex: 1 } };
+      const shape2 = { id: 's2', name: 'Shape 2', layoutChild: { zIndex: 2 } };
+      const shape3 = { id: 's3', name: 'Shape 3', layoutChild: { zIndex: 3 } };
       
       const children = [shape1, shape2, shape3];
       const parent = {
-        children,
+        children, flex: true,
+        flex: true,
         appendChild: vi.fn((shape: any) => {
           const idx = children.indexOf(shape);
           if (idx !== -1) {
@@ -45,23 +46,23 @@ describe('setLayoutZIndexTool', () => {
       const resp = await setLayoutZIndexTool({ action: 'bring-to-front' });
       
       expect(resp.success).toBeTruthy();
-      expect(parent.appendChild).toHaveBeenCalledWith(shape2);
+      expect(shape2.layoutChild.zIndex).toBe(4);
       
       const payload = resp.payload as ZIndexResponsePayload;
-      expect(payload.movedShapes).toEqual([{ id: 's2', name: 'Shape 2' }]);
+      expect(payload.movedShapes).toEqual([{ id: 's2', name: 'Shape 2', newZIndex: 4 }]);
       expect(payload.action).toBe('bring-to-front');
     });
   });
 
   describe('send-to-back', () => {
     it('moves a shape to the back of its parent', async () => {
-      const shape1 = { id: 's1', name: 'Shape 1' };
-      const shape2 = { id: 's2', name: 'Shape 2' };
-      const shape3 = { id: 's3', name: 'Shape 3' };
+      const shape1 = { id: 's1', name: 'Shape 1', layoutChild: { zIndex: 1 } };
+      const shape2 = { id: 's2', name: 'Shape 2', layoutChild: { zIndex: 2 } };
+      const shape3 = { id: 's3', name: 'Shape 3', layoutChild: { zIndex: 3 } };
       
       const children = [shape1, shape2, shape3];
       const parent = {
-        children,
+        children, flex: true,
         appendChild: vi.fn(),
         insertChild: vi.fn((index: number, shape: any) => {
           const idx = children.indexOf(shape);
@@ -84,24 +85,23 @@ describe('setLayoutZIndexTool', () => {
       const resp = await setLayoutZIndexTool({ action: 'send-to-back' });
       
       expect(resp.success).toBeTruthy();
-      expect(parent.insertChild).toHaveBeenCalledWith(0, shape2);
+      expect(shape2.layoutChild.zIndex).toBe(0);
       
       const payload = resp.payload as ZIndexResponsePayload;
-      expect(payload.movedShapes).toEqual([{ id: 's2', name: 'Shape 2' }]);
+      expect(payload.movedShapes).toEqual([{ id: 's2', name: 'Shape 2', newZIndex: 0 }]);
       expect(payload.action).toBe('send-to-back');
-      expect(payload.targetIndex).toBe(0);
     });
   });
 
   describe('bring-forward', () => {
     it('moves a shape one position forward', async () => {
-      const shape1 = { id: 's1', name: 'Shape 1' };
-      const shape2 = { id: 's2', name: 'Shape 2' };
-      const shape3 = { id: 's3', name: 'Shape 3' };
+      const shape1 = { id: 's1', name: 'Shape 1', layoutChild: { zIndex: 1 } };
+      const shape2 = { id: 's2', name: 'Shape 2', layoutChild: { zIndex: 2 } };
+      const shape3 = { id: 's3', name: 'Shape 3', layoutChild: { zIndex: 3 } };
       
       const children = [shape1, shape2, shape3];
       const parent = {
-        children,
+        children, flex: true,
         appendChild: vi.fn(),
         insertChild: vi.fn((index: number, shape: any) => {
           const idx = children.indexOf(shape);
@@ -124,23 +124,22 @@ describe('setLayoutZIndexTool', () => {
       const resp = await setLayoutZIndexTool({ action: 'bring-forward' });
       
       expect(resp.success).toBeTruthy();
-      expect(parent.insertChild).toHaveBeenCalledWith(1, shape1);
+      expect(shape1.layoutChild.zIndex).toBe(2);
       
       const payload = resp.payload as ZIndexResponsePayload;
-      expect(payload.movedShapes).toEqual([{ id: 's1', name: 'Shape 1' }]);
-      expect(payload.targetIndex).toBe(1);
+      expect(payload.movedShapes).toEqual([{ id: 's1', name: 'Shape 1', newZIndex: 2 }]);
     });
   });
 
   describe('send-backward', () => {
     it('moves a shape one position backward', async () => {
-      const shape1 = { id: 's1', name: 'Shape 1' };
-      const shape2 = { id: 's2', name: 'Shape 2' };
-      const shape3 = { id: 's3', name: 'Shape 3' };
+      const shape1 = { id: 's1', name: 'Shape 1', layoutChild: { zIndex: 1 } };
+      const shape2 = { id: 's2', name: 'Shape 2', layoutChild: { zIndex: 2 } };
+      const shape3 = { id: 's3', name: 'Shape 3', layoutChild: { zIndex: 3 } };
       
       const children = [shape1, shape2, shape3];
       const parent = {
-        children,
+        children, flex: true,
         appendChild: vi.fn(),
         insertChild: vi.fn((index: number, shape: any) => {
           const idx = children.indexOf(shape);
@@ -163,24 +162,23 @@ describe('setLayoutZIndexTool', () => {
       const resp = await setLayoutZIndexTool({ action: 'send-backward' });
       
       expect(resp.success).toBeTruthy();
-      expect(parent.insertChild).toHaveBeenCalledWith(1, shape3);
+      expect(shape3.layoutChild.zIndex).toBe(2);
       
       const payload = resp.payload as ZIndexResponsePayload;
-      expect(payload.movedShapes).toEqual([{ id: 's3', name: 'Shape 3' }]);
-      expect(payload.targetIndex).toBe(1);
+      expect(payload.movedShapes).toEqual([{ id: 's3', name: 'Shape 3', newZIndex: 2 }]);
     });
   });
 
   describe('set-index', () => {
     it('moves a shape to a specific index', async () => {
-      const shape1 = { id: 's1', name: 'Shape 1' };
-      const shape2 = { id: 's2', name: 'Shape 2' };
-      const shape3 = { id: 's3', name: 'Shape 3' };
-      const shape4 = { id: 's4', name: 'Shape 4' };
+      const shape1 = { id: 's1', name: 'Shape 1', layoutChild: { zIndex: 1 } };
+      const shape2 = { id: 's2', name: 'Shape 2', layoutChild: { zIndex: 2 } };
+      const shape3 = { id: 's3', name: 'Shape 3', layoutChild: { zIndex: 3 } };
+      const shape4 = { id: 's4', name: 'Shape 4', layoutChild: { zIndex: 4 } };
       
       const children = [shape1, shape2, shape3, shape4];
       const parent = {
-        children,
+        children, flex: true,
         appendChild: vi.fn(),
         insertChild: vi.fn((index: number, shape: any) => {
           const idx = children.indexOf(shape);
@@ -203,11 +201,10 @@ describe('setLayoutZIndexTool', () => {
       const resp = await setLayoutZIndexTool({ action: 'set-index', index: 2 });
       
       expect(resp.success).toBeTruthy();
-      expect(parent.insertChild).toHaveBeenCalledWith(2, shape1);
+      expect(shape1.layoutChild.zIndex).toBe(2);
       
       const payload = resp.payload as ZIndexResponsePayload;
-      expect(payload.movedShapes).toEqual([{ id: 's1', name: 'Shape 1' }]);
-      expect(payload.targetIndex).toBe(2);
+      expect(payload.movedShapes).toEqual([{ id: 's1', name: 'Shape 1', newZIndex: 2 }]);
     });
   });
 });

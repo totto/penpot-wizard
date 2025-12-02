@@ -113,6 +113,14 @@ export enum ClientQueryType {
   READ_PLUGIN_LOCAL_STORAGE = 'READ_PLUGIN_LOCAL_STORAGE',
   READ_VIEWPORT_SETTINGS = 'READ_VIEWPORT_SETTINGS',
   UPLOAD_MEDIA_FROM_DATA = 'UPLOAD_MEDIA_FROM_DATA',
+  NAVIGATE_TO_BOARD = 'NAVIGATE_TO_BOARD',
+  OPEN_BOARD_AS_OVERLAY = 'OPEN_BOARD_AS_OVERLAY',
+  TOGGLE_OVERLAY = 'TOGGLE_OVERLAY',
+  NAVIGATE_PREVIOUS_SCREEN = 'NAVIGATE_PREVIOUS_SCREEN',
+  OPEN_EXTERNAL_URL = 'OPEN_EXTERNAL_URL',
+  LIST_ALL_BOARDS = 'LIST_ALL_BOARDS',
+  CONFIGURE_INTERACTION_FLOW = 'CONFIGURE_INTERACTION_FLOW',
+  APPLY_ANIMATION_TO_SELECTION = 'APPLY_ANIMATION_TO_SELECTION',
 }
 
 // Plugin-specific enums and types
@@ -483,6 +491,148 @@ export interface GroupResponsePayload {
   groupedShapes: Array<{ id: string; name?: string }>;
 }
 
+// NavigateToBoard Types
+export interface NavigateToBoardQueryPayload {
+  boardId?: string; // Optional - we can't wire destinations due to Penpot API bug
+  shapeIds?: string[];
+  trigger?: 'click' | 'mouse-enter' | 'mouse-leave' | 'after-delay';
+  delay?: number;
+  preserveScrollPosition?: boolean;
+  animation?: 'dissolve' | 'slide' | 'push' | 'none';
+  animationDirection?: 'left' | 'right' | 'up' | 'down';
+  animationDuration?: number;
+  animationEasing?: 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
+}
+
+export interface NavigateToBoardResponsePayload {
+  interactionsAdded: number;
+  affectedShapes: string[];
+}
+
+// OpenBoardAsOverlay Types
+export interface OpenBoardAsOverlayQueryPayload {
+  boardId?: string; // Optional - we can't wire destinations due to Penpot API bug
+  shapeIds?: string[];
+  trigger?: 'click' | 'mouse-enter' | 'mouse-leave' | 'after-delay';
+  delay?: number;
+  // Overlay specific properties
+  position?: 'centered' | 'manual' | 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  manualPosition?: { x: number; y: number }; // Only if position is 'manual'
+  relativeTo?: 'board' | 'shape'; // For manual positioning
+  closeOnClickOutside?: boolean;
+  addBackgroundOverlay?: boolean;
+  backgroundOverlayColor?: string; // Hex or rgba
+  backgroundOverlayOpacity?: number; // 0-1
+  // Animation properties
+  animation?: 'dissolve' | 'slide' | 'push' | 'none';
+  animationDirection?: 'left' | 'right' | 'up' | 'down';
+  animationDuration?: number;
+  animationEasing?: 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
+}
+
+export interface OpenBoardAsOverlayResponsePayload {
+  interactionsAdded: number;
+  affectedShapes: string[];
+}
+
+// ToggleOverlay Types
+export interface ToggleOverlayQueryPayload {
+  shapeIds?: string[];
+  trigger?: 'click' | 'mouse-enter' | 'mouse-leave' | 'after-delay';
+  delay?: number;
+}
+
+export interface ToggleOverlayResponsePayload {
+  interactionsAdded: number;
+  affectedShapes: string[];
+}
+
+// ListAllBoards Types
+export interface ListAllBoardsQueryPayload {
+  // No parameters needed - lists all boards on current page
+}
+
+export interface BoardInfo {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ListAllBoardsResponsePayload {
+  boards: BoardInfo[];
+  totalBoards: number;
+}
+
+// NavigatePreviousScreen Types
+export interface NavigatePreviousScreenQueryPayload {
+  shapeIds?: string[];
+  trigger?: 'click' | 'mouse-enter' | 'mouse-leave' | 'after-delay';
+  delay?: number;
+}
+
+export interface NavigatePreviousScreenResponsePayload {
+  interactionsAdded: number;
+  affectedShapes: string[];
+}
+
+// OpenExternalUrl Types
+export interface OpenExternalUrlQueryPayload {
+  url: string;
+  shapeIds?: string[];
+  trigger?: 'click' | 'mouse-enter' | 'mouse-leave' | 'after-delay';
+  delay?: number;
+}
+
+export interface OpenExternalUrlResponsePayload {
+  interactionsAdded: number;
+  affectedShapes: string[];
+}
+
+export interface ConfigureInteractionFlowQueryPayload {
+  boardId?: string;
+  // Natural-language support
+  boardName?: string; // exact board name
+  boardQuery?: string; // partial or fuzzy match
+  flowName?: string;
+  action?: 'create' | 'update'; // Optional: specify action if user already confirmed
+}
+
+export interface ConfigureInteractionFlowResponsePayload {
+  flowId?: string;
+  flowName: string;
+  startBoardId: string;
+  existingFlows?: Array<{ name: string; startBoardId: string }>;
+  matchedBoards?: Array<{ id: string; name: string }>;
+  requiresConfirmation?: boolean;
+  message?: string;
+}
+
+export interface ApplyAnimationToSelectionQueryPayload {
+  animationType: 'dissolve' | 'slide' | 'push' | 'none';
+  direction?: 'left' | 'right' | 'top' | 'bottom';
+  duration?: number;
+  easing?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+  shapeIds?: string[];
+  confirmDuplicate?: boolean;
+}
+
+export interface ApplyAnimationToSelectionResponsePayload {
+  interactionsUpdated: number;
+  affectedShapes: string[];
+  // Message explaining how to delete the original interactions after duplication
+  deleteOriginalInfo?: string;
+}
+
+export interface ApplyAnimationToSelectionPromptResponsePayload {
+  affectedShapes: string[];
+  interactionsToDuplicate: number;
+  // Short human-friendly warning explaining duplication behavior and confirmation instructions
+  warning?: string;
+}
+
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
   | AddImageQueryPayload
@@ -500,7 +650,15 @@ export type ClientQueryPayload =
   | ReadLibraryContextQueryPayload
   | ReadPluginLocalStorageQueryPayload
   | ReadViewportSettingsQueryPayload
-  | UploadMediaFromDataQueryPayload;
+  | UploadMediaFromDataQueryPayload
+  | NavigateToBoardQueryPayload
+  | OpenBoardAsOverlayQueryPayload
+  | ToggleOverlayQueryPayload
+  | ListAllBoardsQueryPayload
+  | NavigatePreviousScreenQueryPayload
+  | OpenExternalUrlQueryPayload
+  | ApplyAnimationToSelectionQueryPayload
+  | ConfigureInteractionFlowQueryPayload;
 
 export type PluginResponsePayload =
   | DrawShapeResponsePayload
@@ -532,4 +690,13 @@ export type PluginResponsePayload =
   | ReadLibraryContextResponsePayload
   | ReadPluginLocalStorageResponsePayload
   | ReadViewportSettingsResponsePayload
-  | UploadMediaFromDataResponsePayload;
+  | UploadMediaFromDataResponsePayload
+  | NavigateToBoardResponsePayload
+  | OpenBoardAsOverlayResponsePayload
+  | ToggleOverlayResponsePayload
+  | ListAllBoardsResponsePayload
+  | NavigatePreviousScreenResponsePayload
+  | OpenExternalUrlResponsePayload
+  | ApplyAnimationToSelectionPromptResponsePayload
+  | ApplyAnimationToSelectionResponsePayload
+  | ConfigureInteractionFlowResponsePayload;

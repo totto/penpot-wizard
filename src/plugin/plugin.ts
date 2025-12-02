@@ -146,6 +146,14 @@ import {
   getColorPaletteTool,
   exportProjectTool,
   useSizePresetTool,
+  navigateToBoard,
+  openBoardAsOverlay,
+  toggleOverlay,
+  listAllBoards,
+  navigatePreviousScreen,
+  openExternalUrl,
+  applyAnimationToSelection,
+  configureInteractionFlow,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -432,6 +440,8 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       responseMessage = await setSelectionBlendModeTool(payload as unknown as SetSelectionBlendModeQueryPayload);
       break;
 
+    // Router dispatch: call deleteSelectionTool for main delete request.
+    // Note: undo/redo handling appears in `mainHandlers.ts` (undoLastAction/redoLastAction).
     case ClientQueryType.DELETE_SELECTION:
       responseMessage = await deleteSelectionTool(payload as unknown as DeleteSelectionQueryPayload);
       break;
@@ -506,6 +516,38 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.USE_SIZE_PRESET:
       responseMessage = await useSizePresetTool(payload as unknown as UseSizePresetQueryPayload);
+      break;
+
+    case ClientQueryType.NAVIGATE_TO_BOARD:
+      responseMessage = await navigateToBoard(payload as unknown as NavigateToBoardQueryPayload);
+      break;
+
+    case ClientQueryType.OPEN_BOARD_AS_OVERLAY:
+      responseMessage = await openBoardAsOverlay(payload as unknown as OpenBoardAsOverlayQueryPayload);
+      break;
+
+    case ClientQueryType.TOGGLE_OVERLAY:
+      responseMessage = await toggleOverlay(payload as unknown as ToggleOverlayQueryPayload);
+      break;
+
+    case ClientQueryType.LIST_ALL_BOARDS:
+      responseMessage = await listAllBoards(payload as unknown as ListAllBoardsQueryPayload);
+      break;
+
+    case ClientQueryType.NAVIGATE_PREVIOUS_SCREEN:
+      responseMessage = await navigatePreviousScreen(payload as unknown as NavigatePreviousScreenQueryPayload);
+      break;
+
+    case ClientQueryType.OPEN_EXTERNAL_URL:
+      responseMessage = await openExternalUrl(payload as unknown as OpenExternalUrlQueryPayload);
+      break;
+
+    case ClientQueryType.APPLY_ANIMATION_TO_SELECTION:
+      responseMessage = await applyAnimationToSelection(payload as unknown as ApplyAnimationToSelectionQueryPayload);
+      break;
+
+    case ClientQueryType.CONFIGURE_INTERACTION_FLOW:
+      responseMessage = await configureInteractionFlow(payload as unknown as ConfigureInteractionFlowQueryPayload);
       break;
 
     default:

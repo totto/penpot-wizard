@@ -1445,5 +1445,33 @@ export const useSizePresetTool = {
 
 functionTools.push(useSizePresetTool);
 
+export const navigateToBoardTool = {
+  id: "navigate-to-board",
+  name: "navigateToBoard",
+  description: `Add "Navigate To" interactions to selected shapes, linking to other boards in the prototype.
 
+This creates clickable areas that navigate users to different screens/boards when clicked.
+
+Use this when you want to create navigation between different parts of your prototype.
+
+The interaction will appear in Penpot's Prototype panel and can be configured with animations, delays, and scroll preservation.`,
+  inputSchema: z.object({
+    boardId: z.string().optional().describe("ID of the destination board (optional - will be set manually due to API limitations)"),
+    shapeIds: z.array(z.string()).optional().describe("Specific shape IDs to add interactions to (uses selection if not provided)"),
+    trigger: z.enum(['click', 'mouse-enter', 'mouse-leave', 'after-delay']).default('click').describe("When the interaction triggers"),
+    delay: z.number().optional().describe("Delay in milliseconds before the interaction executes"),
+    preserveScrollPosition: z.boolean().optional().describe("Whether to preserve scroll position on navigation"),
+    animation: z.enum(['dissolve', 'slide', 'push', 'none']).default('dissolve').describe("Transition animation type"),
+    animationDirection: z.enum(['left', 'right', 'up', 'down']).optional().describe("Direction for slide/push animations"),
+    animationDuration: z.number().optional().describe("Animation duration in milliseconds"),
+    animationEasing: z.enum(['linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out']).optional().describe("Animation easing function"),
+  }),
+  function: async (args) => {
+    // Optional: read first for context
+    await sendMessageToPlugin(ClientQueryType.GET_SELECTION_INFO, undefined);
+    return sendMessageToPlugin(ClientQueryType.NAVIGATE_TO_BOARD, args);
+  }
+};
+
+functionTools.push(navigateToBoardTool);
 

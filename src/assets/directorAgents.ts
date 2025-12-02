@@ -167,13 +167,21 @@ When using the resize-selection tool:
       'configure-ruler-guides',
       'configure-board-guides',
       'use-size-preset',
+      'navigate-to-board',
+      'open-board-as-overlay',
+      'toggle-overlay',
+      'navigate-previous-screen',
+      'open-external-url',
+      'list-all-boards',
+      'configure-interaction-flow',
+      'apply-animation-to-selection',
       'batch-create-pages',
       'batch-create-components',
       'get-color-palette',
       'export-project',
 
 // NOTE: Debugging dev tools
-      //'dump-selection', //Dev tool for debugging -> Only uncomment for debugging purposes 
+      'dump-selection', //Dev tool for debugging -> Only uncomment for debugging purposes 
       //otherwise don't expose this tool to the user
 
     ],

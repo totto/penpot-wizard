@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { navigatePreviousScreen } from './mainHandlers';
+import { navigatePreviousScreen } from '../mainHandlers';
 import { ClientQueryType } from '../types/pluginTypes';
 
 // Mock the global penpot object
@@ -24,6 +24,10 @@ const createMockShape = (id: string, type: string = 'rectangle') => {
 const mockPenpot = {
     currentPage: {
         findShapes: mockFindShapes,
+        getShapeById: vi.fn((id: string) => {
+            // Simple mock - in real tests this would be more sophisticated
+            return null; // Will be overridden in specific tests
+        }),
     },
     selection: [] as any[],
 };
@@ -61,10 +65,10 @@ describe('navigatePreviousScreen', () => {
 
     it('should add interaction to specified shape IDs', async () => {
         const shape1 = createMockShape('1');
-        // Mock findShapes to return our shape when searched by ID
-        mockFindShapes.mockImplementation(({ name }: any) => {
-            if (name === '1') return [shape1];
-            return [];
+        // Mock getShapeById to return our shape
+        mockPenpot.currentPage.getShapeById.mockImplementation((id: string) => {
+            if (id === '1') return shape1;
+            return null;
         });
 
         const result = await navigatePreviousScreen({ shapeIds: ['1'] });
@@ -113,7 +117,7 @@ describe('navigatePreviousScreen', () => {
     });
 });
 
-import { openExternalUrl } from './mainHandlers';
+import { openExternalUrl } from '../mainHandlers';
 
 describe('openExternalUrl', () => {
     beforeEach(() => {
@@ -163,7 +167,7 @@ describe('openExternalUrl', () => {
     });
 });
 
-import { navigateToBoard, openBoardAsOverlay, toggleOverlay } from './mainHandlers';
+import { navigateToBoard, openBoardAsOverlay, toggleOverlay } from '../mainHandlers';
 
 describe('navigateToBoard', () => {
     beforeEach(() => {
@@ -183,6 +187,7 @@ describe('navigateToBoard', () => {
         const shape1 = createMockShape('1');
         mockPenpot.selection = [shape1];
         mockFindShapes.mockReturnValue([board]);
+        mockPenpot.currentPage.getShapeById.mockReturnValue(board);
 
         const result = await navigateToBoard({ boardId: 'board-1' });
 
@@ -197,6 +202,7 @@ describe('navigateToBoard', () => {
         const board = createMockShape('board-1', 'board');
         mockPenpot.selection = [board];
         mockFindShapes.mockReturnValue([board]);
+        mockPenpot.currentPage.getShapeById.mockReturnValue(board);
 
         const result = await navigateToBoard({ boardId: 'board-1' });
 
@@ -210,6 +216,7 @@ describe('navigateToBoard', () => {
         const shape = createMockShape('shape-1');
         mockPenpot.selection = [board, shape];
         mockFindShapes.mockReturnValue([board]);
+        mockPenpot.currentPage.getShapeById.mockReturnValue(board);
 
         const result = await navigateToBoard({ boardId: 'board-1' });
 
