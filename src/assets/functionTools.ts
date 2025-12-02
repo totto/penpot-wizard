@@ -1402,7 +1402,7 @@ export const exportProjectTool = {
   `,
   inputSchema: z.object({
     filename: z.string().optional().describe('Optional filename for the exported project (without extension)'),
-  }),
+1  }),
   function: async (args) => {
     const payload: ExportProjectQueryPayload = {
       filename: args.filename,
