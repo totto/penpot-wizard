@@ -98,6 +98,14 @@ import {
   ChangePageBackgroundResponsePayload,
   RenamePageQueryPayload,
   RenamePageResponsePayload,
+  BatchCreatePagesQueryPayload,
+  BatchCreatePagesResponsePayload,
+  BatchCreateComponentsQueryPayload,
+  BatchCreateComponentsResponsePayload,
+  ExportProjectQueryPayload,
+  ExportProjectResponsePayload,
+  UseSizePresetQueryPayload,
+  UseSizePresetResponsePayload,
   ZIndexQueryPayload,
   ZIndexResponsePayload,
   ConfigureFlexLayoutQueryPayload,
@@ -9186,6 +9194,92 @@ export async function createPageTool(payload: CreatePageQueryPayload): Promise<P
   }
 }
 
+export async function batchCreatePagesTool(payload: BatchCreatePagesQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { pageNames } = payload;
+    const createdPages: Array<{ id: string; name: string }> = [];
+
+    for (const name of pageNames) {
+      const newPage = penpot.createPage();
+      if (name && name.trim() !== '') {
+        newPage.name = name.trim();
+      }
+      createdPages.push({ id: newPage.id, name: newPage.name });
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.BATCH_CREATE_PAGES,
+      success: true,
+      message: `Successfully created ${createdPages.length} pages`,
+      payload: {
+        pages: createdPages,
+      } as BatchCreatePagesResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.BATCH_CREATE_PAGES,
+      success: false,
+      message: `Error creating pages: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function batchCreateComponentsTool(payload: BatchCreateComponentsQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { components } = payload;
+    const createdComponents: Array<{ id: string; name: string }> = [];
+    const currentPage = penpot.currentPage;
+
+    if (!currentPage) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.BATCH_CREATE_COMPONENTS,
+        success: false,
+        message: 'No active page found',
+      };
+    }
+
+    for (const compDef of components) {
+      const shapes = compDef.shapeIds
+        .map(id => {
+          try {
+            return currentPage.getShapeById(id);
+          } catch {
+            return undefined;
+          }
+        })
+        .filter((s): s is Shape => s !== undefined);
+
+      if (shapes.length > 0) {
+        const component = penpot.library.local.createComponent(shapes);
+        if (component) {
+          component.name = compDef.name;
+          createdComponents.push({ id: component.id, name: component.name });
+        }
+      }
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.BATCH_CREATE_COMPONENTS,
+      success: true,
+      message: `Successfully created ${createdComponents.length} component(s)`,
+      payload: {
+        components: createdComponents,
+      } as BatchCreateComponentsResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.BATCH_CREATE_COMPONENTS,
+      success: false,
+      message: `Error creating components: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export async function readShapeColors(payload: ReadShapeColorsQueryPayload): Promise<PluginResponseMessage> {
   try {
     const { shapeIds } = payload;
@@ -10308,6 +10402,154 @@ export async function getFileVersionsTool(): Promise<PluginResponseMessage> {
       type: ClientQueryType.GET_FILE_VERSIONS,
       success: false,
       message: `Error retrieving file versions: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export function getColorPaletteTool(): PluginResponseMessage {
+  try {
+    // Check library API availability
+    if (!penpot.library || !penpot.library.local || !Array.isArray(penpot.library.local.colors)) {
+       return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_COLOR_PALETTE,
+        success: true,
+        message: 'Library colors not available or empty',
+        payload: { colors: [] },
+      };
+    }
+
+    const colors = penpot.library.local.colors.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      color: c.color,
+      opacity: c.opacity,
+      path: c.path,
+    }));
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_COLOR_PALETTE,
+      success: true,
+      message: 'Color palette retrieved successfully',
+      payload: { colors },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_COLOR_PALETTE,
+      success: false,
+      message: `Error retrieving color palette: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function exportProjectTool(payload: ExportProjectQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    // Note: penpot.file.export() might not be fully supported in all contexts or might behave differently.
+    // This implementation assumes it triggers a download or returns a file blob.
+    // If it requires user interaction, it might need a different approach.
+    
+    // Check if export is available
+    // @ts-ignore - penpot.file might not be in the types yet
+    if (penpot.file && typeof penpot.file.export === 'function') {
+       // @ts-ignore
+       await penpot.file.export(payload.filename);
+       
+       return {
+        ...pluginResponse,
+        type: ClientQueryType.EXPORT_PROJECT,
+        success: true,
+        message: 'Project export initiated successfully',
+        payload: { success: true, message: 'Export started' } as ExportProjectResponsePayload,
+      };
+    } else {
+       // Fallback or error if API not found
+       return {
+        ...pluginResponse,
+        type: ClientQueryType.EXPORT_PROJECT,
+        success: false,
+        message: 'Export API not available in this Penpot version',
+      };
+    }
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.EXPORT_PROJECT,
+      success: false,
+      message: `Error exporting project: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function useSizePresetTool(payload: UseSizePresetQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { presetName, shapeIds } = payload;
+    
+    // Import presets from constants file
+    const { DEVICE_PRESETS } = await import('../constants/devicePresets');
+    const presets = DEVICE_PRESETS;
+    
+    // Check if preset exists
+    const preset = presets[presetName.toLowerCase() as keyof typeof presets];
+    if (!preset) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.USE_SIZE_PRESET,
+        success: false,
+        message: `Unknown preset: ${presetName}. Use common presets like: iphone-16, desktop-1920, instagram-story, a4`,
+      };
+    }
+    
+    // Get shapes to resize
+    let shapesToResize: Shape[];
+    if (shapeIds && shapeIds.length > 0) {
+      shapesToResize = shapeIds
+        .map(id => penpot.selection.find(s => s.id === id))
+        .filter((s): s is Shape => !!s);
+    } else {
+      shapesToResize = getSelectionForAction();
+    }
+    
+    if (shapesToResize.length === 0) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.USE_SIZE_PRESET,
+        success: false,
+        message: 'No shapes selected or found to resize',
+      };
+    }
+    
+    // Resize shapes
+    const updatedShapes: Array<{ id: string; name: string; width: number; height: number }> = [];
+    
+    for (const shape of shapesToResize) {
+      shape.resize(preset.width, preset.height);
+      updatedShapes.push({
+        id: shape.id,
+        name: shape.name,
+        width: preset.width,
+        height: preset.height,
+      });
+    }
+    
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.USE_SIZE_PRESET,
+      success: true,
+      message: `Resized ${updatedShapes.length} shape(s) to ${presetName} (${preset.width}x${preset.height})`,
+      payload: {
+        success: true,
+        message: `Applied ${presetName} preset`,
+        updatedShapes,
+      } as UseSizePresetResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.USE_SIZE_PRESET,
+      success: false,
+      message: `Error applying size preset: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

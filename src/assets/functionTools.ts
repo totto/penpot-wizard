@@ -28,6 +28,10 @@ import {
   ConfigureGridLayoutQueryPayload,
   ConfigureRulerGuidesQueryPayload,
   ConfigureBoardGuidesQueryPayload,
+  BatchCreatePagesQueryPayload,
+  BatchCreateComponentsQueryPayload,
+  ExportProjectQueryPayload,
+  UseSizePresetQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -978,6 +982,47 @@ export const functionTools: FunctionTool[] = [
     },
   },
   {
+    id: 'batch-create-pages',
+    name: 'batchCreatePages',
+    description: `
+      Use this tool to create multiple pages at once.
+      It takes an array of page names and creates them in order.
+      Returns the list of created pages with their IDs and names.
+    `,
+    inputSchema: z.object({
+      pageNames: z.array(z.string()).min(1).describe('Array of names for the new pages'),
+    }),
+    function: async (args) => {
+      const payload: BatchCreatePagesQueryPayload = {
+        pageNames: args.pageNames,
+      };
+      const response = await sendMessageToPlugin(ClientQueryType.BATCH_CREATE_PAGES, payload);
+      return response;
+    },
+  },
+  {
+    id: 'batch-create-components',
+    name: 'batchCreateComponents',
+    description: `
+      Use this tool to create multiple components at once from selections.
+      It takes an array of component definitions, each with a name and a list of shape IDs to include.
+      Returns the list of created components with their IDs and names.
+    `,
+    inputSchema: z.object({
+      components: z.array(z.object({
+        name: z.string().describe('Name for the new component'),
+        shapeIds: z.array(z.string()).min(1).describe('Array of shape IDs to include in the component'),
+      })).min(1).describe('Array of components to create'),
+    }),
+    function: async (args) => {
+      const payload: BatchCreateComponentsQueryPayload = {
+        components: args.components,
+      };
+      const response = await sendMessageToPlugin(ClientQueryType.BATCH_CREATE_COMPONENTS, payload);
+      return response;
+    },
+  },
+  {
     id: 'set-layout-z-index',
     name: 'setLayoutZIndex',
     description: `
@@ -1323,5 +1368,82 @@ export const functionTools: FunctionTool[] = [
     },
   },
 ];
+
+export const getColorPaletteTool = {
+  id: "get-color-palette",
+  name: "getColorPalette",
+  description: `
+    Retrieve all colors from the local library.
+    Returns an array of color objects with metadata (id, name, color hex, opacity, path).
+  `,
+  inputSchema: z.object({}),
+  function: async () => {
+    const response = await sendMessageToPlugin(ClientQueryType.GET_COLOR_PALETTE, undefined);
+    return response;
+  },
+};
+
+functionTools.push(getColorPaletteTool);
+
+export const exportProjectTool = {
+  id: "export-project",
+  name: "exportProject",
+  description: `
+    Export the current project as a .penpot file.
+    This will trigger a browser download of the project file.
+    Optionally provide a filename (without extension).
+
+    WARNING: This tool depends on the 'penpot.file.export' API which may not be available
+    in all Penpot environments or plugin versions. If unavailable, it will return an error.
+    In that case, the AI should explain that the error occurs because the current Penpot
+    version does not support project export via the plugin API, and advise the user to
+    manually export the project through the Penpot UI (e.g., File → Export → Project
+    or use the Export button in the top‑right menu) and optionally rename the file.
+  `,
+  inputSchema: z.object({
+    filename: z.string().optional().describe('Optional filename for the exported project (without extension)'),
+  }),
+  function: async (args) => {
+    const payload: ExportProjectQueryPayload = {
+      filename: args.filename,
+    };
+    const response = await sendMessageToPlugin(ClientQueryType.EXPORT_PROJECT, payload);
+    return response;
+  },
+};
+
+functionTools.push(exportProjectTool);
+
+export const useSizePresetTool = {
+  id: "use-size-preset",
+  name: "useSizePreset",
+  description: `
+    Resize shapes to standard device/social media dimensions using preset names.
+    Supports 100+ presets across Apple, Android, Microsoft, Web, Print, and Social Media.
+    
+    Primary use: Resizing existing shapes to standard dimensions.
+    Also useful when user specifies a device name without explicit dimensions.
+    
+    Common presets: iphone-16, iphone-16-pro, ipad, macbook-air, desktop-1920,
+    instagram-post, instagram-story, facebook-cover, youtube-thumb, a4, letter
+    
+    Use preset names like: "iphone-16", "desktop-1920", "instagram-story", "a4"
+  `,
+  inputSchema: z.object({
+    presetName: z.string().describe('Device/social media preset name (e.g., "iphone-16", "desktop-1920", "instagram-post")'),
+    shapeIds: z.array(z.string()).optional().describe('Optional shape IDs to resize. If omitted, resizes current selection.'),
+  }),
+  function: async (args) => {
+    const payload: UseSizePresetQueryPayload = {
+      presetName: args.presetName,
+      shapeIds: args.shapeIds,
+    };
+    const response = await sendMessageToPlugin(ClientQueryType.USE_SIZE_PRESET, payload);
+    return response;
+  },
+};
+
+functionTools.push(useSizePresetTool);
+
 
 

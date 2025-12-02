@@ -55,6 +55,10 @@ import {
   RenamePageQueryPayload,
   ChangePageBackgroundQueryPayload,
   CreatePageQueryPayload,
+  BatchCreatePagesQueryPayload,
+  BatchCreateComponentsQueryPayload,
+  ExportProjectQueryPayload,
+  UseSizePresetQueryPayload,
   ZIndexQueryPayload,
   ConfigureFlexLayoutQueryPayload,
   ConfigureGridLayoutQueryPayload,
@@ -129,6 +133,8 @@ import {
   renamePageTool,
   changePageBackgroundTool,
   createPageTool,
+  batchCreatePagesTool,
+  batchCreateComponentsTool,
   setLayoutZIndexTool,
   readShapeColors,
   configureFlexLayoutTool,
@@ -137,6 +143,9 @@ import {
   configureBoardGuidesTool,
   getCurrentThemeTool,
   getFileVersionsTool,
+  getColorPaletteTool,
+  exportProjectTool,
+  useSizePresetTool,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -454,6 +463,14 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       responseMessage = await createPageTool(payload as unknown as CreatePageQueryPayload);
       break;
 
+    case ClientQueryType.BATCH_CREATE_PAGES:
+      responseMessage = await batchCreatePagesTool(payload as unknown as BatchCreatePagesQueryPayload);
+      break;
+
+    case ClientQueryType.BATCH_CREATE_COMPONENTS:
+      responseMessage = await batchCreateComponentsTool(payload as unknown as BatchCreateComponentsQueryPayload);
+      break;
+
     case ClientQueryType.Z_INDEX_ACTION:
       responseMessage = await setLayoutZIndexTool(payload as unknown as ZIndexQueryPayload);
       break;
@@ -477,6 +494,18 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.CONFIGURE_BOARD_GUIDES:
       responseMessage = await configureBoardGuidesTool(payload as unknown as ConfigureBoardGuidesQueryPayload);
+      break;
+
+    case ClientQueryType.GET_COLOR_PALETTE:
+      responseMessage = await getColorPaletteTool();
+      break;
+
+    case ClientQueryType.EXPORT_PROJECT:
+      responseMessage = await exportProjectTool(payload as unknown as ExportProjectQueryPayload);
+      break;
+
+    case ClientQueryType.USE_SIZE_PRESET:
+      responseMessage = await useSizePresetTool(payload as unknown as UseSizePresetQueryPayload);
       break;
 
     default:

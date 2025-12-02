@@ -89,6 +89,11 @@ export enum ClientQueryType {
   CONFIGURE_GRID_LAYOUT = 'CONFIGURE_GRID_LAYOUT',
   CONFIGURE_RULER_GUIDES = 'CONFIGURE_RULER_GUIDES',
   CONFIGURE_BOARD_GUIDES = 'CONFIGURE_BOARD_GUIDES',
+  BATCH_CREATE_PAGES = 'BATCH_CREATE_PAGES',
+  BATCH_CREATE_COMPONENTS = 'BATCH_CREATE_COMPONENTS',
+  GET_COLOR_PALETTE = 'GET_COLOR_PALETTE',
+  EXPORT_PROJECT = 'EXPORT_PROJECT',
+  USE_SIZE_PRESET = 'USE_SIZE_PRESET',
 }
 
 export enum PenpotShapeType {
@@ -465,6 +470,64 @@ export interface ConfigureBoardGuidesQueryPayload {
 }
 
 
+export interface BatchCreatePagesQueryPayload {
+  pageNames: string[];
+}
+
+export interface BatchCreatePagesResponsePayload {
+  pages: Array<{
+    id: string;
+    name: string;
+  }>;
+}
+
+export interface BatchCreateComponentsQueryPayload {
+  components: Array<{
+    name: string;
+    shapeIds: string[];
+  }>;
+}
+
+export interface BatchCreateComponentsResponsePayload {
+  components: Array<{
+    id: string;
+    name: string;
+  }>;
+}
+
+export type GetColorPaletteQueryPayload = Record<string, never>;
+
+export interface GetColorPaletteResponsePayload {
+  colors: Array<{
+    id: string;
+    name: string;
+    color: string; // Hex color value
+    opacity?: number;
+    path?: string;
+  }>;
+}
+
+export interface ExportProjectQueryPayload {
+  filename?: string;
+}
+
+export interface ExportProjectResponsePayload {
+  success: boolean;
+  message: string;
+}
+
+export interface UseSizePresetQueryPayload {
+  presetName: string;
+  shapeIds?: string[];
+}
+
+export interface UseSizePresetResponsePayload {
+  success: boolean;
+  message: string;
+  updatedShapes: Array<{ id: string; name: string; width: number; height: number }>;
+}
+
+
 export type ClientQueryPayload =
   | DrawShapeQueryPayload
   | AddImageQueryPayload
@@ -513,7 +576,12 @@ export type ClientQueryPayload =
   | ConfigureFlexLayoutQueryPayload
   | ConfigureGridLayoutQueryPayload
   | ConfigureRulerGuidesQueryPayload
-  | ConfigureBoardGuidesQueryPayload;
+  | ConfigureBoardGuidesQueryPayload
+  | BatchCreatePagesQueryPayload
+  | BatchCreateComponentsQueryPayload
+  | GetColorPaletteQueryPayload
+  | ExportProjectQueryPayload
+  | UseSizePresetQueryPayload;
 
 // Undo system interfaces
 export interface UndoInfo {
@@ -1223,7 +1291,12 @@ export type PluginResponsePayload =
   | OpenPageResponsePayload
   | CreatePageResponsePayload
   | ChangePageBackgroundResponsePayload
-  | RenamePageResponsePayload;
+  | RenamePageResponsePayload
+  | BatchCreatePagesResponsePayload
+  | BatchCreateComponentsResponsePayload
+  | GetColorPaletteResponsePayload
+  | ExportProjectResponsePayload
+  | UseSizePresetResponsePayload;
 
 // Response for ungrouping shapes
 export interface UngroupResponsePayload {
