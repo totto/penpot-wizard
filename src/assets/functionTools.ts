@@ -1392,6 +1392,13 @@ export const exportProjectTool = {
     Export the current project as a .penpot file.
     This will trigger a browser download of the project file.
     Optionally provide a filename (without extension).
+
+    WARNING: This tool depends on the 'penpot.file.export' API which may not be available
+    in all Penpot environments or plugin versions. If unavailable, it will return an error.
+    In that case, the AI should explain that the error occurs because the current Penpot
+    version does not support project export via the plugin API, and advise the user to
+    manually export the project through the Penpot UI (e.g., File → Export → Project
+    or use the Export button in the top‑right menu) and optionally rename the file.
   `,
   inputSchema: z.object({
     filename: z.string().optional().describe('Optional filename for the exported project (without extension)'),
