@@ -8045,30 +8045,6 @@ export async function redoLastAction(_payload: RedoLastActionQueryPayload): Prom
         break;
       }
 
-      case ClientQueryType.DELETE_SELECTION: {
-        // Redo: Just remove them again
-        // Note: The shapes we restored have NEW IDs, so we can't use the original IDs from undoData.
-        // However, since we just restored them, they should be in the selection if we selected them.
-        // But `redoLastAction` logic usually relies on `undoData` to know what to act on.
-        // Since we can't easily track the *new* IDs of the restored shapes across undo/redo cycles without complex mapping,
-        // we might have to rely on the user selecting them again, OR we try to find them by some other means.
-        //
-        // LIMITATION: For now, Redo of "Remove from Parent" might fail if we can't find the shapes.
-        // But wait! When we UNDO, we push the action back to `redoStack`. 
-        // If we want to REDO, we need to know what to remove.
-        // The `undoData` has `originalId`, but that shape is gone and replaced by a new one.
-        //
-        // Strategy: We can't easily Redo this perfectly without persistent IDs. 
-        // We will warn the user.
-
-        return {
-          ...pluginResponse,
-          type: ClientQueryType.REDO_LAST_ACTION,
-          success: false,
-          message: `Cannot automatically redo "Remove from Parent" because the restored shapes have new IDs (due to Penpot limitations). Please select the restored shapes and remove them again manually.`,
-        };
-      }
-
       case ClientQueryType.DETACH_FROM_COMPONENT: {
         // Redo: Detach again.
         // Limitation: The restored component instance has a NEW ID.
@@ -8881,7 +8857,7 @@ export async function setLayoutZIndexTool(payload: ZIndexQueryPayload): Promise<
 
       // Calculate new z-index based on action
       switch (action) {
-        case 'bring-to-front':
+        case 'bring-to-front': {
           // Find max z-index among siblings and set higher
           const maxZIndex = Math.max(
             ...parent.children
@@ -8890,8 +8866,9 @@ export async function setLayoutZIndexTool(payload: ZIndexQueryPayload): Promise<
           );
           newZIndex = maxZIndex + 1;
           break;
+        }
 
-        case 'send-to-back':
+        case 'send-to-back': {
           // Find min z-index among siblings and set lower
           const minZIndex = Math.min(
             ...parent.children
@@ -8900,16 +8877,19 @@ export async function setLayoutZIndexTool(payload: ZIndexQueryPayload): Promise<
           );
           newZIndex = minZIndex - 1;
           break;
+        }
 
-        case 'bring-forward':
+        case 'bring-forward': {
           newZIndex = currentZIndex + 1;
           break;
+        }
 
-        case 'send-backward':
+        case 'send-backward': {
           newZIndex = currentZIndex - 1;
           break;
+        }
 
-        case 'set-index':
+        case 'set-index': {
           if (typeof index !== 'number') {
             failedShapes.push({
               id: shape.id,
@@ -8920,14 +8900,16 @@ export async function setLayoutZIndexTool(payload: ZIndexQueryPayload): Promise<
           }
           newZIndex = index;
           break;
+        }
 
-        default:
+        default: {
           return {
             ...pluginResponse,
             type: ClientQueryType.Z_INDEX_ACTION,
             success: false,
             message: `Unknown action: ${action}`,
           };
+        }
       }
 
       // Apply the new z-index
