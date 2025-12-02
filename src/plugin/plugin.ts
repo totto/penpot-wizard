@@ -70,7 +70,6 @@ import {
   ReadShapeColorsQueryPayload,
   ReadLibraryContextQueryPayload,
   ReadPluginLocalStorageQueryPayload,
-  ReadViewportSettingsQueryPayload,
   UploadMediaFromDataQueryPayload
 } from '../types/pluginTypes';
 
@@ -154,6 +153,10 @@ import {
   openExternalUrl,
   applyAnimationToSelection,
   configureInteractionFlow,
+  readLibraryContext,
+  readPluginLocalStorage,
+  readViewportSettings,
+  uploadMediaFromData,
 } from './mainHandlers';
 import { updateCurrentSelection } from './actionSelection';
 
@@ -487,6 +490,22 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.READ_SHAPE_COLORS:
       responseMessage = await readShapeColors(payload as unknown as ReadShapeColorsQueryPayload);
+      break;
+
+    case ClientQueryType.READ_LIBRARY_CONTEXT:
+      responseMessage = await readLibraryContext(payload as unknown as ReadLibraryContextQueryPayload);
+      break;
+
+    case ClientQueryType.READ_PLUGIN_LOCAL_STORAGE:
+      responseMessage = await readPluginLocalStorage(payload as unknown as ReadPluginLocalStorageQueryPayload);
+      break;
+
+    case ClientQueryType.READ_VIEWPORT_SETTINGS:
+      responseMessage = await readViewportSettings();
+      break;
+
+    case ClientQueryType.UPLOAD_MEDIA_FROM_DATA:
+      responseMessage = await uploadMediaFromData(payload as unknown as UploadMediaFromDataQueryPayload);
       break;
 
 

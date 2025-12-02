@@ -57,9 +57,7 @@ export enum ClientQueryType {
   FLATTEN_SELECTION = 'FLATTEN_SELECTION',
   CREATE_SHAPE_FROM_SVG = 'CREATE_SHAPE_FROM_SVG',
   EXPORT_SELECTION_AS_SVG = 'EXPORT_SELECTION_AS_SVG',
-  EXPORT_SELECTION_AS_PNG = 'EXPORT_SELECTION_AS_PNG',
-  EXPORT_SELECTION_AS_JPEG = 'EXPORT_SELECTION_AS_JPEG',
-  EXPORT_SELECTION_AS_WEBP = 'EXPORT_SELECTION_AS_WEBP',
+
   UNDO_LAST_ACTION = 'UNDO_LAST_ACTION',
   REDO_LAST_ACTION = 'REDO_LAST_ACTION',
   RESIZE = 'RESIZE',
@@ -142,9 +140,6 @@ export interface ClientMessage {
   | FlattenSelectionQueryPayload
   | CreateShapeFromSvgQueryPayload
   | ExportSelectionAsSvgQueryPayload
-  | ExportSelectionAsPngQueryPayload
-  | ExportSelectionAsJpegQueryPayload
-  | ExportSelectionAsWebpQueryPayload
   | UndoLastActionQueryPayload
   | RedoLastActionQueryPayload
   | ResizeQueryPayload
@@ -339,7 +334,7 @@ export interface ZIndexQueryPayload {
 
 export interface ConfigureFlexLayoutQueryPayload {
   shapeIds?: string[]; // If omitted, use current selection
-  
+
   // Container properties
   remove?: boolean; // If true, remove the flex layout
   dir?: 'row' | 'row-reverse' | 'column' | 'column-reverse';
@@ -358,7 +353,7 @@ export interface ConfigureFlexLayoutQueryPayload {
   verticalPadding?: number;
   horizontalSizing?: 'fit-content' | 'fill' | 'auto';
   verticalSizing?: 'fit-content' | 'fill' | 'auto';
-  
+
   // Child properties (apply to children within the layout)
   childProperties?: {
     shapeIds?: string[]; // Specific children to modify (if omitted, apply to all children)
@@ -403,7 +398,7 @@ export interface ConfigureGridLayoutQueryPayload {
   // Grid Structure
   rows?: Array<{ type: 'flex' | 'fixed' | 'percent' | 'auto'; value: number | null }>;
   columns?: Array<{ type: 'flex' | 'fixed' | 'percent' | 'auto'; value: number | null }>;
-  
+
   // Operations
   addRows?: Array<{ type: 'flex' | 'fixed' | 'percent' | 'auto'; value: number | null; index?: number }>;
   addColumns?: Array<{ type: 'flex' | 'fixed' | 'percent' | 'auto'; value: number | null; index?: number }>;
@@ -429,7 +424,7 @@ export interface ConfigureGridLayoutQueryPayload {
     maxWidth?: number;
     minHeight?: number;
     maxHeight?: number;
-    
+
     // Grid Cell Properties
     row?: number;
     column?: number;
@@ -446,27 +441,27 @@ export interface ConfigureRulerGuidesQueryPayload {
     orientation: 'horizontal' | 'vertical';
     position: number;
   }>;
-  
+
   removeGuides?: Array<{
     orientation: 'horizontal' | 'vertical';
     position: number;
   }>;
-  
+
   removeAll?: boolean;
 }
 
 export interface ConfigureBoardGuidesQueryPayload {
   shapeIds?: string[]; // Boards to configure
-  
+
   action: 'set' | 'add' | 'clear';
-  
+
   guides?: Array<{
     type: 'column' | 'row' | 'square';
     display?: boolean;
-    
+
     // Common params
     color?: string;
-    
+
     // Column/Row params
     count?: number; // Number of columns/rows (will calculate size automatically)
     alignment?: 'stretch' | 'left' | 'center' | 'right';
@@ -558,9 +553,6 @@ export type ClientQueryPayload =
   | UngroupQueryPayload
   | CreateShapeFromSvgQueryPayload
   | ExportSelectionAsSvgQueryPayload
-  | ExportSelectionAsPngQueryPayload
-  | ExportSelectionAsJpegQueryPayload
-  | ExportSelectionAsWebpQueryPayload
   | UndoLastActionQueryPayload
   | RedoLastActionQueryPayload
   | ResizeQueryPayload
@@ -831,20 +823,7 @@ export interface ExportSelectionAsSvgQueryPayload {
   includeBackground?: boolean;
 }
 
-export interface ExportSelectionAsPngQueryPayload {
-  quality?: number; // 0-1
-  includeBackground?: boolean;
-}
 
-export interface ExportSelectionAsJpegQueryPayload {
-  quality?: number; // 0-1
-  includeBackground?: boolean;
-}
-
-export interface ExportSelectionAsWebpQueryPayload {
-  quality?: number; // 0-1
-  includeBackground?: boolean;
-}
 
 export interface ResizeQueryPayload {
   scaleX?: number; // Scale factor for width (e.g., 1.5 = 50% larger, 0.5 = half size)
@@ -1063,23 +1042,7 @@ export interface ExportSelectionAsSvgResponsePayload {
   blobUrl?: string;
 }
 
-export interface ExportSelectionAsPngResponsePayload {
-  downloadUrls: string[];
-  shapeCount: number;
-  exportedShapes: Array<{ id: string; name?: string; fileName: string }>;
-}
 
-export interface ExportSelectionAsJpegResponsePayload {
-  downloadUrls: string[];
-  shapeCount: number;
-  exportedShapes: Array<{ id: string; name?: string; fileName: string }>;
-}
-
-export interface ExportSelectionAsWebpResponsePayload {
-  downloadUrls: string[];
-  shapeCount: number;
-  exportedShapes: Array<{ id: string; name?: string; fileName: string }>;
-}
 
 export interface ResizeResponsePayload {
   resizedShapes: Array<{ id: string; name?: string }>;
@@ -1278,9 +1241,6 @@ export type PluginResponsePayload =
   | FlattenResponsePayload
   | CreateShapeFromSvgResponsePayload
   | ExportSelectionAsSvgResponsePayload
-  | ExportSelectionAsPngResponsePayload
-  | ExportSelectionAsJpegResponsePayload
-  | ExportSelectionAsWebpResponsePayload
   | UndoLastActionResponsePayload
   | RedoLastActionResponsePayload
   | ResizeResponsePayload
@@ -1303,6 +1263,7 @@ export type PluginResponsePayload =
   | BatchCreatePagesResponsePayload
   | BatchCreateComponentsResponsePayload
   | GetColorPaletteResponsePayload
+  | ExportProjectResponsePayload
   | ExportProjectResponsePayload
   | UseSizePresetResponsePayload;
 
