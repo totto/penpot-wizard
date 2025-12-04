@@ -30,6 +30,11 @@ import {
   BatchCreatePagesQueryPayload,
   BatchCreateComponentsQueryPayload,
   UseSizePresetQueryPayload,
+  GetChildrenQueryPayload,
+  AppendChildQueryPayload,
+  InsertChildQueryPayload,
+  GetChildPropertiesQueryPayload,
+  GetParentElementQueryPayload,
 } from '@/types/types';
 import type {
   SetSelectionBlendModeQueryPayload,
@@ -1201,7 +1206,7 @@ export const functionTools: FunctionTool[] = [
     inputSchema: z.object({
       shapeIds: z.array(z.string()).optional().describe('Optional list of shape IDs to apply the layout to. If omitted, applies to current selection.'),
       remove: z.boolean().optional().describe('If true, removes the grid layout from the container.'),
-      
+
       // Container Props
       alignItems: z.enum(['start', 'end', 'center', 'stretch']).optional().describe('Alignment of items in their cells.'),
       alignContent: z.enum(['start', 'end', 'center', 'space-between', 'space-around', 'space-evenly', 'stretch']).optional().describe('Alignment of the grid within the container.'),
@@ -1227,7 +1232,7 @@ export const functionTools: FunctionTool[] = [
         type: z.enum(['flex', 'fixed', 'percent', 'auto']),
         value: z.number().nullable(),
       })).optional().describe('Set all columns. Overwrites existing columns.'),
-      
+
       addRows: z.array(z.object({
         type: z.enum(['flex', 'fixed', 'percent', 'auto']),
         value: z.number().nullable(),
@@ -1238,7 +1243,7 @@ export const functionTools: FunctionTool[] = [
         value: z.number().nullable(),
         index: z.number().optional(),
       })).optional().describe('Add specific columns.'),
-      
+
       removeRowIndices: z.array(z.number()).optional().describe('Indices of rows to remove.'),
       removeColumnIndices: z.array(z.number()).optional().describe('Indices of columns to remove.'),
 
@@ -1251,14 +1256,14 @@ export const functionTools: FunctionTool[] = [
         verticalSizing: z.enum(['auto', 'fill', 'fix']).optional().describe('Vertical sizing behavior of the child.'),
         alignSelf: z.enum(['auto', 'start', 'center', 'end', 'stretch']).optional().describe('Alignment of the child along the cross axis.'),
         justifySelf: z.enum(['auto', 'start', 'center', 'end', 'stretch']).optional().describe('Justification of the child along the main axis.'),
-        
+
         topMargin: z.number().optional(),
         rightMargin: z.number().optional(),
         bottomMargin: z.number().optional(),
         leftMargin: z.number().optional(),
         horizontalMargin: z.number().optional(),
         verticalMargin: z.number().optional(),
-        
+
         minWidth: z.number().optional(),
         maxWidth: z.number().optional(),
         minHeight: z.number().optional(),
@@ -1288,17 +1293,17 @@ export const functionTools: FunctionTool[] = [
     inputSchema: z.object({
       scope: z.enum(['page', 'board']).describe('Scope of the guides. "page" applies to the current page. "board" applies to selected boards.'),
       shapeIds: z.array(z.string()).optional().describe('List of board IDs if scope is "board". If omitted and scope is "board", applies to current selection.'),
-      
+
       addGuides: z.array(z.object({
         orientation: z.enum(['horizontal', 'vertical']),
         position: z.number(),
       })).optional().describe('List of guides to add.'),
-      
+
       removeGuides: z.array(z.object({
         orientation: z.enum(['horizontal', 'vertical']),
         position: z.number(),
       })).optional().describe('List of guides to remove. Matches by orientation and position.'),
-      
+
       removeAll: z.boolean().optional().describe('If true, removes all guides in the specified scope.'),
     }),
     function: async (args: ConfigureRulerGuidesQueryPayload) => {
@@ -1413,3 +1418,106 @@ The interaction will appear in Penpot's Prototype panel and can be configured wi
 
 functionTools.push(navigateToBoardTool);
 
+
+export const getChildrenTool = {
+  id: "get-children",
+  name: "getChildren",
+  description: "Get the children of a shape (board, group, or boolean operation). Returns their IDs, names, and types.",
+  inputSchema: z.object({
+    shapeId: z.string().describe("The ID of the parent shape to get children from."),
+  }),
+  function: async (args: any) => {
+    const payload: GetChildrenQueryPayload = {
+      shapeId: args.shapeId,
+    };
+    return sendMessageToPlugin(ClientQueryType.GET_CHILDREN, payload);
+  },
+};
+
+functionTools.push(getChildrenTool);
+
+export const appendChildTool = {
+  id: "append-child",
+  name: "appendChild",
+  description: "Append a child shape to a parent shape. The child is moved to the end of the parent's children list (topmost in visual stacking order by default).",
+  inputSchema: z.object({
+    parentId: z.string().describe("The ID of the parent shape."),
+    childId: z.string().describe("The ID of the child shape to append."),
+    scrollToRect: z.boolean().optional().describe("Whether to scroll the viewport to show the parent after appending."),
+    updateCurrentSelection: z.boolean().optional().describe("Whether to select the child after appending."),
+    bringToFront: z.boolean().optional().default(true).describe("Whether to bring the child to the front (highest z-index) of the parent's children."),
+  }),
+  function: async (args: any) => {
+    const payload: AppendChildQueryPayload = {
+      parentId: args.parentId,
+      childId: args.childId,
+      scrollToRect: args.scrollToRect,
+      updateCurrentSelection: args.updateCurrentSelection,
+      bringToFront: args.bringToFront,
+    };
+    return sendMessageToPlugin(ClientQueryType.APPEND_CHILD, payload);
+  },
+};
+
+functionTools.push(appendChildTool);
+
+export const insertChildTool = {
+  id: "insert-child",
+  name: "insertChild",
+  description: "Insert a child shape into a parent shape at a specific index.",
+  inputSchema: z.object({
+    parentId: z.string().describe("The ID of the parent shape."),
+    childId: z.string().describe("The ID of the child shape to insert."),
+    index: z.number().describe("The index at which to insert the child (0 is bottom-most)."),
+    scrollToRect: z.boolean().optional().describe("Whether to scroll the viewport to show the parent after inserting."),
+    updateCurrentSelection: z.boolean().optional().describe("Whether to select the child after inserting."),
+    bringToFront: z.boolean().optional().default(false).describe("Whether to bring the child to the front. Defaults to false to respect the index."),
+  }),
+  function: async (args: any) => {
+    const payload: InsertChildQueryPayload = {
+      parentId: args.parentId,
+      childId: args.childId,
+      index: args.index,
+      scrollToRect: args.scrollToRect,
+      updateCurrentSelection: args.updateCurrentSelection,
+      bringToFront: args.bringToFront,
+    };
+    return sendMessageToPlugin(ClientQueryType.INSERT_CHILD, payload);
+  },
+};
+
+functionTools.push(insertChildTool);
+
+export const getChildPropertiesTool = {
+  id: "get-child-properties",
+  name: "getChildProperties",
+  description: "Get layout-specific properties of a child shape, such as constraints, fixed width/height, and locked status.",
+  inputSchema: z.object({
+    shapeId: z.string().describe("The ID of the child shape."),
+  }),
+  function: async (args: any) => {
+    const payload: GetChildPropertiesQueryPayload = {
+      shapeId: args.shapeId,
+    };
+    return sendMessageToPlugin(ClientQueryType.GET_CHILD_PROPERTIES, payload);
+  },
+};
+
+functionTools.push(getChildPropertiesTool);
+
+export const getParentElementTool = {
+  id: "get-parent-element",
+  name: "getParentElement",
+  description: "Get the parent element of a shape. Returns the parent's ID, name, and type, or null if it's a root element.",
+  inputSchema: z.object({
+    shapeId: z.string().describe("The ID of the shape to get the parent of."),
+  }),
+  function: async (args: any) => {
+    const payload: GetParentElementQueryPayload = {
+      shapeId: args.shapeId,
+    };
+    return sendMessageToPlugin(ClientQueryType.GET_PARENT_ELEMENT, payload);
+  },
+};
+
+functionTools.push(getParentElementTool);

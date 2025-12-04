@@ -98,6 +98,11 @@ import {
   ChangePageBackgroundResponsePayload,
   RenamePageQueryPayload,
   RenamePageResponsePayload,
+  GetChildrenQueryPayload,
+  AppendChildQueryPayload,
+  InsertChildQueryPayload,
+  GetChildPropertiesQueryPayload,
+  GetParentElementQueryPayload,
   BatchCreatePagesQueryPayload,
   BatchCreatePagesResponsePayload,
   BatchCreateComponentsQueryPayload,
@@ -11123,6 +11128,532 @@ export async function configureInteractionFlow(payload: ConfigureInteractionFlow
       type: ClientQueryType.CONFIGURE_INTERACTION_FLOW,
       success: false,
       message: `Error configuring interaction flow: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function getChildrenTool(payload: GetChildrenQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { shapeId } = payload;
+
+    if (!shapeId) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_CHILDREN,
+        success: false,
+        message: 'shapeId is required',
+      };
+    }
+
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+
+    if (!shape) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_CHILDREN,
+        success: false,
+        message: `Shape with ID "${shapeId}" not found`,
+      };
+    }
+
+    // Check if shape has children property (board, group, or boolean)
+    const shapeWithChildren = shape as any;
+    if (!shapeWithChildren.children || !Array.isArray(shapeWithChildren.children)) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_CHILDREN,
+        success: false,
+        message: `Shape "${shape.name}" (type: ${shape.type}) does not have children. Only boards, groups, and boolean shapes can have children.`,
+      };
+    }
+
+    const children: ChildInfo[] = shapeWithChildren.children.map((child: any) => ({
+      id: child.id,
+      name: child.name || 'Unnamed',
+      type: child.type,
+    }));
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_CHILDREN,
+      message: `Retrieved ${children.length} children from "${shape.name}"`,
+      payload: {
+        children,
+        parentId: shape.id,
+        parentName: shape.name,
+      } as GetChildrenResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_CHILDREN,
+      success: false,
+      message: `Error getting children: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function appendChildTool(payload: AppendChildQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { parentId, childId, scrollToRect, updateCurrentSelection: updateSelection, bringToFront = true } = payload;
+
+    if (!parentId || !childId) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPEND_CHILD,
+        success: false,
+        message: 'parentId and childId are required',
+      };
+    }
+
+    const parent = penpot.currentPage?.getShapeById(parentId);
+    const child = penpot.currentPage?.getShapeById(childId);
+
+    if (!parent) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPEND_CHILD,
+        success: false,
+        message: `Parent shape with ID "${parentId}" not found`,
+      };
+    }
+
+    if (!child) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPEND_CHILD,
+        success: false,
+        message: `Child shape with ID "${childId}" not found`,
+      };
+    }
+
+    // Check if parent has appendChild method (board, group, or boolean)
+    const parentWithChildren = parent as any;
+    if (typeof parentWithChildren.appendChild !== 'function') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.APPEND_CHILD,
+        success: false,
+        message: `Shape "${parent.name}" (type: ${parent.type}) cannot have children. Only boards, groups, and boolean shapes can have children.`,
+      };
+    }
+
+    // Capture previous parent info for undo
+    const previousParent = (child as any).parent ?? null;
+    const previousParentId = previousParent ? previousParent.id : null;
+    const previousIndex = previousParent && Array.isArray(previousParent.children)
+      ? previousParent.children.findIndex((c: any) => c.id === child.id)
+      : null;
+
+    // Store previous position for undo
+    const previousX = child.x;
+    const previousY = child.y;
+
+    // Perform appendChild
+    parentWithChildren.appendChild(child);
+
+    // Get new index (last index)
+    const newIndex = parentWithChildren.children ? parentWithChildren.children.length - 1 : 0;
+
+    // Calculate center position on the parent (board/group)
+    const parentCenterX = (parent.x ?? 0) + (parent.width ?? 0) / 2;
+    const parentCenterY = (parent.y ?? 0) + (parent.height ?? 0) / 2;
+
+    // Calculate child's new position (centered on parent)
+    let newX = parentCenterX - (child.width ?? 0) / 2;
+    let newY = parentCenterY - (child.height ?? 0) / 2;
+
+    // Check for existing children and apply stacking offset to avoid overlap
+    const STACK_OFFSET = 20; // pixels to offset each stacked child
+    if (parentWithChildren.children && parentWithChildren.children.length > 1) {
+      // Count how many children are already positioned near the center
+      const childrenNearCenter = parentWithChildren.children.filter((sibling: any) => {
+        if (sibling.id === child.id) return false; // Don't count self
+        const siblingCenterX = (sibling.x ?? 0) + (sibling.width ?? 0) / 2;
+        const siblingCenterY = (sibling.y ?? 0) + (sibling.height ?? 0) / 2;
+        const distanceFromCenter = Math.sqrt(
+          Math.pow(siblingCenterX - parentCenterX, 2) +
+          Math.pow(siblingCenterY - parentCenterY, 2)
+        );
+        // Consider "near center" if within 100 pixels
+        return distanceFromCenter < 100;
+      }).length;
+
+      // Apply offset based on number of children near center
+      if (childrenNearCenter > 0) {
+        newX += childrenNearCenter * STACK_OFFSET;
+        newY += childrenNearCenter * STACK_OFFSET;
+      }
+    }
+
+    // Update child position to be visually on the board
+    child.x = newX;
+    child.y = newY;
+
+    // Bring to front if requested (default: true)
+    if (bringToFront) {
+      // Check if parent has layout (flex/grid) - use layoutChild.zIndex
+      const hasFlexLayout = 'flex' in parent && (parent as any).flex;
+      const hasGridLayout = 'grid' in parent && (parent as any).grid;
+
+      if ((hasFlexLayout || hasGridLayout) && (child as any).layoutChild) {
+        // Find max z-index among siblings
+        const maxZIndex = Math.max(
+          0,
+          ...parentWithChildren.children
+            .filter((sibling: any) => sibling.layoutChild && sibling.id !== child.id)
+            .map((sibling: any) => sibling.layoutChild.zIndex || 0)
+        );
+        (child as any).layoutChild.zIndex = maxZIndex + 1;
+        console.debug(`[appendChildTool] Set layoutChild.zIndex to ${maxZIndex + 1} for child "${child.name}"`);
+      }
+      // Note: For non-layout parents, z-index is determined by children array order
+      // Since we just appended, the child is already at the end (top of stack)
+    }
+
+    // Record undo info
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.APPEND_CHILD,
+      actionId: `append_child_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Append child ${child.id} to parent ${parent.id}`,
+      undoData: {
+        childId: child.id,
+        previousParentId,
+        previousIndex,
+        newParentId: parent.id,
+        newIndex,
+        previousX,
+        previousY,
+      },
+      timestamp: Date.now(),
+    };
+
+    addToUndoStack(undoInfo);
+
+    // Scroll viewport to the parent board (not the child)
+    if (scrollToRect) {
+      const viewport: any = (globalThis as any).penpot?.viewport;
+      if (viewport && typeof viewport.scrollToRect === 'function') {
+        // Focus on the parent board
+        const rect = { x: parent.x ?? 0, y: parent.y ?? 0, width: parent.width ?? 0, height: parent.height ?? 0 };
+        console.debug('[appendChildTool] Scrolling viewport to parent board rect', rect, 'parentId=', parent.id);
+        viewport.scrollToRect(rect);
+        console.debug('[appendChildTool] scrollToRect called');
+      }
+    }
+
+    // Optionally update the internal action-only selection (not directly setting host selection)
+    if (updateSelection) {
+      console.debug('[appendChildTool] Calling updateCurrentSelection for appended child', child.id);
+      updateCurrentSelection([child.id]);
+      console.debug('[appendChildTool] updateCurrentSelection called');
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPEND_CHILD,
+      message: `Appended "${child.name}" to "${parent.name}" at index ${newIndex}, centered on board${bringToFront ? ' and brought to front' : ''}`,
+      payload: {
+        parentId: parent.id,
+        parentName: parent.name,
+        childId: child.id,
+        childName: child.name,
+        newIndex,
+        undoInfo,
+      } as AppendChildResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.APPEND_CHILD,
+      success: false,
+      message: `Error appending child: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function insertChildTool(payload: InsertChildQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { parentId, childId, index, scrollToRect, updateCurrentSelection: updateSelection, bringToFront = false } = payload;
+
+    if (!parentId || !childId || typeof index !== 'number') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.INSERT_CHILD,
+        success: false,
+        message: 'parentId, childId, and index are required',
+      };
+    }
+
+    const parent = penpot.currentPage?.getShapeById(parentId);
+    const child = penpot.currentPage?.getShapeById(childId);
+
+    if (!parent) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.INSERT_CHILD,
+        success: false,
+        message: `Parent shape with ID "${parentId}" not found`,
+      };
+    }
+
+    if (!child) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.INSERT_CHILD,
+        success: false,
+        message: `Child shape with ID "${childId}" not found`,
+      };
+    }
+
+    // Check if parent has insertChild method (board, group, or boolean)
+    const parentWithChildren = parent as any;
+    if (typeof parentWithChildren.insertChild !== 'function') {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.INSERT_CHILD,
+        success: false,
+        message: `Shape "${parent.name}" (type: ${parent.type}) cannot have children. Only boards, groups, and boolean shapes can have children.`,
+      };
+    }
+
+    // Validate index
+    const childrenCount = parentWithChildren.children ? parentWithChildren.children.length : 0;
+    if (index < 0 || index > childrenCount) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.INSERT_CHILD,
+        success: false,
+        message: `Index ${index} is out of bounds. Parent has ${childrenCount} children (valid range: 0-${childrenCount}).`,
+      };
+    }
+
+    // Capture previous parent info for undo
+    const previousParent = (child as any).parent ?? null;
+    const previousParentId = previousParent ? previousParent.id : null;
+    const previousIndex = previousParent && Array.isArray(previousParent.children)
+      ? previousParent.children.findIndex((c: any) => c.id === child.id)
+      : null;
+
+    // Store previous position for undo
+    const previousX = child.x;
+    const previousY = child.y;
+
+    // Perform insertChild
+    parentWithChildren.insertChild(index, child);
+
+    // Calculate center position on the parent (board/group)
+    const parentCenterX = (parent.x ?? 0) + (parent.width ?? 0) / 2;
+    const parentCenterY = (parent.y ?? 0) + (parent.height ?? 0) / 2;
+
+    // Calculate child's new position (centered on parent)
+    let newX = parentCenterX - (child.width ?? 0) / 2;
+    let newY = parentCenterY - (child.height ?? 0) / 2;
+
+    // Check for existing children and apply stacking offset to avoid overlap
+    const STACK_OFFSET = 20; // pixels to offset each stacked child
+    if (parentWithChildren.children && parentWithChildren.children.length > 1) {
+      // Count how many children are already positioned near the center
+      const childrenNearCenter = parentWithChildren.children.filter((sibling: any) => {
+        if (sibling.id === child.id) return false; // Don't count self
+        const siblingCenterX = (sibling.x ?? 0) + (sibling.width ?? 0) / 2;
+        const siblingCenterY = (sibling.y ?? 0) + (sibling.height ?? 0) / 2;
+        const distanceFromCenter = Math.sqrt(
+          Math.pow(siblingCenterX - parentCenterX, 2) +
+          Math.pow(siblingCenterY - parentCenterY, 2)
+        );
+        // Consider "near center" if within 100 pixels
+        return distanceFromCenter < 100;
+      }).length;
+
+      // Apply offset based on number of children near center
+      if (childrenNearCenter > 0) {
+        newX += childrenNearCenter * STACK_OFFSET;
+        newY += childrenNearCenter * STACK_OFFSET;
+      }
+    }
+
+    // Update child position to be visually on the board
+    child.x = newX;
+    child.y = newY;
+
+    // Optionally bring to front (default: false to respect index)
+    if (bringToFront) {
+      // Check if parent has layout (flex/grid) - use layoutChild.zIndex
+      const hasFlexLayout = 'flex' in parent && (parent as any).flex;
+      const hasGridLayout = 'grid' in parent && (parent as any).grid;
+
+      if ((hasFlexLayout || hasGridLayout) && (child as any).layoutChild) {
+        // Find max z-index among siblings
+        const maxZIndex = Math.max(
+          0,
+          ...parentWithChildren.children
+            .filter((sibling: any) => sibling.layoutChild && sibling.id !== child.id)
+            .map((sibling: any) => sibling.layoutChild.zIndex || 0)
+        );
+        (child as any).layoutChild.zIndex = maxZIndex + 1;
+        console.debug(`[insertChildTool] Set layoutChild.zIndex to ${maxZIndex + 1} for child "${child.name}"`);
+      }
+    }
+
+    // Record undo info
+    const undoInfo: UndoInfo = {
+      actionType: ClientQueryType.INSERT_CHILD,
+      actionId: `insert_child_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      description: `Insert child ${child.id} into parent ${parent.id} at index ${index}`,
+      undoData: {
+        childId: child.id,
+        previousParentId,
+        previousIndex,
+        newParentId: parent.id,
+        newIndex: index,
+        previousX,
+        previousY,
+      },
+      timestamp: Date.now(),
+    };
+    addToUndoStack(undoInfo);
+
+    // Scroll viewport to the parent board
+    if (scrollToRect) {
+      const viewport: any = (globalThis as any).penpot?.viewport;
+      if (viewport && typeof viewport.scrollToRect === 'function') {
+        const rect = { x: parent.x ?? 0, y: parent.y ?? 0, width: parent.width ?? 0, height: parent.height ?? 0 };
+        console.debug('[insertChildTool] Scrolling viewport to parent board rect', rect, 'parentId=', parent.id);
+        viewport.scrollToRect(rect);
+        console.debug('[insertChildTool] scrollToRect called');
+      }
+    }
+
+    // Optionally update the internal action-only selection
+    if (updateSelection) {
+      console.debug('[insertChildTool] Calling updateCurrentSelection for inserted child', child.id);
+      updateCurrentSelection([child.id]);
+      console.debug('[insertChildTool] updateCurrentSelection called');
+    }
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.INSERT_CHILD,
+      message: `Inserted "${child.name}" into "${parent.name}" at index ${index}, centered on board${bringToFront ? ' and brought to front' : ''}`,
+      payload: {
+        parentId: parent.id,
+        parentName: parent.name,
+        childId: child.id,
+        childName: child.name,
+        index,
+        undoInfo,
+      } as InsertChildResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.INSERT_CHILD,
+      success: false,
+      message: `Error inserting child: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function getChildPropertiesTool(payload: GetChildPropertiesQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { shapeId } = payload;
+
+    if (!shapeId) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_CHILD_PROPERTIES,
+        success: false,
+        message: 'shapeId is required',
+      };
+    }
+
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+
+    if (!shape) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_CHILD_PROPERTIES,
+        success: false,
+        message: `Shape with ID "${shapeId}" not found`,
+      };
+    }
+
+    // Access properties safely
+    const s = shape as any;
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_CHILD_PROPERTIES,
+      message: `Retrieved child properties for "${shape.name}"`,
+      payload: {
+        shapeId: shape.id,
+        name: shape.name,
+        constraintsHorizontal: s.constraintsHorizontal,
+        constraintsVertical: s.constraintsVertical,
+        fixWidth: s.fixWidth,
+        fixHeight: s.fixHeight,
+        proportionLock: s.proportionLock,
+        locked: s.locked,
+        hidden: s.hidden,
+      } as GetChildPropertiesResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_CHILD_PROPERTIES,
+      success: false,
+      message: `Error getting child properties: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function getParentElementTool(payload: GetParentElementQueryPayload): Promise<PluginResponseMessage> {
+  try {
+    const { shapeId } = payload;
+
+    if (!shapeId) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_PARENT_ELEMENT,
+        success: false,
+        message: 'shapeId is required',
+      };
+    }
+
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+
+    if (!shape) {
+      return {
+        ...pluginResponse,
+        type: ClientQueryType.GET_PARENT_ELEMENT,
+        success: false,
+        message: `Shape with ID "${shapeId}" not found`,
+      };
+    }
+
+    // Access parent property safely
+    const s = shape as any;
+    const parent = s.parent;
+
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_PARENT_ELEMENT,
+      message: `Retrieved parent element for "${shape.name}"`,
+      payload: {
+        shapeId: shape.id,
+        name: shape.name,
+        parentId: parent ? parent.id : null,
+        parentName: parent ? parent.name : null,
+        parentType: parent ? parent.type : null,
+      } as GetParentElementResponsePayload,
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      type: ClientQueryType.GET_PARENT_ELEMENT,
+      success: false,
+      message: `Error getting parent element: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

@@ -62,6 +62,11 @@ import {
   ConfigureFlexLayoutQueryPayload,
   ConfigureGridLayoutQueryPayload,
   ConfigureRulerGuidesQueryPayload,
+  GetChildrenQueryPayload,
+  AppendChildQueryPayload,
+  InsertChildQueryPayload,
+  GetChildPropertiesQueryPayload,
+  GetParentElementQueryPayload,
 
 } from '../types/types';
 
@@ -142,6 +147,11 @@ import {
   getFileVersionsTool,
   getColorPaletteTool,
   useSizePresetTool,
+  getChildrenTool,
+  appendChildTool,
+  insertChildTool,
+  getChildPropertiesTool,
+  getParentElementTool,
   navigateToBoard,
   openBoardAsOverlay,
   toggleOverlay,
@@ -557,6 +567,26 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.CONFIGURE_INTERACTION_FLOW:
       responseMessage = await configureInteractionFlow(payload as unknown as ConfigureInteractionFlowQueryPayload);
+      break;
+
+    case ClientQueryType.GET_CHILDREN:
+      responseMessage = await getChildrenTool(payload as unknown as GetChildrenQueryPayload);
+      break;
+
+    case ClientQueryType.APPEND_CHILD:
+      responseMessage = await appendChildTool(payload as unknown as AppendChildQueryPayload);
+      break;
+
+    case ClientQueryType.INSERT_CHILD:
+      responseMessage = await insertChildTool(payload as unknown as InsertChildQueryPayload);
+      break;
+
+    case ClientQueryType.GET_CHILD_PROPERTIES:
+      responseMessage = await getChildPropertiesTool(payload as unknown as GetChildPropertiesQueryPayload);
+      break;
+
+    case ClientQueryType.GET_PARENT_ELEMENT:
+      responseMessage = await getParentElementTool(payload as unknown as GetParentElementQueryPayload);
       break;
 
     default:

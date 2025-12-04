@@ -99,6 +99,11 @@ export enum ClientQueryType {
   BATCH_CREATE_COMPONENTS = 'BATCH_CREATE_COMPONENTS',
   GET_COLOR_PALETTE = 'GET_COLOR_PALETTE',
   USE_SIZE_PRESET = 'USE_SIZE_PRESET',
+  GET_CHILDREN = 'GET_CHILDREN',
+  APPEND_CHILD = 'APPEND_CHILD',
+  INSERT_CHILD = 'INSERT_CHILD',
+  GET_CHILD_PROPERTIES = 'GET_CHILD_PROPERTIES',
+  GET_PARENT_ELEMENT = 'GET_PARENT_ELEMENT',
 }
 
 export enum PenpotShapeType {
@@ -1226,7 +1231,12 @@ export type PluginResponsePayload =
   | BatchCreatePagesResponsePayload
   | BatchCreateComponentsResponsePayload
   | GetColorPaletteResponsePayload
-  | UseSizePresetResponsePayload;
+  | UseSizePresetResponsePayload
+  | GetChildrenResponsePayload
+  | AppendChildResponsePayload
+  | InsertChildResponsePayload
+  | GetChildPropertiesResponsePayload
+  | GetParentElementResponsePayload;
 
 // Response for ungrouping shapes
 export interface UngroupResponsePayload {
@@ -1354,4 +1364,90 @@ export interface FileVersion {
 
 export interface GetFileVersionsResponsePayload {
   versions: FileVersion[];
+}
+
+export interface GetChildrenQueryPayload {
+  shapeId: string;
+}
+
+export interface ChildInfo {
+  id: string;
+  name: string;
+  type: string;
+}
+
+export interface GetChildrenResponsePayload {
+  children: ChildInfo[];
+  parentId: string;
+  parentName: string;
+}
+
+export interface AppendChildQueryPayload {
+  parentId: string;
+  childId: string;
+  // When true, scroll viewport to the appended child's bounding rect if available
+  scrollToRect?: boolean;
+  // When true, call updateCurrentSelection([childId]) after append (does not directly set host selection)
+  updateCurrentSelection?: boolean;
+  // When true (default), bring the child to the front of the z-index stack
+  bringToFront?: boolean;
+}
+
+export interface AppendChildResponsePayload {
+  parentId: string;
+  parentName: string;
+  childId: string;
+  childName: string;
+  newIndex: number;
+  undoInfo?: UndoInfo;
+}
+
+export interface InsertChildQueryPayload {
+  parentId: string;
+  childId: string;
+  index: number;
+  // When true, scroll viewport to the parent board after inserting
+  scrollToRect?: boolean;
+  // When true, call updateCurrentSelection([childId]) after insert
+  updateCurrentSelection?: boolean;
+  // When true, bring the child to the front of the z-index stack (default: false to respect index)
+  bringToFront?: boolean;
+}
+
+export interface InsertChildResponsePayload {
+  parentId: string;
+  parentName: string;
+  childId: string;
+  childName: string;
+  index: number;
+  undoInfo?: UndoInfo;
+}
+
+export interface GetChildPropertiesQueryPayload {
+  shapeId: string;
+}
+
+export interface GetChildPropertiesResponsePayload {
+  shapeId: string;
+  name: string;
+  constraintsHorizontal?: string;
+  constraintsVertical?: string;
+  fixWidth?: boolean;
+  fixHeight?: boolean;
+  proportionLock?: boolean;
+  locked?: boolean;
+  hidden?: boolean;
+  // Add other relevant child properties here as needed
+}
+
+export interface GetParentElementQueryPayload {
+  shapeId: string;
+}
+
+export interface GetParentElementResponsePayload {
+  shapeId: string;
+  name: string;
+  parentId: string | null;
+  parentName: string | null;
+  parentType: string | null;
 }
