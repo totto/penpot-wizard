@@ -1,4 +1,4 @@
-import { batchCreatePagesTool, batchCreateComponentsTool, getColorPaletteTool, exportProjectTool, useSizePresetTool } from '../mainHandlers';
+import { batchCreatePagesTool, batchCreateComponentsTool, getColorPaletteTool, useSizePresetTool } from '../mainHandlers';
 import { 
   ClientQueryType, 
   BatchCreatePagesQueryPayload, 
@@ -6,8 +6,7 @@ import {
   BatchCreateComponentsQueryPayload,
   BatchCreateComponentsResponsePayload,
   GetColorPaletteResponsePayload,
-  ExportProjectQueryPayload,
-  ExportProjectResponsePayload,
+
   UseSizePresetQueryPayload,
   UseSizePresetResponsePayload
 } from '../../types/types';
@@ -209,49 +208,7 @@ describe('getColorPaletteTool', () => {
   });
 });
 
-describe('exportProjectTool', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    
-    // Mock penpot.file.export
-    mockPenpot.file = {
-      export: vi.fn(),
-    };
-  });
 
-  it('initiates project export successfully', async () => {
-    const payload: ExportProjectQueryPayload = { filename: 'MyProject' };
-    
-    const result = await exportProjectTool(payload);
-
-    expect(result.success).toBe(true);
-    expect(mockPenpot.file.export).toHaveBeenCalledWith('MyProject');
-    
-    const responsePayload = result.payload as ExportProjectResponsePayload;
-    expect(responsePayload.success).toBe(true);
-    expect(responsePayload.message).toBe('Export started');
-  });
-
-  it('handles missing export API gracefully', async () => {
-    // Simulate missing API
-    mockPenpot.file = undefined;
-
-    const result = await exportProjectTool({});
-
-    expect(result.success).toBe(false);
-    expect(result.message).toContain('Export API not available');
-  });
-
-  it('handles export errors gracefully', async () => {
-    mockPenpot.file.export.mockRejectedValue(new Error('Export failed'));
-
-    const result = await exportProjectTool({});
-
-    expect(result.success).toBe(false);
-    expect(result.message).toContain('Error exporting project');
-    expect(result.message).toContain('Export failed');
-  });
-});
 
 describe('useSizePresetTool', () => {
   const mockShape1 = { 

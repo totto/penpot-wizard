@@ -57,7 +57,6 @@ import {
   CreatePageQueryPayload,
   BatchCreatePagesQueryPayload,
   BatchCreateComponentsQueryPayload,
-  ExportProjectQueryPayload,
   UseSizePresetQueryPayload,
   ZIndexQueryPayload,
   ConfigureFlexLayoutQueryPayload,
@@ -143,7 +142,6 @@ import {
   getCurrentThemeTool,
   getFileVersionsTool,
   getColorPaletteTool,
-  exportProjectTool,
   useSizePresetTool,
   navigateToBoard,
   openBoardAsOverlay,
@@ -527,10 +525,6 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.GET_COLOR_PALETTE:
       responseMessage = await getColorPaletteTool();
-      break;
-
-    case ClientQueryType.EXPORT_PROJECT:
-      responseMessage = await exportProjectTool(payload as unknown as ExportProjectQueryPayload);
       break;
 
     case ClientQueryType.USE_SIZE_PRESET:

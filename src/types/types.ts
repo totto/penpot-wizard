@@ -98,7 +98,6 @@ export enum ClientQueryType {
   BATCH_CREATE_PAGES = 'BATCH_CREATE_PAGES',
   BATCH_CREATE_COMPONENTS = 'BATCH_CREATE_COMPONENTS',
   GET_COLOR_PALETTE = 'GET_COLOR_PALETTE',
-  EXPORT_PROJECT = 'EXPORT_PROJECT',
   USE_SIZE_PRESET = 'USE_SIZE_PRESET',
 }
 
@@ -510,14 +509,6 @@ export interface GetColorPaletteResponsePayload {
   }>;
 }
 
-export interface ExportProjectQueryPayload {
-  filename?: string;
-}
-
-export interface ExportProjectResponsePayload {
-  success: boolean;
-  message: string;
-}
 
 export interface UseSizePresetQueryPayload {
   presetName: string;
@@ -580,7 +571,6 @@ export type ClientQueryPayload =
   | BatchCreatePagesQueryPayload
   | BatchCreateComponentsQueryPayload
   | GetColorPaletteQueryPayload
-  | ExportProjectQueryPayload
   | UseSizePresetQueryPayload;
 
 // Undo system interfaces
@@ -1263,7 +1253,6 @@ export type PluginResponsePayload =
   | BatchCreatePagesResponsePayload
   | BatchCreateComponentsResponsePayload
   | GetColorPaletteResponsePayload
-  | ExportProjectResponsePayload
   | UseSizePresetResponsePayload;
 
 // Response for ungrouping shapes
