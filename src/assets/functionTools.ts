@@ -27,7 +27,6 @@ import {
   ConfigureFlexLayoutQueryPayload,
   ConfigureGridLayoutQueryPayload,
   ConfigureRulerGuidesQueryPayload,
-
   BatchCreatePagesQueryPayload,
   BatchCreateComponentsQueryPayload,
   UseSizePresetQueryPayload,

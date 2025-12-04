@@ -138,7 +138,6 @@ import {
   configureFlexLayoutTool,
   configureGridLayoutTool,
   configureRulerGuidesTool,
-
   getCurrentThemeTool,
   getFileVersionsTool,
   getColorPaletteTool,

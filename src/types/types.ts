@@ -546,7 +546,6 @@ export type ClientQueryPayload =
   | ConfigureFlexLayoutQueryPayload
   | ConfigureGridLayoutQueryPayload
   | ConfigureRulerGuidesQueryPayload
-
   | BatchCreatePagesQueryPayload
   | BatchCreateComponentsQueryPayload
   | GetColorPaletteQueryPayload

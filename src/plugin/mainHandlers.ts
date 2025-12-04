@@ -102,8 +102,6 @@ import {
   BatchCreatePagesResponsePayload,
   BatchCreateComponentsQueryPayload,
   BatchCreateComponentsResponsePayload,
-  ExportProjectQueryPayload,
-  ExportProjectResponsePayload,
   UseSizePresetQueryPayload,
   UseSizePresetResponsePayload,
   ZIndexQueryPayload,
@@ -114,7 +112,6 @@ import {
   ConfigureGridLayoutResponsePayload,
   ConfigureRulerGuidesQueryPayload,
   ConfigureRulerGuidesResponsePayload,
-
   GetCurrentThemeResponsePayload,
   GetFileVersionsResponsePayload,
 } from "../types/types";
