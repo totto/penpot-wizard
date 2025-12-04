@@ -62,7 +62,7 @@ import {
   ConfigureFlexLayoutQueryPayload,
   ConfigureGridLayoutQueryPayload,
   ConfigureRulerGuidesQueryPayload,
-  ConfigureBoardGuidesQueryPayload,
+
 } from '../types/types';
 
 import {
@@ -138,7 +138,7 @@ import {
   configureFlexLayoutTool,
   configureGridLayoutTool,
   configureRulerGuidesTool,
-  configureBoardGuidesTool,
+
   getCurrentThemeTool,
   getFileVersionsTool,
   getColorPaletteTool,
@@ -519,9 +519,6 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
       responseMessage = await configureRulerGuidesTool(payload as unknown as ConfigureRulerGuidesQueryPayload);
       break;
 
-    case ClientQueryType.CONFIGURE_BOARD_GUIDES:
-      responseMessage = await configureBoardGuidesTool(payload as unknown as ConfigureBoardGuidesQueryPayload);
-      break;
 
     case ClientQueryType.GET_COLOR_PALETTE:
       responseMessage = await getColorPaletteTool();

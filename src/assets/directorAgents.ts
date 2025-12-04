@@ -165,7 +165,7 @@ When using the resize-selection tool:
       'configure-flex-layout',
       'configure-grid-layout',
       'configure-ruler-guides',
-      'configure-board-guides',
+
       'use-size-preset',
       'navigate-to-board',
       'open-board-as-overlay',

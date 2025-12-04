@@ -27,7 +27,7 @@ import {
   ConfigureFlexLayoutQueryPayload,
   ConfigureGridLayoutQueryPayload,
   ConfigureRulerGuidesQueryPayload,
-  ConfigureBoardGuidesQueryPayload,
+
   BatchCreatePagesQueryPayload,
   BatchCreateComponentsQueryPayload,
   UseSizePresetQueryPayload,
@@ -1307,40 +1307,7 @@ export const functionTools: FunctionTool[] = [
       return response;
     },
   },
-  {
-    id: 'configure-board-guides',
-    name: 'configureBoardGuides',
-    description: `
-      Configures **Board Layout Guides** (Column Grids, Row Grids, Square Grids) for selected boards.
-      These are the **red/colored overlays** used for alignment.
-      Use this to add, set, or **clear/remove** column/row grids.
-      
-      *For debugging info, see: docs/LAYOUT_TOOLS_INFO_AND_DEBUG.MD*
-    `,
-    inputSchema: z.object({
-      shapeIds: z.array(z.string()).optional().describe('Board IDs to configure. If omitted, applies to current selection.'),
-      
-      action: z.enum(['set', 'add', 'clear']).describe('Action to perform. "set" replaces all guides, "add" appends guides, "clear" removes all guides.'),
-      
-      guides: z.array(z.object({
-        type: z.enum(['column', 'row', 'square']).describe('Type of guide.'),
-        display: z.boolean().optional().describe('Whether the guide is visible.'),
-        color: z.string().optional().describe('Color of the guide (hex format).'),
-        
-        // Column/Row specific
-        count: z.number().optional().describe('Number of columns/rows to create. If specified, the plugin will calculate the size automatically based on board dimensions.'),
-        alignment: z.enum(['stretch', 'left', 'center', 'right']).optional().describe('Alignment for column/row guides.'),
-        size: z.number().optional().describe('Size (width for columns, height for rows). For N-column grids, calculate: size = (boardWidth - 2*margin - (N-1)*gutter) / N. Alternatively, use the count property.'),
-        margin: z.number().optional().describe('Margin around the guide area.'),
-        itemLength: z.number().optional().describe('DEPRECATED: Length of each individual item within the guide. This is NOT the number of columns/rows.'),
-        gutter: z.number().optional().describe('Gutter (spacing) between guide items.'),
-      })).optional().describe('List of guides to set or add. Required for "set" and "add" actions.'),
-    }),
-    function: async (args: ConfigureBoardGuidesQueryPayload) => {
-      const response = await sendMessageToPlugin(ClientQueryType.CONFIGURE_BOARD_GUIDES, args);
-      return response;
-    },
-  },
+
   {
     id: "get-current-theme",
     name: "getCurrentTheme",

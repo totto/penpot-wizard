@@ -94,7 +94,7 @@ export enum ClientQueryType {
   CONFIGURE_FLEX_LAYOUT = 'CONFIGURE_FLEX_LAYOUT',
   CONFIGURE_GRID_LAYOUT = 'CONFIGURE_GRID_LAYOUT',
   CONFIGURE_RULER_GUIDES = 'CONFIGURE_RULER_GUIDES',
-  CONFIGURE_BOARD_GUIDES = 'CONFIGURE_BOARD_GUIDES',
+
   BATCH_CREATE_PAGES = 'BATCH_CREATE_PAGES',
   BATCH_CREATE_COMPONENTS = 'BATCH_CREATE_COMPONENTS',
   GET_COLOR_PALETTE = 'GET_COLOR_PALETTE',
@@ -449,27 +449,6 @@ export interface ConfigureRulerGuidesQueryPayload {
   removeAll?: boolean;
 }
 
-export interface ConfigureBoardGuidesQueryPayload {
-  shapeIds?: string[]; // Boards to configure
-
-  action: 'set' | 'add' | 'clear';
-
-  guides?: Array<{
-    type: 'column' | 'row' | 'square';
-    display?: boolean;
-
-    // Common params
-    color?: string;
-
-    // Column/Row params
-    count?: number; // Number of columns/rows (will calculate size automatically)
-    alignment?: 'stretch' | 'left' | 'center' | 'right';
-    size?: number;
-    margin?: number;
-    itemLength?: number;
-    gutter?: number;
-  }>;
-}
 
 
 export interface BatchCreatePagesQueryPayload {
@@ -567,7 +546,7 @@ export type ClientQueryPayload =
   | ConfigureFlexLayoutQueryPayload
   | ConfigureGridLayoutQueryPayload
   | ConfigureRulerGuidesQueryPayload
-  | ConfigureBoardGuidesQueryPayload
+
   | BatchCreatePagesQueryPayload
   | BatchCreateComponentsQueryPayload
   | GetColorPaletteQueryPayload
@@ -996,11 +975,6 @@ export interface ConfigureRulerGuidesResponsePayload {
   undoInfo?: UndoInfo;
 }
 
-export interface ConfigureBoardGuidesResponsePayload {
-  configuredShapes: Array<{ id: string; name?: string }>;
-  guidesSet?: number;
-  undoInfo?: UndoInfo;
-}
 
 
 export type GetSelectionInfoQueryPayload = Record<string, never>;

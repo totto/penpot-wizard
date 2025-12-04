@@ -4,7 +4,7 @@ import {
   configureFlexLayoutTool,
   configureGridLayoutTool,
   configureRulerGuidesTool,
-  configureBoardGuidesTool
+
 } from '../mainHandlers';
 
 // Mock Penpot
@@ -162,50 +162,5 @@ describe('Layout Tools', () => {
     });
   });
 
-  describe('configureBoardGuidesTool', () => {
-    it('sets column guides on board', async () => {
-      const board = {
-        id: 'board-1',
-        type: 'board',
-        name: 'Board 1',
-      };
-      mockPenpot([board]);
 
-      const response = await configureBoardGuidesTool({
-        action: 'set',
-        guides: [{ type: 'column', display: true, size: 12, gutter: 20 }],
-      });
-
-      expect(response.success).toBe(true);
-      expect((board as any).columnGuides).toEqual({
-        type: 'column',
-        display: true,
-        size: 12,
-        gutter: 20,
-        color: undefined,
-        alignment: undefined,
-        margin: 0,
-        itemLength: undefined,
-      });
-    });
-
-    it('clears all board guides', async () => {
-      const board = {
-        id: 'board-1',
-        type: 'board',
-        name: 'Board 1',
-        columnGuides: {},
-        rowGuides: {},
-      };
-      mockPenpot([board]);
-
-      const response = await configureBoardGuidesTool({
-        action: 'clear',
-      });
-
-      expect(response.success).toBe(true);
-      expect((board as any).columnGuides).toBeUndefined();
-      expect((board as any).rowGuides).toBeUndefined();
-    });
-  });
 });
