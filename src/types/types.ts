@@ -23,7 +23,6 @@ export enum ClientQueryType {
   GET_AVAILABLE_FONTS = 'GET_AVAILABLE_FONTS',
   GET_CURRENT_PAGE = 'GET_CURRENT_PAGE',
   GET_CURRENT_THEME = 'GET_CURRENT_THEME',
-  GET_ACTIVE_USERS = 'GET_ACTIVE_USERS',
   GET_FILE_VERSIONS = 'GET_FILE_VERSIONS',
   GET_SELECTION_INFO = 'GET_SELECTION_INFO',
   GET_SELECTION_DUMP = 'GET_SELECTION_DUMP',
@@ -1085,11 +1084,6 @@ export interface ActiveUser {
   color?: string;
 }
 
-// Payload for GET_ACTIVE_USERS responses
-export interface GetActiveUsersPayload {
-  users: ActiveUser[];
-}
-
 
 // Payload for GET_FILE_VERSIONS responses
 export interface GetFileVersionsPayload {
@@ -1170,7 +1164,6 @@ export type PluginResponsePayload =
   | GetAvailableFontsPayload
   | GetCurrentPagePayload
   | GetCurrentThemePayload
-  | GetActiveUsersPayload
   | GetFileVersionsPayload
   | CreateLibraryColorResponse
   | CreateLibraryColorErrorResponse
