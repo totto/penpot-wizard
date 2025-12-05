@@ -182,9 +182,13 @@ When using the resize-selection tool:
       'insert-child',
       'get-child-properties',
       'get-parent-element',
+      'get-project-data',
+      'get-available-fonts',
+      'get-current-theme',
+      'get-file-versions',
 
       // NOTE: Debugging dev tools
-      'dump-selection', //Dev tool for debugging -> Only uncomment for debugging purposes 
+        //'dump-selection', //Dev tool for debugging -> Only uncomment for debugging purposes 
       //otherwise don't expose this tool to the user
 
     ],
