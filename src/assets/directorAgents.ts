@@ -177,8 +177,13 @@ When using the resize-selection tool:
       'batch-create-pages',
       'batch-create-components',
       'get-color-palette',
+      'get-children',
+      'append-child',
+      'insert-child',
+      'get-child-properties',
+      'get-parent-element',
 
-// NOTE: Debugging dev tools
+      // NOTE: Debugging dev tools
       'dump-selection', //Dev tool for debugging -> Only uncomment for debugging purposes 
       //otherwise don't expose this tool to the user
 
