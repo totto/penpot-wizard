@@ -611,28 +611,7 @@ export function getCurrentTheme(): PluginResponseMessage {
   } as PluginResponseMessage;
 }
 
-export function getActiveUsers(): PluginResponseMessage {
-  const raw = (penpot.currentFile as any)?.collaborators ?? [];
-  const users = Array.isArray(raw)
-    ? (
-      raw.map(
-        (u: any) => ({
-          id: String(u.id ?? u.userId ?? ''),
-          name: u.name ?? u.fullName ?? u.username ?? undefined,
-          avatarUrl: u.avatarUrl ?? u.avatarURL ?? u.avatar ?? undefined,
-          color: u.color ?? undefined,
-        })
-      )
-    )
-    : [];
 
-  return {
-    ...pluginResponse,
-    type: ClientQueryType.GET_ACTIVE_USERS,
-    message: 'Active users retrieved',
-    payload: { users },
-  };
-}
 
 export async function handleAddImageFromUrl(payload: AddImageFromUrlQueryPayload): Promise<PluginResponseMessage> {
   const { name, url } = payload;

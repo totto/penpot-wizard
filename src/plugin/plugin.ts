@@ -106,7 +106,6 @@ import {
   applyRadialGradientTool,
   getCurrentPage,
   getAvailableFonts,
-  getActiveUsers,
   createLibraryColor,
   createLibraryFont,
   createLibraryComponent,
@@ -352,10 +351,6 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.GET_CURRENT_THEME:
       responseMessage = await getCurrentThemeTool();
-      break;
-
-    case ClientQueryType.GET_ACTIVE_USERS:
-      responseMessage = getActiveUsers();
       break;
 
 
