@@ -598,18 +598,6 @@ export const functionTools: FunctionTool[] = [
     },
   },
   {
-    id: "get-active-users",
-    name: "getActiveUsers",
-    description: `
-      Use this tool to list all the active collaborators currently working on the same Penpot project.
-    `,
-    inputSchema: z.object({}),
-    function: async () => {
-      const response = await sendMessageToPlugin(ClientQueryType.GET_ACTIVE_USERS, undefined);
-      return response;
-    },
-  },
-  {
     id: "get-file-versions",
     name: "getFileVersions",
     description: `
