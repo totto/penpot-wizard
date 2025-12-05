@@ -89,7 +89,6 @@ export enum ClientQueryType {
   GET_CURRENT_PAGE = 'GET_CURRENT_PAGE',
   GET_SELECTION_DUMP = 'GET_SELECTION_DUMP',
   GET_CURRENT_THEME = 'GET_CURRENT_THEME',
-  GET_ACTIVE_USERS = 'GET_ACTIVE_USERS',
   GET_FILE_VERSIONS = 'GET_FILE_VERSIONS',
   CREATE_LIBRARY_COLOR = 'CREATE_LIBRARY_COLOR',
   CREATE_LIBRARY_FONT = 'CREATE_LIBRARY_FONT',
@@ -424,16 +423,7 @@ export interface GetCurrentThemePayload {
   theme: 'light' | 'dark';
 }
 
-export interface ActiveUser {
-  id: string;
-  name: string;
-  avatarUrl?: string;
-  color?: string;
-}
 
-export interface GetActiveUsersPayload {
-  users: ActiveUser[];
-}
 
 export interface FileVersion {
   id?: string;
@@ -676,7 +666,6 @@ export type PluginResponsePayload =
   | GetAvailableFontsPayload
   | GetCurrentPagePayload
   | GetCurrentThemePayload
-  | GetActiveUsersPayload
   | GetFileVersionsPayload
   | CreateLibraryColorResponse
   | CreateLibraryFontResponse
