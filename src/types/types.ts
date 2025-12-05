@@ -1161,13 +1161,7 @@ export interface CreateLibraryComponentResponse {
 }
 
 // File version interface (from Penpot API)
-export interface FileVersion {
-  id?: string;  // Version identifier (may not always be present)
-  label: string;
-  createdBy?: User;
-  createdAt: Date;
-  isAutosave: boolean;
-}
+
 
 // include the new payload in the union
 export type PluginResponsePayload =
