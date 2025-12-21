@@ -2,6 +2,76 @@ import { z } from 'zod';
 
 const blendModes = ['difference','normal','darken','multiply','color-burn','lighten','screen','color-dodge','overlay','soft-light','hard-light','exclusion','hue','saturation','color','luminosity'];
 
+// Schema for Gradient objects
+export const gradientSchema = z.object({
+  type: z.enum(['linear', 'radial']).describe('The type of gradient: linear (transitions along a straight line) or radial (transitions radiating outward from a central point)'),
+  startX: z.number().min(0).max(1).describe('The X-coordinate of the starting point of the gradient, ranging from 0 to 1'),
+  startY: z.number().min(0).max(1).describe('The Y-coordinate of the starting point of the gradient, ranging from 0 to 1'),
+  endX: z.number().min(0).max(1).describe('The X-coordinate of the ending point of the gradient, ranging from 0 to 1'),
+  endY: z.number().min(0).max(1).describe('The Y-coordinate of the ending point of the gradient, ranging from 0 to 1'),
+  width: z.number().min(0).max(1).describe('The width of the gradient, ranging from 0 to 1. For radial gradients, this is interpreted as the radius'),
+  stops: z.array(z.object({
+    color: z.string().describe('The color at this stop in hex format (e.g., "#FF5733")'),
+    opacity: z.number().min(0).max(1).optional().describe('The opacity level at this stop, ranging from 0 (fully transparent) to 1 (fully opaque). Defaults to 1 if omitted.'),
+    offset: z.number().min(0).max(1).describe('The position of this stop along the gradient, ranging from 0 (start) to 1 (end)'),
+  })).min(2).describe('Array of color stops that define the gradient. Must have at least 2 stops.'),
+}).describe('A gradient object defining a linear or radial gradient fill');
+
+// Schema for ImageData objects
+export const imageDataSchema = z.object({
+  id: z.string().describe('The unique identifier for the image'),
+  width: z.number().describe('The width of the image'),
+  height: z.number().describe('The height of the image'),
+  mtype: z.string().default('image/png').describe('The media type of the image (e.g., "image/png", "image/jpeg")'),
+  name: z.string().optional().describe('The optional name of the image'),
+  keepAspectRatio: z.boolean().default(true).describe('Whether to keep the aspect ratio of the image when resizing. Defaults to false if omitted.'),
+}).describe('An image data object defining an image fill for a shape');
+
+// Schema for Fill objects - supports fillColor, fillColorGradient, and fillImage
+export const fillSchema = z.object({
+  fillColor: z.string().optional().describe('The fill color in hex format (e.g., "#FF5733"). One of fillColor, fillColorGradient, or fillImage must be provided.'),
+  fillOpacity: z.number().min(0).max(1).optional().describe('The opacity level of the fill color, ranging from 0 (fully transparent) to 1 (fully opaque). Defaults to 1 if omitted. Only applies when using fillColor.'),
+  fillColorGradient: gradientSchema.optional().describe('A gradient fill object. One of fillColor, fillColorGradient, or fillImage must be provided.'),
+  fillImage: imageDataSchema.optional().describe('An image fill object. One of fillColor, fillColorGradient, or fillImage must be provided.'),
+}).refine(
+  (data) => data.fillColor !== undefined || data.fillColorGradient !== undefined || data.fillImage !== undefined,
+  {
+    message: "Either fillColor, fillColorGradient, or fillImage must be provided",
+  }
+).describe('A fill object defining a solid color fill, gradient fill, or image fill for a shape');
+
+// Schema for Stroke objects - supports strokeColor and strokeColorGradient
+export const strokeSchema = z.object({
+  strokeColor: z.string().optional().describe('The stroke color in hex format (e.g., "#FF5733"). Either strokeColor or strokeColorGradient must be provided.'),
+  strokeOpacity: z.number().min(0).max(1).optional().describe('The opacity level of the stroke color, ranging from 0 (fully transparent) to 1 (fully opaque). Defaults to 1 if omitted. Only applies when using strokeColor.'),
+  strokeWidth: z.number().min(0).optional().describe('The width of the stroke. Defaults to 1 if omitted.'),
+  strokeStyle: z.enum(['solid', 'dotted', 'dashed', 'mixed', 'none', 'svg']).optional().describe('The style of the stroke. Defaults to "solid" if omitted.'),
+  strokeAlignment: z.enum(['center', 'inner', 'outer']).optional().describe('The alignment of the stroke relative to the shape\'s boundary. Defaults to "center" if omitted.'),
+  strokeCapStart: z.enum(['round', 'square', 'line-arrow', 'triangle-arrow', 'square-marker', 'circle-marker', 'diamond-marker']).optional().describe('The cap style for the start of the stroke. Defaults to "round" if omitted.'),
+  strokeCapEnd: z.enum(['round', 'square', 'line-arrow', 'triangle-arrow', 'square-marker', 'circle-marker', 'diamond-marker']).optional().describe('The cap style for the end of the stroke. Defaults to "round" if omitted.'),
+  strokeColorGradient: gradientSchema.optional().describe('A gradient stroke object. Either strokeColor or strokeColorGradient must be provided.'),
+}).refine(
+  (data) => data.strokeColor !== undefined || data.strokeColorGradient !== undefined,
+  {
+    message: "Either strokeColor or strokeColorGradient must be provided",
+  }
+).describe('A stroke object defining either a solid color stroke or a gradient stroke for a shape');
+
+// Schema for Shadow objects
+export const shadowSchema = z.object({
+  id: z.string().optional().describe('The optional unique identifier for the shadow'),
+  style: z.enum(['drop-shadow', 'inner-shadow']).optional().describe('The style of the shadow: "drop-shadow" (cast outside the element) or "inner-shadow" (cast inside the element). Defaults to "drop-shadow" if omitted.'),
+  offsetX: z.number().optional().describe('The X-axis offset of the shadow. Defaults to 0 if omitted.'),
+  offsetY: z.number().optional().describe('The Y-axis offset of the shadow. Defaults to 0 if omitted.'),
+  blur: z.number().min(0).optional().describe('The blur radius of the shadow. Defaults to 0 if omitted.'),
+  spread: z.number().optional().describe('The spread radius of the shadow. Defaults to 0 if omitted.'),
+  hidden: z.boolean().optional().describe('Specifies whether the shadow is hidden. Defaults to false if omitted.'),
+  color: z.object({
+    color: z.string().optional().describe('The color of the shadow in hex format (e.g., "#000000"). Defaults to black if omitted.'),
+    opacity: z.number().min(0).max(1).optional().describe('The opacity level of the shadow color, ranging from 0 (fully transparent) to 1 (fully opaque). Defaults to 1 if omitted.'),
+  }).optional().describe('The color object defining the shadow color and opacity.'),
+}).describe('A shadow object defining a drop shadow or inner shadow for a shape');
+
 export const baseShapeProperties = z.object({
   name: z.string().describe('The name of the shape, used for visual identification and organization'),
   parentId: z.string().optional().describe('The id of the parent shape'),
@@ -12,9 +82,10 @@ export const baseShapeProperties = z.object({
   borderRadius: z.number().describe('The border radius of the shape'),
   opacity: z.number().describe('The opacity of the shape'),
   blendMode: z.enum(blendModes).describe('The blend mode of the shape'),
-  color: z.string().describe('The color of the shape in hex format'),
-  backgroundImage: z.string().optional().describe('The id of the background image'),
-  zIndex: z.number().describe('The z-index of the shape, used to control stacking order'),
+  fills: z.array(fillSchema).optional().describe('Array of fill objects to apply to the shape. Supports fillColor (solid color), fillColorGradient (linear or radial gradient), and fillImage (image fill).'),
+  strokes: z.array(strokeSchema).optional().describe('Array of stroke objects to apply to the shape. Supports strokeColor (solid color) and strokeColorGradient (linear or radial gradient).'),
+  shadows: z.array(shadowSchema).optional().describe('Array of shadow objects to apply to the shape. Supports drop-shadow and inner-shadow styles.'),
+  zIndex: z.number().min(0).describe('The z-index of the shape, used to control stacking order'),
 });
 
 export const pathShapeProperties = baseShapeProperties.extend({
@@ -91,3 +162,13 @@ export const createComponentSchema = createShapesSchema.extend({
 });
 
 export type CreateComponentInput = z.infer<typeof createComponentSchema>;
+
+export const createBoardSchema = createShapesSchema.extend({
+  name: z.string().optional().describe('The optional name of the board'),
+  x: z.number().optional().describe('The optional x position of the board'),
+  y: z.number().optional().describe('The optional y position of the board'),
+  width: z.number().optional().describe('The optional width of the board'),
+  height: z.number().optional().describe('The optional height of the board'),
+});
+
+export type CreateBoardInput = z.infer<typeof createBoardSchema>;

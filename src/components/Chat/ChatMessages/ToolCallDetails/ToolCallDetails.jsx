@@ -2,6 +2,43 @@ import { useState } from 'react'
 import styles from '../ChatMessages.module.css'
 
 /**
+ * Filters output to only include success, payload, and error fields
+ */
+function filterOutputFields(data) {
+  if (data === undefined || data === null) {
+    return null
+  }
+  
+  try {
+    let parsed = data
+    
+    // If it's a string, try to parse it
+    if (typeof data === 'string') {
+      try {
+        parsed = JSON.parse(data)
+      } catch {
+        // Not JSON, return as-is
+        return data
+      }
+    }
+    
+    // If it's an object, filter to only include success, payload, and error
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      const filtered = {}
+      if ('success' in parsed) filtered.success = parsed.success
+      if ('payload' in parsed) filtered.payload = parsed.payload
+      if ('error' in parsed) filtered.error = parsed.error
+      return filtered
+    }
+    
+    // For arrays or other types, return as-is
+    return parsed
+  } catch {
+    return data
+  }
+}
+
+/**
  * Formats data (input/output) for display
  * Tries to JSON stringify with pretty print, falls back to string representation
  */
@@ -59,7 +96,9 @@ function ToolCallDetails({ toolCall, isNested = false }) {
   
   const stateDisplay = getStateDisplay(toolCall.state)
   const formattedInput = formatData(toolCall.input)
-  const formattedOutput = formatData(toolCall.output)
+  // Filter output to only show success, payload, and error fields
+  const filteredOutput = filterOutputFields(toolCall.output)
+  const formattedOutput = formatData(filteredOutput)
   const hasNestedToolCalls = toolCall.toolCalls && toolCall.toolCalls.length > 0
   
   const toggleExpanded = () => {

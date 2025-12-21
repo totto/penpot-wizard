@@ -1,6 +1,6 @@
 import { drawShape, sendMessageToPlugin } from '@/utils/pluginUtils';
 import { PenpotShapeType, FunctionTool, ClientQueryType, DrawShapeResponsePayload } from '@/types/types';
-import { baseShapeProperties, pathShapeProperties, textShapeProperties, createShapesSchema, createComponentSchema, BaseShapeProperties } from '@/types/shapeTypes';
+import { baseShapeProperties, pathShapeProperties, textShapeProperties, createShapesSchema, createComponentSchema, createBoardSchema, BaseShapeProperties } from '@/types/shapeTypes';
 
 export const drawingTools: FunctionTool[] = [
   {
@@ -153,6 +153,83 @@ export const drawingTools: FunctionTool[] = [
       return {
         shapes: createdShapes,
         component: componentResponse,
+      };
+    },
+  },
+  {
+    id: 'create-board',
+    name: 'CreateBoardTool',
+    description: `
+      Use this tool to create a board and then add one or multiple shapes inside it.
+      This tool can create rectangles, ellipses, paths, and text shapes inside the board.
+      
+      The board will be created first, and then all the specified shapes will be added inside it.
+      
+      🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
+      - Text and foreground elements should be created FIRST (at the beginning of the shapes array)
+      - Backgrounds and containers should be created LAST (at the end of the shapes array)
+      
+      You can create multiple shapes efficiently in one call. The board will be created first, and then all shapes will be created inside it in the order specified in the array.
+    `,
+    inputSchema: createBoardSchema,
+    function: async (input) => {
+      // Create the board first
+      const boardProperties: BaseShapeProperties = {
+        name: input.name || 'Board',
+        x: input.x ?? 0,
+        y: input.y ?? 0,
+        width: input.width ?? 800,
+        height: input.height ?? 600,
+        borderRadius: 0,
+        opacity: 1,
+        blendMode: 'normal',
+      };
+      
+      const boardResponse = await drawShape(PenpotShapeType.BOARD, boardProperties);
+      console.log('boardResponse', boardResponse);
+      if (!boardResponse.success) {
+        throw new Error(`Failed to create board: ${boardResponse.message}`);
+      }
+      
+      const boardId = (boardResponse.payload as DrawShapeResponsePayload)?.shape?.id;
+      if (!boardId) {
+        throw new Error('Failed to get board ID');
+      }
+      console.log('boardId', boardId);
+      // Create all shapes inside the board
+      const createdShapes = [];
+      const orderedShapes = input.shapes.sort((a: BaseShapeProperties, b: BaseShapeProperties) => b.zIndex - a.zIndex);
+      
+      for (const shape of orderedShapes) {
+        const { type, zIndex, ...shapeParams } = shape;
+        
+        // Set the board as parent for all shapes
+        const shapeWithParent = {
+          ...shapeParams,
+          parentId: boardId,
+        };
+        
+        const response = await drawShape(type as PenpotShapeType, shapeWithParent);
+        console.log('response', response);
+        if (response.success) {
+          createdShapes.push({
+            name: shape.name,
+            type: shape.type,
+            id: (response.payload as DrawShapeResponsePayload)?.shape?.id,
+            response,
+          });
+        } else {
+          throw new Error(`Failed to create shape: ${response.message}`);
+        }
+      }
+      console.log('createdShapes', createdShapes);
+      return {
+        board: {
+          id: boardId,
+          name: input.name || 'Board',
+          response: boardResponse,
+        },
+        shapes: createdShapes,
       };
     },
   },

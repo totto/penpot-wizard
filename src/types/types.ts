@@ -96,7 +96,8 @@ export interface GetAvailableFontsPayload {
 export interface GetCurrentPagePayload {
   name: string;
   id: string;
-  shapes: Shape[];
+  shapes: Record<string, unknown>[];
+  components: Record<string, unknown>[];
 }
 
 export interface CreateComponentResponsePayload {
@@ -140,6 +141,7 @@ export interface SpecializedAgent extends ToolBase {
 
 export interface ImageGenerationAgent extends ToolBase {
   system: string; // System prompt for the agent
+  inputSchema?: ZodType | JSONSchema7; // Zod schema for input validation
   instance?: Tool; // AI SDK tool instance
 }
 

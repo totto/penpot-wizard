@@ -1,33 +1,24 @@
 import { pathCommandsToSvgString } from './utils';
-import { Board, Fill, Shape, Text } from '@penpot/plugin-types';
+import { Board, Fill, Shape, Shadow, Stroke, Text } from '@penpot/plugin-types';
 import { ClientQueryType, DrawShapeQueryPayload, CreateComponentQueryPayload, MessageSourceName, PenpotShapeType, PluginResponseMessage } from '../types/types';
 import { PathShapeProperties, PenpotShapeProperties, TextShapeProperties } from '@/types/shapeTypes';
 
 function setParamsToShape(shape: Shape, params: PenpotShapeProperties) {
-  const { x, y, backgroundImage, parentId, color, width, height, ...rest } = params;
-  if (color || backgroundImage) {
-    const fills: Fill[] = [];
+  const { x, y, parentId, width, height, fills, strokes, shadows, ...rest } = params;
+  
+  // Assign fills directly if provided (fills come already properly defined)
+  if (fills && fills.length > 0) {
+    shape.fills = fills as Fill[];
+  }
 
-    if (backgroundImage) {
-      const backgroundImageFill: Fill = {
-        fillImage: {
-          id: backgroundImage,
-          width: Math.round(width),
-          height: Math.round(height),
-          mtype: "image/png",
-          keepAspectRatio: true,
-        }
-      }
-      fills.push(backgroundImageFill);
-    }
-    if (color) {
-      const colorFill: Fill = {
-        fillColor: color,
-      }
-      fills.push(colorFill);
-    }
+  // Assign strokes directly if provided (strokes come already properly defined)
+  if (strokes && strokes.length > 0) {
+    shape.strokes = strokes as Stroke[];
+  }
 
-    shape.fills = fills;
+  // Assign shadows directly if provided (shadows come already properly defined)
+  if (shadows && shadows.length > 0) {
+    shape.shadows = shadows as Shadow[];
   }
 
   if (width && height) {
@@ -36,7 +27,7 @@ function setParamsToShape(shape: Shape, params: PenpotShapeProperties) {
 
   (Object.keys(rest) as Array<keyof typeof rest>).forEach((key) => {
     const value = rest[key];
-    if (value !== undefined) {
+    if (value !== undefined && key !== 'zIndex') {
       (shape as unknown as Record<string, unknown>)[key as string] = value as unknown;
     }
   });

@@ -44,7 +44,7 @@ export const functionTools: FunctionTool[] = [
     name: "getCurrentPage",
     description: `
       Use this tool to get the current page on Penpot.
-      This includes: name, id and shapes
+      This includes: name, id, shapes, and available components from the local library.
     `,
     inputSchema: z.object({}),
     function: async () => {

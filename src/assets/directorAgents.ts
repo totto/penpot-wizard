@@ -56,6 +56,7 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'penpot-user-guide-rag',
       'create-shapes',
       'create-component',
+      'create-board',
     ],
     imageGenerationAgentIds: ['image-generator'],
   },

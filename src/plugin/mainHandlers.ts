@@ -1,3 +1,4 @@
+import { Shape, Fill, LibraryComponent } from '@penpot/plugin-types';
 import {
   AddImageQueryPayload,
   ClientQueryType,
@@ -70,7 +71,85 @@ export function getAvailableFonts(): PluginResponseMessage {
   };
 }
 
+function extractShapeData(shape: Shape): Record<string, unknown> {
+  // Para el board root frame, solo enviar name, type e id
+  if (shape.type === 'board' && shape.parent === null) {
+    return {
+      id: shape.id,
+      name: shape.name,
+      type: shape.type,
+    };
+  }
+
+  const shapeData: Record<string, unknown> = {
+    ...shape,
+  };
+
+  // Add parentId if parent exists (avoid circular reference)
+  if (shape.parent) {
+    shapeData.parent = shape.parent.id;
+  }
+
+  // Add type-specific properties
+
+  return shapeData;
+}
+
+function getAllShapesFromComponent(component: LibraryComponent): Shape[] {
+  const shapes: Shape[] = [];
+  
+  try {
+    const mainInstance = component.mainInstance();
+    if (!mainInstance) {
+      return shapes;
+    }
+
+    // Función recursiva para obtener todos los shapes
+    function traverseShape(shape: Shape) {
+      shapes.push(shape);
+      
+      // Si el shape tiene hijos, recorrerlos recursivamente
+      if ('children' in shape && shape.children) {
+        shape.children.forEach(traverseShape);
+      }
+    }
+
+    traverseShape(mainInstance);
+  } catch (error) {
+    // Si hay un error al obtener el mainInstance, retornar array vacío
+    console.warn(`Error getting shapes from component ${component.id}:`, error);
+  }
+
+  return shapes;
+}
+
+function extractComponentData(component: LibraryComponent): Record<string, unknown> {
+  // Obtener todos los shapes del componente
+  const componentShapes = getAllShapesFromComponent(component);
+  const serializedShapes = componentShapes.map(extractShapeData);
+
+  return {
+    id: component.id,
+    libraryId: component.libraryId,
+    name: component.name,
+    path: component.path,
+    shapes: serializedShapes,
+  };
+}
+
 export function getCurrentPage(): PluginResponseMessage {
+  const shapes = penpot.currentPage?.findShapes({}) || [];
+  const serializedShapes = shapes.map(extractShapeData);
+
+  // Obtener componentes de la librería local únicamente
+  const localComponents = penpot.library?.local?.components || [];
+  const localComponentsData = localComponents.map(extractComponentData);
+
+  // Eliminar duplicados por ID
+  const uniqueComponents = localComponentsData.filter((component, index, self) =>
+    index === self.findIndex((c) => c.id === component.id)
+  );
+
   return {
     ...pluginResponse,
     type: ClientQueryType.GET_CURRENT_PAGE,
@@ -78,7 +157,8 @@ export function getCurrentPage(): PluginResponseMessage {
     payload: {
       name: penpot.currentPage?.name || '',
       id: penpot.currentPage?.id || '',
-      shapes: penpot.currentPage?.findShapes({}) || [],
+      shapes: serializedShapes,
+      components: uniqueComponents,
     },
   };
 }
