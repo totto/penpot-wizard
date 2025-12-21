@@ -113,13 +113,13 @@ export const textShapeProperties = baseShapeProperties.extend({
   fontSize: z.number().describe('The font size of the text'),
   fontWeight: z.number().describe('The font weight of the text'),
   fontStyle: z.enum(['normal', 'italic']).optional().describe('The font style of the text'),
-  lineHeight: z.number().describe('The line height of the text'),
+  lineHeight: z.number().min(0).max(10).default(1).describe('The separation between lines of text'),
   letterSpacing: z.number().describe('The letter spacing of the text'),
   textTransform: z.enum(['uppercase', 'lowercase', 'capitalize']).optional().describe('The text transform of the text'),
   textDecoration: z.enum(['underline', 'line-through']).optional().describe('The text decoration of the text'),
   direction: z.enum(['ltr', 'rtl']).optional().describe('The direction of the text'),
   align: z.enum(['left', 'center', 'right']).default('left').describe('The align of the text'),
-  verticalAlign: z.enum(['top', 'center', 'bottom']).default('center').describe('The vertical align of the text'),
+  verticalAlign: z.enum(['center']).default('center').describe('The vertical align of the text'),
 });
 
 export type BaseShapeProperties = z.infer<typeof baseShapeProperties>;
