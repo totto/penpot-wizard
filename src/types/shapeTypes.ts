@@ -14,6 +14,7 @@ export const baseShapeProperties = z.object({
   blendMode: z.enum(blendModes).describe('The blend mode of the shape'),
   color: z.string().describe('The color of the shape in hex format'),
   backgroundImage: z.string().optional().describe('The id of the background image'),
+  zIndex: z.number().describe('The z-index of the shape, used to control stacking order'),
 });
 
 export const pathShapeProperties = baseShapeProperties.extend({
@@ -37,7 +38,6 @@ export const pathShapeProperties = baseShapeProperties.extend({
 
 export const textShapeProperties = baseShapeProperties.extend({
   characters: z.string().describe('The characters to draw'),
-  fontId: z.string().describe('The font id of the text'),
   fontFamily: z.string().describe('The font family of the text'),
   fontSize: z.number().describe('The font size of the text'),
   fontWeight: z.number().describe('The font weight of the text'),
@@ -54,4 +54,34 @@ export const textShapeProperties = baseShapeProperties.extend({
 export type BaseShapeProperties = z.infer<typeof baseShapeProperties>;
 export type PathShapeProperties = z.infer<typeof pathShapeProperties>;
 export type TextShapeProperties = z.infer<typeof textShapeProperties>;
-export type PenpotShapeProperties = PathShapeProperties | TextShapeProperties;
+export type PenpotShapeProperties = BaseShapeProperties | PathShapeProperties | TextShapeProperties;
+
+// Schema for creating multiple shapes at once
+const rectangleShapeSchema = baseShapeProperties.extend({
+  type: z.literal('rectangle').describe('The type of shape: rectangle'),
+});
+
+const ellipseShapeSchema = baseShapeProperties.extend({
+  type: z.literal('ellipse').describe('The type of shape: ellipse'),
+});
+
+const pathShapeSchema = pathShapeProperties.extend({
+  type: z.literal('path').describe('The type of shape: path'),
+});
+
+const textShapeSchema = textShapeProperties.extend({
+  type: z.literal('text').describe('The type of shape: text'),
+});
+
+export const createShapesSchema = z.object({
+  shapes: z.array(
+    z.discriminatedUnion('type', [
+      rectangleShapeSchema,
+      ellipseShapeSchema,
+      pathShapeSchema,
+      textShapeSchema,
+    ])
+  ).describe('Array of shapes to create. Shapes will be created in the order specified. Remember: text and foreground elements should be created first, backgrounds last.'),
+});
+
+export type CreateShapesInput = z.infer<typeof createShapesSchema>;

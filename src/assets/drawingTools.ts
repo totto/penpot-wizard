@@ -1,6 +1,6 @@
 import { drawShape } from '@/utils/pluginUtils';
 import { PenpotShapeType, FunctionTool } from '@/types/types';
-import { baseShapeProperties, pathShapeProperties, textShapeProperties } from '@/types/shapeTypes';
+import { baseShapeProperties, pathShapeProperties, textShapeProperties, createShapesSchema, BaseShapeProperties, PenpotShapeProperties } from '@/types/shapeTypes';
 
 export const drawingTools: FunctionTool[] = [
   {
@@ -78,6 +78,39 @@ export const drawingTools: FunctionTool[] = [
     function: async (shapeProperties) => {
       const response = await drawShape(PenpotShapeType.BOARD, shapeProperties);
       return response;
+    },
+  },
+  {
+    id: 'create-shapes',
+    name: 'CreateShapesTool',
+    description: `
+      Use this tool to create one or multiple shapes in a single request. This tool can create rectangles, ellipses, paths, and text shapes.
+      
+      IMPORTANT: This tool does NOT create boards. Use BoardMakerTool for boards.
+      
+      🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
+      - Text and foreground elements should be created FIRST (at the beginning of the shapes array)
+      - Backgrounds and containers should be created LAST (at the end of the shapes array)
+      
+      You can create multiple shapes efficiently in one call. The shapes will be created in the order specified in the array.
+    `,
+    inputSchema: createShapesSchema,
+    function: async (input) => {
+      const results = [];
+      const orderedShapes = input.shapes.sort((a: BaseShapeProperties, b: BaseShapeProperties) => a.zIndex - b.zIndex);
+      
+      for (const shape of orderedShapes) {
+        const { type, zIndex, ...shapeParams } = shape;
+        
+        const response = await drawShape(type as PenpotShapeType, shapeParams);
+        results.push({
+          name: shape.name,
+          type: shape.type,
+          response,
+        });
+      }
+      
+      return results;
     },
   },
 ];

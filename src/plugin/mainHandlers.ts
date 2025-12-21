@@ -1,8 +1,6 @@
 import {
-  AddImagePayload,
   AddImageQueryPayload,
   ClientQueryType,
-  GetProjectDataPayload,
   MessageSourceName,
   PluginResponseMessage,
 } from "../types/types";

@@ -1,5 +1,3 @@
-import { Rectangle } from "@penpot/plugin-types";
-
 import {
   ClientQueryType,
   MessageSourceName,

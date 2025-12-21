@@ -57,7 +57,7 @@ import { StreamHandler } from '@/utils/streamingMessageUtils';
  */
 
 /**
- * Creates a new conversation and generates a greeting message
+ * Creates a new conversation
  * @param directorAgentId - The director agent ID
  * @returns The new conversation ID
  */
@@ -71,43 +71,7 @@ export const createNewConversation = async (directorAgentId: string): Promise<st
   // 3. Load as active conversation
   loadActiveConversation(conversationId);
 
-  // 4. Generate greeting message
-  await generateGreetingMessage(conversationId);
-
   return conversationId;
-};
-
-/**
- * Generates a greeting message for a new conversation
- * @param conversationId - The conversation ID
- */
-const generateGreetingMessage = async (conversationId: string): Promise<void> => {
-  const metadata = getMetadataById(conversationId);
-
-  if (!metadata) {
-    console.error('Conversation metadata not found for greeting generation');
-    return;
-  }
-
-  const director = getDirectorById(metadata.directorAgentId);
-  if (!director?.instance) {
-    console.error('Director agent not initialized for greeting generation');
-    return;
-  }
-
-  try {
-    await sendUserMessage(`
-      Your first task is present yourself to the user in a friendly way, and then ask the user to tell you what they want to do.
-      Always call the user by his name.
-    `, true);
-  } catch (error) {
-    console.error('Error generating greeting message:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    setStreamingError(`Error generating greeting: ${errorMessage}`);
-    setTimeout(() => {
-      cancelStreaming();
-    }, 3000); // Show error for 3 seconds before clearing
-  }
 };
 
 /**
