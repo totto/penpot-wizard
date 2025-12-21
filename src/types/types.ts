@@ -1,7 +1,7 @@
 import { AnyOrama } from '@orama/orama';
 import { Experimental_Agent as Agent, Tool, ToolSet, JSONSchema7 } from 'ai';
 import { ZodType } from 'zod';
-import type { Shape, ImageData as PenpotImageData } from '@penpot/plugin-types';
+import type { Shape, ImageData as PenpotImageData, LibraryComponent } from '@penpot/plugin-types';
 import { PenpotShapeProperties } from './shapeTypes';
 
 /**
@@ -24,6 +24,7 @@ export enum ClientQueryType {
   GET_CURRENT_PAGE = 'GET_CURRENT_PAGE',
   DRAW_SHAPE = 'DRAW_SHAPE',
   ADD_IMAGE = 'ADD_IMAGE',
+  CREATE_COMPONENT = 'CREATE_COMPONENT',
 }
 
 export enum PenpotShapeType {
@@ -38,7 +39,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | CreateComponentQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -52,7 +53,12 @@ export interface AddImageQueryPayload {
   mimeType: string;
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload;
+export interface CreateComponentQueryPayload {
+  shapes: string[];
+  name: string;
+}
+
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | CreateComponentQueryPayload;
 export interface PluginMessage {
   source: MessageSourceName.Plugin;
   type: PluginMessageType | ClientQueryType;
@@ -93,7 +99,11 @@ export interface GetCurrentPagePayload {
   shapes: Shape[];
 }
 
-export type PluginResponsePayload = GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | DrawShapeResponsePayload | AddImagePayload;
+export interface CreateComponentResponsePayload {
+  component: LibraryComponent;
+}
+
+export type PluginResponsePayload = GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | DrawShapeResponsePayload | AddImagePayload | CreateComponentResponsePayload;
 
 // Theme type definition
 export type Theme = 'light' | 'dark';

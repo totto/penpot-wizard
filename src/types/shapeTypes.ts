@@ -47,8 +47,8 @@ export const textShapeProperties = baseShapeProperties.extend({
   textTransform: z.enum(['uppercase', 'lowercase', 'capitalize']).optional().describe('The text transform of the text'),
   textDecoration: z.enum(['underline', 'line-through']).optional().describe('The text decoration of the text'),
   direction: z.enum(['ltr', 'rtl']).optional().describe('The direction of the text'),
-  align: z.enum(['left', 'center', 'right']).optional().describe('The align of the text'),
-  verticalAlign: z.enum(['top', 'center', 'bottom']).optional().describe('The vertical align of the text'),
+  align: z.enum(['left', 'center', 'right']).default('left').describe('The align of the text'),
+  verticalAlign: z.enum(['top', 'center', 'bottom']).default('center').describe('The vertical align of the text'),
 });
 
 export type BaseShapeProperties = z.infer<typeof baseShapeProperties>;
@@ -85,3 +85,9 @@ export const createShapesSchema = z.object({
 });
 
 export type CreateShapesInput = z.infer<typeof createShapesSchema>;
+
+export const createComponentSchema = createShapesSchema.extend({
+  name: z.string().describe('The name of the component to create in the library'),
+});
+
+export type CreateComponentInput = z.infer<typeof createComponentSchema>;

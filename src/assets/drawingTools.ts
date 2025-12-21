@@ -1,6 +1,6 @@
-import { drawShape } from '@/utils/pluginUtils';
-import { PenpotShapeType, FunctionTool } from '@/types/types';
-import { baseShapeProperties, pathShapeProperties, textShapeProperties, createShapesSchema, BaseShapeProperties, PenpotShapeProperties } from '@/types/shapeTypes';
+import { drawShape, sendMessageToPlugin } from '@/utils/pluginUtils';
+import { PenpotShapeType, FunctionTool, ClientQueryType, DrawShapeResponsePayload } from '@/types/types';
+import { baseShapeProperties, pathShapeProperties, textShapeProperties, createShapesSchema, createComponentSchema, BaseShapeProperties } from '@/types/shapeTypes';
 
 export const drawingTools: FunctionTool[] = [
   {
@@ -111,6 +111,49 @@ export const drawingTools: FunctionTool[] = [
       }
       
       return results;
+    },
+  },
+  {
+    id: 'create-component',
+    name: 'CreateComponentTool',
+    description: `
+      Use this tool to create one or multiple shapes and then convert them into a library component.
+      This tool can create rectangles, ellipses, paths, and text shapes, and then creates a component from them.
+      
+      IMPORTANT: This tool does NOT create boards. Use BoardMakerTool for boards.
+      
+      🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
+      - Text and foreground elements should be created FIRST (at the beginning of the shapes array)
+      - Backgrounds and containers should be created LAST (at the end of the shapes array)
+      
+      You can create multiple shapes efficiently in one call. The shapes will be created in the order specified in the array, and then converted into a component with the specified name.
+    `,
+    inputSchema: createComponentSchema,
+    function: async (input) => {
+      const createdShapes = [];
+      const orderedShapes = input.shapes.sort((a: BaseShapeProperties, b: BaseShapeProperties) => a.zIndex - b.zIndex);
+      // Create all shapes first
+      for (const shape of orderedShapes) {
+        const { type, zIndex, ...shapeParams } = shape;
+        
+        const response = await drawShape(type as PenpotShapeType, shapeParams);
+        
+        if (response.success) {
+          createdShapes.push((response.payload as DrawShapeResponsePayload)?.shape?.id);
+        } else {
+          throw new Error(`Failed to create shape: ${response.message}`);
+        }
+      }
+      // Create component from the shapes
+      const componentResponse = await sendMessageToPlugin(ClientQueryType.CREATE_COMPONENT, {
+        shapes: createdShapes,
+        name: input.name,
+      });
+        
+      return {
+        shapes: createdShapes,
+        component: componentResponse,
+      };
     },
   },
 ];

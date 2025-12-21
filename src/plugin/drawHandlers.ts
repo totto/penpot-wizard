@@ -1,11 +1,10 @@
 import { pathCommandsToSvgString } from './utils';
 import { Board, Fill, Shape, Text } from '@penpot/plugin-types';
-import { ClientQueryType, DrawShapeQueryPayload, MessageSourceName, PenpotShapeType, PluginResponseMessage } from '../types/types';
+import { ClientQueryType, DrawShapeQueryPayload, CreateComponentQueryPayload, MessageSourceName, PenpotShapeType, PluginResponseMessage } from '../types/types';
 import { PathShapeProperties, PenpotShapeProperties, TextShapeProperties } from '@/types/shapeTypes';
 
 function setParamsToShape(shape: Shape, params: PenpotShapeProperties) {
-  const { backgroundImage, parentId, color, width, height, ...rest } = params;
-  
+  const { x, y, backgroundImage, parentId, color, width, height, ...rest } = params;
   if (color || backgroundImage) {
     const fills: Fill[] = [];
 
@@ -41,6 +40,13 @@ function setParamsToShape(shape: Shape, params: PenpotShapeProperties) {
       (shape as unknown as Record<string, unknown>)[key as string] = value as unknown;
     }
   });
+
+  if (x !== undefined) {
+    shape.x = x;
+  }
+  if (y !== undefined) {
+    shape.y = y;
+  }
 
   if (parentId) {
     const parent = penpot.currentPage?.getShapeById(parentId);
@@ -104,6 +110,51 @@ export function handleDrawShape( payload: DrawShapeQueryPayload): PluginResponse
       ...pluginResponse,
       success: false,
       message: `error drawing shape ${shapeType}: ${error}`,
+    };
+  }
+}
+
+export function handleCreateComponent(payload: CreateComponentQueryPayload): PluginResponseMessage {
+  const { shapes, name } = payload;
+
+  const pluginResponse: PluginResponseMessage = {
+    source: MessageSourceName.Plugin,
+    type: ClientQueryType.CREATE_COMPONENT,
+    messageId: '',
+    message: '',
+    success: true,
+  };
+
+  try {
+    if (!shapes || shapes.length === 0) {
+      throw new Error('No shapes provided to create component');
+    }
+
+    const component = penpot.library.local.createComponent(shapes.map(shapeId => {
+      const shape = penpot.currentPage?.getShapeById(shapeId) as Shape;
+      if (!shape) {
+        throw new Error(`Shape with ID ${shapeId} not found`);
+      }
+      return shape;
+    }));
+
+    if (!component) {
+      throw new Error('Failed to create component');
+    }
+    component.name = name;
+
+    return {
+      ...pluginResponse,
+      message: 'Component created successfully',
+      payload: {
+        component: component,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      success: false,
+      message: `error creating component: ${error}`,
     };
   }
 }

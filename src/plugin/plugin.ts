@@ -5,10 +5,11 @@ import {
   ClientMessage,
   AddImageQueryPayload,
   DrawShapeQueryPayload,
+  CreateComponentQueryPayload,
   PluginResponseMessage,
 } from '../types/types';
 
-import { handleDrawShape } from './drawHandlers';
+import { handleDrawShape, handleCreateComponent } from './drawHandlers';
 import { handleGetProjectData, handleGetUserData, handleAddImage, getCurrentPage, getAvailableFonts } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
@@ -43,6 +44,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.ADD_IMAGE:
       responseMessage = await handleAddImage(payload as AddImageQueryPayload);
+      break;
+
+    case ClientQueryType.CREATE_COMPONENT:
+      responseMessage = handleCreateComponent(payload as CreateComponentQueryPayload);
       break;
 
     case ClientQueryType.GET_USER_DATA:
