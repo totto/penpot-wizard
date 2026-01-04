@@ -88,7 +88,8 @@ export const baseShapeProperties = z.object({
   zIndex: z.number().min(0).describe('The z-index of the shape, used to control stacking order'),
 });
 
-export const pathShapeProperties = baseShapeProperties.extend({
+// Schema with only path-specific properties
+export const pathShapeSchema = z.object({
   content: z.array(z.object({
     command: z.enum(['M', 'move-to', 'Z', 'close-path', 'L', 'line-to', 'H', 'line-to-horizontal', 'V', 'line-to-vertical', 'C', 'curve-to', 'S', 'smooth-curve-to', 'Q', 'quadratic-bezier-curve-to', 'T', 'smooth-quadratic-bezier-curve-to', 'A', 'elliptical-arc']).describe('The path command type'),
     params: z.object({
@@ -107,7 +108,8 @@ export const pathShapeProperties = baseShapeProperties.extend({
   })).describe('The array of path commands that defines the path'),
 });
 
-export const textShapeProperties = baseShapeProperties.extend({
+// Schema with only text-specific properties
+export const textShapeSchema = z.object({
   characters: z.string().describe('The characters to draw'),
   fontFamily: z.string().describe('The font family of the text'),
   fontSize: z.number().describe('The font size of the text'),
@@ -121,6 +123,10 @@ export const textShapeProperties = baseShapeProperties.extend({
   align: z.enum(['left', 'center', 'right']).default('left').describe('The align of the text'),
   verticalAlign: z.enum(['center']).default('center').describe('The vertical align of the text'),
 });
+
+export const pathShapeProperties = baseShapeProperties.extend(pathShapeSchema.shape);
+
+export const textShapeProperties = baseShapeProperties.extend(textShapeSchema.shape);
 
 export type BaseShapeProperties = z.infer<typeof baseShapeProperties>;
 export type PathShapeProperties = z.infer<typeof pathShapeProperties>;
@@ -136,11 +142,11 @@ const ellipseShapeSchema = baseShapeProperties.extend({
   type: z.literal('ellipse').describe('The type of shape: ellipse'),
 });
 
-const pathShapeSchema = pathShapeProperties.extend({
+const pathShapeWithTypeSchema = pathShapeProperties.extend({
   type: z.literal('path').describe('The type of shape: path'),
 });
 
-const textShapeSchema = textShapeProperties.extend({
+const textShapeWithTypeSchema = textShapeProperties.extend({
   type: z.literal('text').describe('The type of shape: text'),
 });
 
@@ -149,8 +155,8 @@ export const createShapesSchema = z.object({
     z.discriminatedUnion('type', [
       rectangleShapeSchema,
       ellipseShapeSchema,
-      pathShapeSchema,
-      textShapeSchema,
+      pathShapeWithTypeSchema,
+      textShapeWithTypeSchema,
     ])
   ).describe('Array of shapes to create. Shapes will be created in the order specified. Remember: text and foreground elements should be created first, backgrounds last.'),
 });
@@ -163,6 +169,12 @@ export const createComponentSchema = createShapesSchema.extend({
 
 export type CreateComponentInput = z.infer<typeof createComponentSchema>;
 
+export const createGroupSchema = createShapesSchema.extend({
+  name: z.string().optional().describe('The optional name of the group'),
+});
+
+export type CreateGroupInput = z.infer<typeof createGroupSchema>;
+
 export const createBoardSchema = createShapesSchema.extend({
   name: z.string().optional().describe('The optional name of the board'),
   x: z.number().optional().describe('The optional x position of the board'),
@@ -172,3 +184,14 @@ export const createBoardSchema = createShapesSchema.extend({
 });
 
 export type CreateBoardInput = z.infer<typeof createBoardSchema>;
+
+// Schema for modifying shape properties - all properties are optional except shapeId
+// Reuses baseShapeProperties, pathShapeSchema, and textShapeSchema to avoid duplication
+export const modifyShapePropertiesSchema = z.object({
+  shapeId: z.string().describe('The ID of the shape to modify'),
+})
+  .extend(baseShapeProperties.omit({ zIndex: true }).partial().shape) // Omit zIndex as it's not modifiable
+  .extend(pathShapeSchema.partial().shape) // Path-specific properties (optional)
+  .extend(textShapeSchema.partial().shape); // Text-specific properties (optional)
+
+export type ModifyShapeProperties = z.infer<typeof modifyShapePropertiesSchema>;

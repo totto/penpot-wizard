@@ -1,7 +1,7 @@
 import { pathCommandsToSvgString } from './utils';
 import { Board, Fill, Shape, Shadow, Stroke, Text } from '@penpot/plugin-types';
-import { ClientQueryType, DrawShapeQueryPayload, CreateComponentQueryPayload, MessageSourceName, PenpotShapeType, PluginResponseMessage } from '../types/types';
-import { PathShapeProperties, PenpotShapeProperties, TextShapeProperties } from '@/types/shapeTypes';
+import { ClientQueryType, DrawShapeQueryPayload, CreateComponentQueryPayload, CreateGroupQueryPayload, ModifyShapeQueryPayload, MessageSourceName, PenpotShapeType, PluginResponseMessage } from '../types/types';
+import { PathShapeProperties, PenpotShapeProperties, TextShapeProperties, ModifyShapeProperties } from '@/types/shapeTypes';
 
 function setParamsToShape(shape: Shape, params: PenpotShapeProperties) {
   const { x, y, parentId, width, height, fills, strokes, shadows, ...rest } = params;
@@ -32,6 +32,14 @@ function setParamsToShape(shape: Shape, params: PenpotShapeProperties) {
     }
   });
 
+  if (parentId) {
+    const parent = penpot.currentPage?.getShapeById(parentId);
+    console.log('parent', parent);
+    if (parent && parent.type === PenpotShapeType.BOARD) {
+      (parent as Board).appendChild(shape);
+    }
+  }
+  
   if (x !== undefined) {
     shape.x = x;
   }
@@ -39,12 +47,6 @@ function setParamsToShape(shape: Shape, params: PenpotShapeProperties) {
     shape.y = y;
   }
 
-  if (parentId) {
-    const parent = penpot.currentPage?.getShapeById(parentId);
-    if (parent && parent.type === PenpotShapeType.BOARD) {
-      (parent as Board).appendChild(shape);
-    }
-  }
 }
 
 export function handleDrawShape( payload: DrawShapeQueryPayload): PluginResponseMessage {
@@ -146,6 +148,177 @@ export function handleCreateComponent(payload: CreateComponentQueryPayload): Plu
       ...pluginResponse,
       success: false,
       message: `error creating component: ${error}`,
+    };
+  }
+}
+
+export function handleCreateGroup(payload: CreateGroupQueryPayload): PluginResponseMessage {
+  const { shapes, name } = payload;
+
+  const pluginResponse: PluginResponseMessage = {
+    source: MessageSourceName.Plugin,
+    type: ClientQueryType.CREATE_GROUP,
+    messageId: '',
+    message: '',
+    success: true,
+  };
+
+  try {
+    if (!shapes || shapes.length === 0) {
+      throw new Error('No shapes provided to create group');
+    }
+
+    const shapeObjects = shapes.map(shapeId => {
+      const shape = penpot.currentPage?.getShapeById(shapeId) as Shape;
+      if (!shape) {
+        throw new Error(`Shape with ID ${shapeId} not found`);
+      }
+      return shape;
+    });
+
+    // Create group using Penpot API
+    const group = penpot.group(shapeObjects);
+
+    if (!group) {
+      throw new Error('Failed to create group');
+    }
+
+    if (name) {
+      group.name = name;
+    }
+
+    return {
+      ...pluginResponse,
+      message: 'Group created successfully',
+      payload: {
+        group: group,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      success: false,
+      message: `error creating group: ${error}`,
+    };
+  }
+}
+
+export function handleModifyShape(payload: ModifyShapeQueryPayload): PluginResponseMessage {
+  const { shapeId, params } = payload;
+
+  const pluginResponse: PluginResponseMessage = {
+    source: MessageSourceName.Plugin,
+    type: ClientQueryType.MODIFY_SHAPE,
+    messageId: '',
+    message: '',
+    success: true,
+  };
+
+  try {
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+    if (!shape) {
+      throw new Error(`Shape with ID ${shapeId} not found`);
+    }
+
+    // Handle path content modification (convert path commands to SVG string)
+    let pathContent: string | undefined;
+    if (params.content && shape.type === PenpotShapeType.PATH) {
+      pathContent = pathCommandsToSvgString(params.content as PathShapeProperties['content']);
+    }
+
+    // Apply modifications using the same logic as setParamsToShape
+    const { x, y, parentId, width, height, fills, strokes, shadows, content, characters, fontFamily, fontSize, fontWeight, fontStyle, lineHeight, letterSpacing, textTransform, textDecoration, direction, align, verticalAlign, ...rest } = params as ModifyShapeProperties;
+    
+    // Assign fills directly if provided
+    if (fills && fills.length > 0) {
+      shape.fills = fills as Fill[];
+    }
+
+    // Assign strokes directly if provided
+    if (strokes && strokes.length > 0) {
+      shape.strokes = strokes as Stroke[];
+    }
+
+    // Assign shadows directly if provided
+    if (shadows && shadows.length > 0) {
+      shape.shadows = shadows as Shadow[];
+    }
+
+    // Handle resize
+    if (width && height) {
+      shape.resize(width, height);
+    } else if (width) {
+      shape.resize(width, shape.height);
+    } else if (height) {
+      shape.resize(shape.width, height);
+    }
+
+    // Handle path content
+    if (pathContent !== undefined && shape.type === PenpotShapeType.PATH) {
+      (shape as unknown as { content: string }).content = pathContent;
+    }
+
+    // Handle text-specific properties using generic assignment (same approach as setParamsToShape)
+    if (shape.type === PenpotShapeType.TEXT) {
+      const textProps = {
+        characters,
+        fontFamily,
+        fontSize,
+        fontWeight,
+        fontStyle,
+        lineHeight,
+        letterSpacing,
+        textTransform,
+        textDecoration,
+        direction,
+        align,
+        verticalAlign,
+      };
+      
+      (Object.keys(textProps) as Array<keyof typeof textProps>).forEach((key) => {
+        const value = textProps[key];
+        if (value !== undefined) {
+          (shape as unknown as Record<string, unknown>)[key as string] = value as unknown;
+        }
+      });
+    }
+
+    // Handle other properties
+    (Object.keys(rest) as Array<keyof typeof rest>).forEach((key) => {
+      const value = rest[key];
+      if (value !== undefined) {
+        (shape as unknown as Record<string, unknown>)[key as string] = value as unknown;
+      }
+    });
+
+    // Handle position
+    if (x !== undefined) {
+      shape.x = x;
+    }
+    if (y !== undefined) {
+      shape.y = y;
+    }
+
+    // Handle parent change
+    if (parentId !== undefined) {
+      const parent = penpot.currentPage?.getShapeById(parentId);
+      if (parent && parent.type === PenpotShapeType.BOARD) {
+        (parent as Board).appendChild(shape);
+      }
+    }
+
+    return {
+      ...pluginResponse,
+      message: 'Shape modified successfully',
+      payload: {
+        shape: shape,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      success: false,
+      message: `error modifying shape ${shapeId}: ${error}`,
     };
   }
 }

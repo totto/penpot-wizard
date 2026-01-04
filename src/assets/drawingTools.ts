@@ -1,6 +1,6 @@
-import { drawShape, sendMessageToPlugin } from '@/utils/pluginUtils';
+import { drawShape, sendMessageToPlugin, modifyShape, createShapesArray } from '@/utils/pluginUtils';
 import { PenpotShapeType, FunctionTool, ClientQueryType, DrawShapeResponsePayload } from '@/types/types';
-import { baseShapeProperties, pathShapeProperties, textShapeProperties, createShapesSchema, createComponentSchema, createBoardSchema, BaseShapeProperties } from '@/types/shapeTypes';
+import { baseShapeProperties, pathShapeProperties, textShapeProperties, createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, BaseShapeProperties, modifyShapePropertiesSchema } from '@/types/shapeTypes';
 
 export const drawingTools: FunctionTool[] = [
   {
@@ -96,21 +96,13 @@ export const drawingTools: FunctionTool[] = [
     `,
     inputSchema: createShapesSchema,
     function: async (input) => {
-      const results = [];
-      const orderedShapes = input.shapes.sort((a: BaseShapeProperties, b: BaseShapeProperties) => a.zIndex - b.zIndex);
+      const createdShapes = await createShapesArray(input.shapes, { throwOnError: false });
       
-      for (const shape of orderedShapes) {
-        const { type, zIndex, ...shapeParams } = shape;
-        
-        const response = await drawShape(type as PenpotShapeType, shapeParams);
-        results.push({
-          name: shape.name,
-          type: shape.type,
-          response,
-        });
-      }
-      
-      return results;
+      return createdShapes.map(shape => ({
+        name: shape.name,
+        type: shape.type,
+        response: shape.response,
+      }));
     },
   },
   {
@@ -130,29 +122,61 @@ export const drawingTools: FunctionTool[] = [
     `,
     inputSchema: createComponentSchema,
     function: async (input) => {
-      const createdShapes = [];
-      const orderedShapes = input.shapes.sort((a: BaseShapeProperties, b: BaseShapeProperties) => a.zIndex - b.zIndex);
       // Create all shapes first
-      for (const shape of orderedShapes) {
-        const { type, zIndex, ...shapeParams } = shape;
-        
-        const response = await drawShape(type as PenpotShapeType, shapeParams);
-        
-        if (response.success) {
-          createdShapes.push((response.payload as DrawShapeResponsePayload)?.shape?.id);
-        } else {
-          throw new Error(`Failed to create shape: ${response.message}`);
-        }
-      }
+      const createdShapes = await createShapesArray(input.shapes, { throwOnError: true });
+      
+      // Extract shape IDs for component creation
+      const shapeIds = createdShapes.map(shape => shape.id);
+      
       // Create component from the shapes
       const componentResponse = await sendMessageToPlugin(ClientQueryType.CREATE_COMPONENT, {
-        shapes: createdShapes,
+        shapes: shapeIds,
         name: input.name,
       });
         
       return {
-        shapes: createdShapes,
+        shapes: shapeIds,
         component: componentResponse,
+      };
+    },
+  },
+  {
+    id: 'create-group',
+    name: 'CreateGroupTool',
+    description: `
+      Use this tool to create one or multiple shapes and then group them together.
+      This tool can create rectangles, ellipses, paths, and text shapes, and then creates a group from them.
+      
+      IMPORTANT: This tool does NOT create boards. Use BoardMakerTool for boards.
+      
+      🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
+      - Text and foreground elements should be created FIRST (at the beginning of the shapes array)
+      - Backgrounds and containers should be created LAST (at the end of the shapes array)
+      
+      You can create multiple shapes efficiently in one call. The shapes will be created in the order specified in the array, and then grouped together with the specified name (if provided).
+    `,
+    inputSchema: createGroupSchema,
+    function: async (input) => {
+      // Create all shapes first
+      const createdShapes = await createShapesArray(input.shapes, { throwOnError: true });
+      
+      // Extract shape IDs for group creation
+      const shapeIds = createdShapes.map(shape => shape.id);
+      
+      // Create group from the shapes
+      const groupResponse = await sendMessageToPlugin(ClientQueryType.CREATE_GROUP, {
+        shapes: shapeIds,
+        name: input.name,
+      });
+        
+      return {
+        shapes: createdShapes.map(shape => ({
+          name: shape.name,
+          type: shape.type,
+          id: shape.id,
+          response: shape.response,
+        })),
+        group: groupResponse,
       };
     },
   },
@@ -183,10 +207,11 @@ export const drawingTools: FunctionTool[] = [
         borderRadius: 0,
         opacity: 1,
         blendMode: 'normal',
+        zIndex: 0,
       };
       
       const boardResponse = await drawShape(PenpotShapeType.BOARD, boardProperties);
-      console.log('boardResponse', boardResponse);
+
       if (!boardResponse.success) {
         throw new Error(`Failed to create board: ${boardResponse.message}`);
       }
@@ -195,42 +220,48 @@ export const drawingTools: FunctionTool[] = [
       if (!boardId) {
         throw new Error('Failed to get board ID');
       }
-      console.log('boardId', boardId);
-      // Create all shapes inside the board
-      const createdShapes = [];
-      const orderedShapes = input.shapes.sort((a: BaseShapeProperties, b: BaseShapeProperties) => b.zIndex - a.zIndex);
       
-      for (const shape of orderedShapes) {
-        const { type, zIndex, ...shapeParams } = shape;
-        
-        // Set the board as parent for all shapes
-        const shapeWithParent = {
-          ...shapeParams,
-          parentId: boardId,
-        };
-        
-        const response = await drawShape(type as PenpotShapeType, shapeWithParent);
-        console.log('response', response);
-        if (response.success) {
-          createdShapes.push({
-            name: shape.name,
-            type: shape.type,
-            id: (response.payload as DrawShapeResponsePayload)?.shape?.id,
-            response,
-          });
-        } else {
-          throw new Error(`Failed to create shape: ${response.message}`);
-        }
-      }
-      console.log('createdShapes', createdShapes);
+      // Create all shapes inside the board
+      const createdShapes = await createShapesArray(input.shapes, { 
+        parentId: boardId, 
+        throwOnError: true 
+      });
+
       return {
         board: {
           id: boardId,
           name: input.name || 'Board',
           response: boardResponse,
         },
-        shapes: createdShapes,
+        shapes: createdShapes.map(shape => ({
+          name: shape.name,
+          type: shape.type,
+          id: shape.id,
+          response: shape.response,
+        })),
       };
+    },
+  },
+  {
+    id: 'modify-shape',
+    name: 'ModifyShapeTool',
+    description: `
+      Use this tool to modify one or multiple properties of an existing shape.
+      You can modify properties like position (x, y), size (width, height), colors, fills, strokes, shadows, opacity, blend mode, border radius, and more.
+      
+      For text shapes, you can also modify text-specific properties like characters, fontFamily, fontSize, fontWeight, fontStyle, lineHeight, letterSpacing, textTransform, textDecoration, direction, align, and verticalAlign.
+      
+      For path shapes, you can also modify the path content.
+      
+      IMPORTANT: You must provide the shapeId of the shape you want to modify. You can get shape IDs by using GET_CURRENT_PAGE to see all shapes on the current page.
+      
+      Only provide the properties you want to modify. All properties are optional except shapeId.
+    `,
+    inputSchema: modifyShapePropertiesSchema,
+    function: async (input) => {
+      const { shapeId, ...params } = input;
+      const response = await modifyShape(shapeId, params);
+      return response;
     },
   },
 ];

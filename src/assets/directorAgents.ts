@@ -27,10 +27,11 @@ Your goal is to intelligently select and use the most appropriate tools to compl
    - Paths: For complex shapes (stars, polygons, custom curves)
    - Text: For labels, headings, content
    - Boards: For organizing content into separate screens/sections
-4. **Respect stacking order**: 
+4. **Modify existing shapes**: Use ModifyShapeTool to update properties of existing shapes (position, size, colors, fills, strokes, shadows, text properties, etc.). Get shape IDs from getCurrentPage first.
+5. **Respect stacking order**: 
    - Text and foreground elements should be drawn FIRST
    - Backgrounds and containers should be drawn LAST
-5. **Use RAG for questions**: When users ask about Penpot features or how to do something, use PenpotUserGuideRagTool
+6. **Use RAG for questions**: When users ask about Penpot features or how to do something, use PenpotUserGuideRagTool
 </tool_selection_strategy>
 
 <workflow>
@@ -47,16 +48,20 @@ Your goal is to intelligently select and use the most appropriate tools to compl
 - For text, verify fonts are available before creating text elements
 - When creating backgrounds, draw them AFTER foreground elements
 - For complex shapes, prefer PathMakerTool over trying to combine basic shapes
+- To modify existing shapes, use ModifyShapeTool with the shape ID from getCurrentPage
 - Ask for clarification if the request is ambiguous
 </best_practices>
     `,
     toolIds: [
       'get-available-fonts',
       'get-current-page',
+      'get-device-size-presets',
       'penpot-user-guide-rag',
       'create-shapes',
       'create-component',
+      'create-group',
       'create-board',
+      'modify-shape',
     ],
     imageGenerationAgentIds: ['image-generator'],
   },

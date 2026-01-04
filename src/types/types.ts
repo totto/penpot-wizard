@@ -2,7 +2,7 @@ import { AnyOrama } from '@orama/orama';
 import { Experimental_Agent as Agent, Tool, ToolSet, JSONSchema7 } from 'ai';
 import { ZodType } from 'zod';
 import type { Shape, ImageData as PenpotImageData, LibraryComponent } from '@penpot/plugin-types';
-import { PenpotShapeProperties } from './shapeTypes';
+import { PenpotShapeProperties, ModifyShapeProperties } from './shapeTypes';
 
 /**
  * Message types for communication between Penpot plugin and app
@@ -25,6 +25,8 @@ export enum ClientQueryType {
   DRAW_SHAPE = 'DRAW_SHAPE',
   ADD_IMAGE = 'ADD_IMAGE',
   CREATE_COMPONENT = 'CREATE_COMPONENT',
+  CREATE_GROUP = 'CREATE_GROUP',
+  MODIFY_SHAPE = 'MODIFY_SHAPE',
 }
 
 export enum PenpotShapeType {
@@ -39,7 +41,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload | CreateComponentQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | CreateComponentQueryPayload | CreateGroupQueryPayload | ModifyShapeQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -58,7 +60,17 @@ export interface CreateComponentQueryPayload {
   name: string;
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | CreateComponentQueryPayload;
+export interface CreateGroupQueryPayload {
+  shapes: string[];
+  name?: string;
+}
+
+export interface ModifyShapeQueryPayload {
+  shapeId: string;
+  params: Omit<ModifyShapeProperties, 'shapeId'>;
+}
+
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | CreateComponentQueryPayload | CreateGroupQueryPayload | ModifyShapeQueryPayload;
 export interface PluginMessage {
   source: MessageSourceName.Plugin;
   type: PluginMessageType | ClientQueryType;
@@ -104,7 +116,15 @@ export interface CreateComponentResponsePayload {
   component: LibraryComponent;
 }
 
-export type PluginResponsePayload = GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | DrawShapeResponsePayload | AddImagePayload | CreateComponentResponsePayload;
+export interface CreateGroupResponsePayload {
+  group: Shape;
+}
+
+export interface ModifyShapeResponsePayload {
+  shape: Shape;
+}
+
+export type PluginResponsePayload = GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | DrawShapeResponsePayload | AddImagePayload | CreateComponentResponsePayload | CreateGroupResponsePayload | ModifyShapeResponsePayload;
 
 // Theme type definition
 export type Theme = 'light' | 'dark';
