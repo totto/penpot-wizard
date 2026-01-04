@@ -6,8 +6,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "dev:penpot": "vite build -c vite.config.plugin.ts && NODE_ENV='development' vite build --watch",
-    "build": "vite build -c vite.config.plugin.ts && vite build",
+    "dev:penpot": "vite build -c vite.config.plugin.js && NODE_ENV='development' vite build --watch",
+    "build": "vite build -c vite.config.plugin.js && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",

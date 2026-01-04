@@ -1,0 +1,257 @@
+import { ClientQueryType } from '@/types/types';
+import { z } from 'zod';
+import { sendMessageToPlugin, curateShapeOutput } from '@/utils/pluginUtils';
+
+// Function to get user data - this would typically come from Penpot context
+export const functionTools = [
+  {
+    id: "get-user-data",
+    name: "getUserData",
+    description: `
+      Use this tool to get information about the active user on Penpot.
+      It returns the user name and id.
+    `,
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.GET_USER_DATA, undefined);
+      return response;
+    },
+  },{
+    id: "get-project-data",
+    name: "getProjectData",
+    description: `
+      Use this tool to get information about the active project on Penpot.
+      This includes: name, id and pages
+    `,
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.GET_PROJECT_DATA, undefined);
+      return response;
+    },
+  },{
+    id: "get-available-fonts",
+    name: "getAvailableFonts",
+    description: `
+      Use this tool to get the available fonts on Penpot.
+      
+      IMPORTANT: Always use this tool BEFORE creating text elements to verify which fonts are available.
+      You must check available fonts before using TextMakerTool or CreateShapesTool with text shapes.
+    `,
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.GET_AVAILABLE_FONTS, undefined);
+      return response;
+    },
+  },  {
+    id: "get-current-page",
+    name: "getCurrentPage",
+    description: `
+      Use this tool to get the current page on Penpot.
+      This includes: name, id, shapes, and available components from the local library.
+      
+      IMPORTANT: Use this tool to get shape IDs when you need to:
+      - Modify existing shapes (use ModifyShapeTool with the shape ID)
+      - Delete shapes (use DeleteShapeTool with the shape ID)
+      - Understand the current state of the page before creating new elements
+      - Check what shapes already exist on the page
+    `,
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.GET_CURRENT_PAGE, undefined);
+      
+      // Curate shapes in the response
+      if (response.success && response.payload) {
+        const payload = response.payload;
+        
+        // Curate shapes array
+        const curatedShapes = payload.shapes.map(shape => 
+          curateShapeOutput(shape)
+        );
+        
+        // Curate shapes inside components
+        const curatedComponents = payload.components.map(component => {
+          if (component.shapes && Array.isArray(component.shapes)) {
+            return {
+              ...component,
+              shapes: component.shapes.map(shape => 
+                curateShapeOutput(shape)
+              ),
+            };
+          }
+          return component;
+        });
+        
+        return {
+          ...response,
+          payload: {
+            ...payload,
+            shapes: curatedShapes,
+            components: curatedComponents,
+          },
+        };
+      }
+      
+      return response;
+    },
+  },
+  {
+    id: "get-device-size-presets",
+    name: "getDeviceSizePresets",
+    description: `
+      Use this tool to get a comprehensive list of device size presets organized by category.
+      This includes presets for Apple devices (iPhones, iPads, Watches, MacBooks), Android devices,
+      Microsoft Surface devices, ReMarkable tablets, web sizes, print formats, and social media formats.
+      
+      Each preset includes:
+      - name: The device or format name
+      - width: Width in pixels
+      - height: Height in pixels
+      - category: The category it belongs to (APPLE, ANDROID, MICROSOFT, etc.)
+      
+      This is useful when users ask about specific device dimensions or when creating designs
+      for particular devices or platforms.
+    `,
+    inputSchema: z.object({
+      category: z.string().optional().describe('Optional: Filter presets by category (APPLE, ANDROID, MICROSOFT, ReMarkable, WEB, MIXED, PRINT, SOCIAL MEDIA)'),
+    }),
+    function: async ({ category }) => {
+      const presets = {
+        APPLE: [
+          { name: "iPhone 16", width: 393, height: 852 },
+          { name: "iPhone 16 Pro", width: 402, height: 874 },
+          { name: "iPhone 16 Pro Max", width: 440, height: 956 },
+          { name: "iPhone 16 Plus", width: 430, height: 932 },
+          { name: "14/15 Pro Max", width: 430, height: 932 },
+          { name: "iPhone 15/15 Pro", width: 393, height: 852 },
+          { name: "iPhone 13/14", width: 390, height: 844 },
+          { name: "iPhone 14 Plus", width: 428, height: 926 },
+          { name: "iPhone 13 Mini", width: 375, height: 812 },
+          { name: "iPhone SE", width: 320, height: 568 },
+          { name: "iPhone 12/12 Pro", width: 390, height: 844 },
+          { name: "iPhone 12 Mini", width: 360, height: 780 },
+          { name: "iPhone 12 Pro Max", width: 428, height: 926 },
+          { name: "iPhone X/XS/11 Pro", width: 375, height: 812 },
+          { name: "iPhone XS Max/XR/11", width: 414, height: 896 },
+          { name: "iPad", width: 768, height: 1024 },
+          { name: "iPad Mini 8.3in", width: 744, height: 1133 },
+          { name: "iPad Pro 10.5in", width: 834, height: 1112 },
+          { name: "iPad Pro 11in", width: 834, height: 1194 },
+          { name: "iPad Pro 12.9in", width: 1027, height: 1366 },
+          { name: "Watch Series 10", width: 416, height: 496 },
+          { name: "Watch 45mm", width: 396, height: 484 },
+          { name: "Watch 44mm", width: 368, height: 448 },
+          { name: "Watch 42mm", width: 312, height: 390 },
+          { name: "Watch 41mm", width: 352, height: 430 },
+          { name: "Watch 40mm", width: 324, height: 394 },
+          { name: "Watch 38mm", width: 272, height: 340 },
+          { name: "MacBook Air", width: 1280, height: 832 },
+          { name: "MacBook Pro 14in", width: 1512, height: 982 },
+          { name: "MacBook Pro 16in", width: 1728, height: 1117 },
+        ],
+        ANDROID: [
+          { name: "Expanded", width: 1280, height: 800 },
+          { name: "Compact", width: 412, height: 917 },
+          { name: "Large", width: 360, height: 800 },
+          { name: "Medium", width: 700, height: 840 },
+          { name: "Small", width: 360, height: 640 },
+          { name: "Mobile", width: 360, height: 640 },
+          { name: "Tablet", width: 768, height: 1024 },
+          { name: "Google Pixel 7 Pro", width: 1440, height: 3120 },
+          { name: "Google Pixel 6a/6", width: 1080, height: 2400 },
+          { name: "Google Pixel 4a/5", width: 393, height: 851 },
+          { name: "Samsung Galaxy S22", width: 1080, height: 2340 },
+          { name: "Samsung Galaxy S20+", width: 384, height: 854 },
+          { name: "Samsung Galaxy A71/A51", width: 412, height: 914 },
+        ],
+        MICROSOFT: [
+          { name: "Surface Pro 3", width: 1440, height: 960 },
+          { name: "Surface Pro 4/5/6/7", width: 1368, height: 912 },
+          { name: "Surface Pro 8", width: 140, height: 960 },
+        ],
+        ReMarkable: [
+          { name: "Remarkable 2", width: 1404, height: 1872 },
+          { name: "Remarkable Pro", width: 1620, height: 2160 },
+        ],
+        WEB: [
+          { name: "Web 1280", width: 1280, height: 800 },
+          { name: "Web 1366", width: 1366, height: 768 },
+          { name: "Web 1024", width: 1024, height: 768 },
+          { name: "Web 1920", width: 1920, height: 1080 },
+        ],
+        MIXED: [
+          { name: "Desktop/Wireframe", width: 1440, height: 1024 },
+          { name: "TV", width: 1280, height: 720 },
+          { name: "Slide 16:9", width: 1920, height: 1080 },
+          { name: "Slide 4:3", width: 1027, height: 768 },
+        ],
+        PRINT: [
+          { name: "A0", width: 3179, height: 4494 },
+          { name: "A1", width: 2245, height: 3179 },
+          { name: "A2", width: 1587, height: 2245 },
+          { name: "A3", width: 1123, height: 1587 },
+          { name: "A4", width: 794, height: 1123 },
+          { name: "A5", width: 559, height: 794 },
+          { name: "A6", width: 397, height: 559 },
+          { name: "Letter", width: 816, height: 1054 },
+          { name: "DIN Lang", width: 835, height: 413 },
+        ],
+        "SOCIAL MEDIA": [
+          { name: "Instagram profile", width: 320, height: 320 },
+          { name: "Instagram post", width: 1080, height: 1350 },
+          { name: "Instagram story", width: 1080, height: 1920 },
+          { name: "Facebook profile", width: 720, height: 720 },
+          { name: "Facebook cover", width: 820, height: 312 },
+          { name: "Facebook post", width: 1200, height: 630 },
+          { name: "LinkedIn profile", width: 400, height: 400 },
+          { name: "LinkedIn cover", width: 1584, height: 396 },
+          { name: "LinkedIn post", width: 520, height: 320 },
+          { name: "Bluesky profile", width: 400, height: 400 },
+          { name: "Bluesky cover", width: 3000, height: 1000 },
+          { name: "Bluesky post", width: 1080, height: 1350 },
+          { name: "X profile", width: 400, height: 400 },
+          { name: "X header", width: 1500, height: 500 },
+          { name: "X post", width: 1024, height: 512 },
+          { name: "YouTube profile", width: 800, height: 800 },
+          { name: "YouTube banner", width: 2560, height: 1440 },
+          { name: "YouTube cover", width: 2048, height: 1152 },
+          { name: "YouTube thumb", width: 1280, height: 720 },
+        ],
+      };
+
+      if (category) {
+        const categoryUpper = category.toUpperCase();
+        if (presets[categoryUpper]) {
+          return {
+            success: true,
+            category: categoryUpper,
+            presets: presets[categoryUpper],
+            total: presets[categoryUpper].length,
+          };
+        } else {
+          return {
+            success: false,
+            message: `Category "${category}" not found. Available categories: ${Object.keys(presets).join(', ')}`,
+            availableCategories: Object.keys(presets),
+          };
+        }
+      }
+
+      // Return all presets organized by category
+      const allPresets = Object.entries(presets).map(([cat, items]) => ({
+        category: cat,
+        presets: items,
+        count: items.length,
+      }));
+
+      const totalPresets = Object.values(presets).reduce((sum, items) => sum + items.length, 0);
+
+      return {
+        success: true,
+        categories: allPresets,
+        totalPresets,
+        totalCategories: Object.keys(presets).length,
+      };
+    },
+  },
+];
+
