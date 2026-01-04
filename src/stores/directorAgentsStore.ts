@@ -115,7 +115,6 @@ export const initializeDirectorAgents = () => {
       }
     });
     
-    console.log('initialized director agents', updatedDirectors);
     $directorAgentsData.set(updatedDirectors);
     modelIdInitialized = $selectedLanguageModel.get();
     

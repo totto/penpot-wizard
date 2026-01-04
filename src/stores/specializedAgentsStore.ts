@@ -175,7 +175,6 @@ export const initializeSpecializedAgents = async () => {
     }
 
     specializedAgentsInitialized = true;
-    console.log('Specialized agents initialized:', $specializedAgentsData.get());
   } catch (error) {
     console.error('Failed to initialize specialized agents:', error);
   }

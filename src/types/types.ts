@@ -2,7 +2,7 @@ import { AnyOrama } from '@orama/orama';
 import { Experimental_Agent as Agent, Tool, ToolSet, JSONSchema7 } from 'ai';
 import { ZodType } from 'zod';
 import type { Shape, ImageData as PenpotImageData, LibraryComponent } from '@penpot/plugin-types';
-import { PenpotShapeProperties, ModifyShapeProperties } from './shapeTypes';
+import { PenpotShapeProperties, ModifyShapeProperties, BaseShapeProperties } from './shapeTypes';
 
 /**
  * Message types for communication between Penpot plugin and app
@@ -27,6 +27,7 @@ export enum ClientQueryType {
   CREATE_COMPONENT = 'CREATE_COMPONENT',
   CREATE_GROUP = 'CREATE_GROUP',
   MODIFY_SHAPE = 'MODIFY_SHAPE',
+  DELETE_SHAPE = 'DELETE_SHAPE',
 }
 
 export enum PenpotShapeType {
@@ -41,7 +42,7 @@ export interface ClientMessage {
   source: MessageSourceName.Client;
   type: ClientQueryType;
   messageId: string;
-  payload?: DrawShapeQueryPayload | AddImageQueryPayload | CreateComponentQueryPayload | CreateGroupQueryPayload | ModifyShapeQueryPayload;
+  payload?: DrawShapeQueryPayload | AddImageQueryPayload | CreateComponentQueryPayload | CreateGroupQueryPayload | ModifyShapeQueryPayload | DeleteShapeQueryPayload;
 }
 
 export interface DrawShapeQueryPayload {
@@ -55,22 +56,23 @@ export interface AddImageQueryPayload {
   mimeType: string;
 }
 
-export interface CreateComponentQueryPayload {
+export interface CreateComponentQueryPayload extends BaseShapeProperties{
   shapes: string[];
-  name: string;
 }
 
-export interface CreateGroupQueryPayload {
+export interface CreateGroupQueryPayload extends Omit<BaseShapeProperties, 'fills' | 'strokes' | 'shadows'>{
   shapes: string[];
-  name?: string;
 }
-
 export interface ModifyShapeQueryPayload {
   shapeId: string;
   params: Omit<ModifyShapeProperties, 'shapeId'>;
 }
 
-export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | CreateComponentQueryPayload | CreateGroupQueryPayload | ModifyShapeQueryPayload;
+export interface DeleteShapeQueryPayload {
+  shapeId: string;
+}
+
+export type ClientQueryPayload = DrawShapeQueryPayload | AddImageQueryPayload | CreateComponentQueryPayload | CreateGroupQueryPayload | ModifyShapeQueryPayload | DeleteShapeQueryPayload;
 export interface PluginMessage {
   source: MessageSourceName.Plugin;
   type: PluginMessageType | ClientQueryType;
@@ -124,7 +126,12 @@ export interface ModifyShapeResponsePayload {
   shape: Shape;
 }
 
-export type PluginResponsePayload = GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | DrawShapeResponsePayload | AddImagePayload | CreateComponentResponsePayload | CreateGroupResponsePayload | ModifyShapeResponsePayload;
+export interface DeleteShapeResponsePayload {
+  shapeId: string;
+  deleted: boolean;
+}
+
+export type PluginResponsePayload = GetUserDataPayload | GetProjectDataPayload | GetAvailableFontsPayload | GetCurrentPagePayload | DrawShapeResponsePayload | AddImagePayload | CreateComponentResponsePayload | CreateGroupResponsePayload | ModifyShapeResponsePayload | DeleteShapeResponsePayload;
 
 // Theme type definition
 export type Theme = 'light' | 'dark';

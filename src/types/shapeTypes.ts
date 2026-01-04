@@ -72,21 +72,33 @@ export const shadowSchema = z.object({
   }).optional().describe('The color object defining the shadow color and opacity.'),
 }).describe('A shadow object defining a drop shadow or inner shadow for a shape');
 
-export const baseShapeProperties = z.object({
-  name: z.string().describe('The name of the shape, used for visual identification and organization'),
-  parentId: z.string().optional().describe('The id of the parent shape'),
-  x: z.number().describe('The absolute x position of the shape, relative to the Root Frame board'),
-  y: z.number().describe('The absolute y position of the shape, relative to the Root Frame board'),
-  width: z.number().describe('The width of the shape'),
-  height: z.number().describe('The height of the shape'),
-  borderRadius: z.number().describe('The border radius of the shape'),
-  opacity: z.number().describe('The opacity of the shape'),
-  blendMode: z.enum(blendModes).describe('The blend mode of the shape'),
-  fills: z.array(fillSchema).optional().describe('Array of fill objects to apply to the shape. Supports fillColor (solid color), fillColorGradient (linear or radial gradient), and fillImage (image fill).'),
-  strokes: z.array(strokeSchema).optional().describe('Array of stroke objects to apply to the shape. Supports strokeColor (solid color) and strokeColorGradient (linear or radial gradient).'),
-  shadows: z.array(shadowSchema).optional().describe('Array of shadow objects to apply to the shape. Supports drop-shadow and inner-shadow styles.'),
-  zIndex: z.number().min(0).describe('The z-index of the shape, used to control stacking order'),
-});
+/**
+ * Generates base shape properties schema with descriptions adapted to the specific type.
+ * 
+ * @param type - The type of element: 'component', 'group', 'board', or 'shape'
+ * @param customDesc - Optional object to override default descriptions for specific properties
+ * @returns A Zod object schema with all base shape properties and contextualized descriptions
+ */
+function getBaseShapeProperties(
+  type: string,
+  customDesc?: Partial<Record<string, string>>
+) {
+  return {
+    name: z.string().describe(customDesc?.name || `The name of the ${type}, used for visual identification and organization`),
+    parentId: z.string().optional().describe('The id of the parent board or component'),
+    x: z.number().describe(customDesc?.x || `The absolute x position of the ${type}, relative to the Root Frame board`),
+    y: z.number().describe(customDesc?.y || `The absolute y position of the ${type}, relative to the Root Frame board`),
+    width: z.number().describe(customDesc?.width || `The width of the ${type}`),
+    height: z.number().describe(customDesc?.height || `The height of the ${type}`),
+    borderRadius: z.number().optional().describe(customDesc?.borderRadius || `The border radius of the ${type}`),
+    opacity: z.number().optional().describe(customDesc?.opacity || `The opacity of the ${type}`),
+    blendMode: z.enum(blendModes).optional().describe(customDesc?.blendMode || `The blend mode of the ${type}`),
+    fills: z.array(fillSchema).optional().describe(customDesc?.fills || `Array of fill objects to apply to the ${type}. Supports fillColor (solid color), fillColorGradient (linear or radial gradient), and fillImage (image fill).`),
+    strokes: z.array(strokeSchema).optional().describe(customDesc?.strokes || `Array of stroke objects to apply to the ${type}. Supports strokeColor (solid color) and strokeColorGradient (linear or radial gradient).`),
+    shadows: z.array(shadowSchema).optional().describe(customDesc?.shadows || `Array of shadow objects to apply to the ${type}. Supports drop-shadow and inner-shadow styles.`),
+    zIndex: z.number().min(0).describe(customDesc?.zIndex || `The z-index of the ${type}, used to control stacking order.`),
+  };
+}
 
 // Schema with only path-specific properties
 export const pathShapeSchema = z.object({
@@ -124,9 +136,9 @@ export const textShapeSchema = z.object({
   verticalAlign: z.enum(['center']).default('center').describe('The vertical align of the text'),
 });
 
-export const pathShapeProperties = baseShapeProperties.extend(pathShapeSchema.shape);
-
-export const textShapeProperties = baseShapeProperties.extend(textShapeSchema.shape);
+export const baseShapeProperties = z.object(getBaseShapeProperties('shape'));
+export const pathShapeProperties = z.object(getBaseShapeProperties('path')).extend(pathShapeSchema.shape);
+export const textShapeProperties = z.object(getBaseShapeProperties('text')).extend(textShapeSchema.shape);
 
 export type BaseShapeProperties = z.infer<typeof baseShapeProperties>;
 export type PathShapeProperties = z.infer<typeof pathShapeProperties>;
@@ -134,11 +146,11 @@ export type TextShapeProperties = z.infer<typeof textShapeProperties>;
 export type PenpotShapeProperties = BaseShapeProperties | PathShapeProperties | TextShapeProperties;
 
 // Schema for creating multiple shapes at once
-const rectangleShapeSchema = baseShapeProperties.extend({
+const rectangleShapeSchema = z.object(getBaseShapeProperties('rectangle')).extend({
   type: z.literal('rectangle').describe('The type of shape: rectangle'),
 });
 
-const ellipseShapeSchema = baseShapeProperties.extend({
+const ellipseShapeSchema = z.object(getBaseShapeProperties('ellipse')).extend({
   type: z.literal('ellipse').describe('The type of shape: ellipse'),
 });
 
@@ -158,32 +170,24 @@ export const createShapesSchema = z.object({
       pathShapeWithTypeSchema,
       textShapeWithTypeSchema,
     ])
-  ).describe('Array of shapes to create. Shapes will be created in the order specified. Remember: text and foreground elements should be created first, backgrounds last.'),
+  ).describe('Array of shapes to create. Important: use zIndex to control stacking order. Text and foreground elements should have a higher zIndex than backgrounds.'),
 });
 
-export type CreateShapesInput = z.infer<typeof createShapesSchema>;
+export const createComponentSchema = createShapesSchema.extend(
+  z.object(getBaseShapeProperties('component')).shape
+).describe('Schema for creating a component from shapes, use component properties to define the background fills, strokes, and shadows.');
 
-export const createComponentSchema = createShapesSchema.extend({
-  name: z.string().describe('The name of the component to create in the library'),
-});
+export const createGroupSchema = createShapesSchema.extend(
+  z.object(getBaseShapeProperties('group'))
+  .omit({ fills: true, strokes: true, shadows: true })
+  .shape
+);
 
-export type CreateComponentInput = z.infer<typeof createComponentSchema>;
-
-export const createGroupSchema = createShapesSchema.extend({
-  name: z.string().optional().describe('The optional name of the group'),
-});
-
-export type CreateGroupInput = z.infer<typeof createGroupSchema>;
-
-export const createBoardSchema = createShapesSchema.extend({
-  name: z.string().optional().describe('The optional name of the board'),
-  x: z.number().optional().describe('The optional x position of the board'),
-  y: z.number().optional().describe('The optional y position of the board'),
-  width: z.number().optional().describe('The optional width of the board'),
-  height: z.number().optional().describe('The optional height of the board'),
-});
-
-export type CreateBoardInput = z.infer<typeof createBoardSchema>;
+export const createBoardSchema = createShapesSchema.extend(
+  z.object(getBaseShapeProperties('board'))
+    .omit({ parentId: true, opacity: true, blendMode: true, zIndex: true })
+    .shape
+);
 
 // Schema for modifying shape properties - all properties are optional except shapeId
 // Reuses baseShapeProperties, pathShapeSchema, and textShapeSchema to avoid duplication

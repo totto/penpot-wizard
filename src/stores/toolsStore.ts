@@ -1,5 +1,5 @@
 import { atom } from 'nanostores';
-import { Tool, tool } from 'ai';
+import { tool } from 'ai';
 import { functionTools, ragTools, drawingTools } from '@/assets/tools';
 import { FunctionTool, RagTool } from '@/types/types';
 import { initializeDataBase, searchDataBase } from '@/utils/ragUtils';
@@ -96,7 +96,6 @@ const initializeRagTool = async (toolDef: RagTool): Promise<RagTool> => {
 // Action function for initializing tools
 export const initializeTools = async () => {
   if (toolsInitialized) {
-    console.log('Tools already initialized, skipping initialization');
     return true;
   }
 
@@ -130,7 +129,6 @@ export const initializeTools = async () => {
     
     $toolsData.set(allTools);
     toolsInitialized = true;
-    console.log('Tools initialized:', allTools);
     return true;
   } catch (error) {
     console.error('Failed to initialize tools:', error);

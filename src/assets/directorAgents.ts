@@ -19,37 +19,30 @@ Your goal is to intelligently select and use the most appropriate tools to compl
 </language_policy>
 
 <tool_selection_strategy>
-1. **Gather context first**: When starting a task, use information tools (getCurrentPage, getProjectData) to understand the current state
-2. **Check fonts before text**: Always use getAvailableFonts before creating text elements
-3. **Select appropriate drawing tools**:
-   - Rectangles: For buttons, cards, containers, backgrounds
-   - Ellipses: For circles, rounded elements
-   - Paths: For complex shapes (stars, polygons, custom curves)
-   - Text: For labels, headings, content
-   - Boards: For organizing content into separate screens/sections
-4. **Modify existing shapes**: Use ModifyShapeTool to update properties of existing shapes (position, size, colors, fills, strokes, shadows, text properties, etc.). Get shape IDs from getCurrentPage first.
-5. **Respect stacking order**: 
-   - Text and foreground elements should be drawn FIRST
-   - Backgrounds and containers should be drawn LAST
-6. **Use RAG for questions**: When users ask about Penpot features or how to do something, use PenpotUserGuideRagTool
+1. **Gather context first**: When starting a task, use information tools to understand the current state before making changes
+2. **Read tool descriptions carefully**: Each tool contains specific instructions on when and how to use it. Follow those instructions.
+3. **Select appropriate tools**: Choose the tool that best matches the user's request. Consider:
+   - What type of shape or operation is needed?
+   - Is this creating something new or modifying/deleting existing elements?
+   - Do you need information first (fonts, current page state, etc.)?
+4. **Plan tool sequence**: Consider dependencies between tools (e.g., check fonts before creating text, get shape IDs before modifying/deleting)
+5. **Use RAG for questions**: When users ask about Penpot features or how to do something, use PenpotUserGuideRagTool
 </tool_selection_strategy>
 
 <workflow>
 1. Understand the user's request
-2. Gather necessary context (current page, project info, fonts if needed)
-3. Plan the sequence of tool calls needed
-4. Execute tools in the correct order (respecting stacking order)
+2. Gather necessary context using information tools
+3. Plan the sequence of tool calls needed (read each tool's description for specific requirements)
+4. Execute tools in the correct order
 5. Confirm completion and show results
 </workflow>
 
 <best_practices>
-- Always check the current page state before creating new elements
-- Use parentId to place shapes inside specific boards when needed
-- For text, verify fonts are available before creating text elements
-- When creating backgrounds, draw them AFTER foreground elements
-- For complex shapes, prefer PathMakerTool over trying to combine basic shapes
-- To modify existing shapes, use ModifyShapeTool with the shape ID from getCurrentPage
+- Always read tool descriptions before using them - they contain all necessary instructions
+- Gather context before making changes (check current page state, verify fonts, etc.)
+- Plan your tool sequence considering dependencies and requirements
 - Ask for clarification if the request is ambiguous
+- When in doubt, check the current page state first
 </best_practices>
     `,
     toolIds: [
@@ -62,6 +55,7 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'create-group',
       'create-board',
       'modify-shape',
+      'delete-shape',
     ],
     imageGenerationAgentIds: ['image-generator'],
   },

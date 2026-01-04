@@ -8,10 +8,11 @@ import {
   CreateComponentQueryPayload,
   CreateGroupQueryPayload,
   ModifyShapeQueryPayload,
+  DeleteShapeQueryPayload,
   PluginResponseMessage,
 } from '../types/types';
 
-import { handleDrawShape, handleCreateComponent, handleCreateGroup, handleModifyShape } from './drawHandlers';
+import { handleDrawShape, handleCreateComponent, handleCreateGroup, handleModifyShape, handleDeleteShape } from './drawHandlers';
 import { handleGetProjectData, handleGetUserData, handleAddImage, getCurrentPage, getAvailableFonts } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
@@ -58,6 +59,10 @@ penpot.ui.onMessage(async (message: ClientMessage) => {
 
     case ClientQueryType.MODIFY_SHAPE:
       responseMessage = handleModifyShape(payload as ModifyShapeQueryPayload);
+      break;
+
+    case ClientQueryType.DELETE_SHAPE:
+      responseMessage = handleDeleteShape(payload as DeleteShapeQueryPayload);
       break;
 
     case ClientQueryType.GET_USER_DATA:

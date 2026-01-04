@@ -8,7 +8,153 @@ import {
   ClientQueryPayload,
   DrawShapeResponsePayload,
 } from "@/types/types";
-import { PenpotShapeProperties, ModifyShapeProperties, BaseShapeProperties } from "@/types/shapeTypes";
+import { 
+  PenpotShapeProperties, 
+  ModifyShapeProperties, 
+  BaseShapeProperties,
+  baseShapeProperties,
+  pathShapeProperties,
+  textShapeProperties,
+} from "@/types/shapeTypes";
+import type { Shape } from '@penpot/plugin-types';
+
+/**
+ * Curates a shape object by removing properties that are:
+ * - Computed/derived (bounds, center, parentX, parentY, boardX, boardY)
+ * - Not configurable on creation (rotation, flipX, flipY, blocked, hidden, etc.)
+ * - Internal Penpot properties (parentIndex, layoutChild, layoutCell, tokens, etc.)
+ * 
+ * Uses the shape type schemas from shapeTypes.ts to determine which properties to keep.
+ * This ensures that as new properties are added to the schemas, they will automatically
+ * be included in the output.
+ * 
+ * @param shape - The raw shape object from Penpot plugin
+ * @returns A curated shape object with only relevant and configurable properties
+ */
+export function curateShapeOutput(shape: Shape | Record<string, unknown>): Record<string, unknown> {
+  if (!shape || typeof shape !== 'object') {
+    return shape as Record<string, unknown>;
+  }
+
+  // Convert to Record for safe property access
+  const shapeRecord = shape as Record<string, unknown>;
+  const shapeType = shapeRecord.type as string | undefined;
+  const shapeId = shapeRecord.id as string | undefined;
+  
+  if (!shapeType) {
+    // If no type, return minimal object with just id if available
+    return shapeId ? { id: shapeId } : {};
+  }
+
+  // Determine which schema to use based on shape type
+  let validSchema: typeof baseShapeProperties | typeof pathShapeProperties | typeof textShapeProperties;
+  
+  switch (shapeType) {
+    case 'path':
+      validSchema = pathShapeProperties;
+      break;
+    case 'text':
+      validSchema = textShapeProperties;
+      break;
+    case 'rectangle':
+    case 'ellipse':
+    case 'board':
+    default:
+      validSchema = baseShapeProperties;
+      break;
+  }
+
+  // Get all valid keys from the schema
+  // We need to extract keys from the Zod schema shape
+  const schemaShape = validSchema.shape;
+  const validKeys = new Set(Object.keys(schemaShape));
+  
+  // Always include id and type (they come from Penpot but aren't in creation schemas)
+  validKeys.add('id');
+  validKeys.add('type');
+
+  // Extract parentId from parent object if it exists
+  let parentId: string | undefined;
+  const parent = shapeRecord.parent;
+  if (parent) {
+    if (typeof parent === 'object' && parent !== null && 'id' in parent) {
+      parentId = (parent as { id: unknown }).id as string;
+    } else if (typeof parent === 'string') {
+      parentId = parent;
+    }
+  } else if ('parentId' in shapeRecord && typeof shapeRecord.parentId === 'string') {
+    parentId = shapeRecord.parentId;
+  }
+
+  // Build curated shape object
+  const curated: Record<string, unknown> = {
+    id: shapeId,
+    type: shapeType,
+  };
+
+  // Add parentId if it exists
+  if (parentId) {
+    curated.parentId = parentId;
+  }
+
+  // Copy only valid properties from the shape
+  for (const key of validKeys) {
+    if (key === 'id' || key === 'type' || key === 'parentId') {
+      // Already handled above
+      continue;
+    }
+
+    if (key in shapeRecord && shapeRecord[key] !== undefined) {
+      const value = shapeRecord[key];
+      
+      // Handle arrays (fills, strokes, shadows, content)
+      if (Array.isArray(value)) {
+        // For arrays, we keep them as-is but they should already be in the correct format
+        // from the plugin response
+        curated[key] = value;
+      } else {
+        curated[key] = value;
+      }
+    }
+  }
+
+  return curated;
+}
+
+/**
+ * Curates a plugin response that contains a shape by cleaning the shape object
+ */
+export function curateShapeResponse(response: PluginResponseMessage): PluginResponseMessage {
+  if (!response.success || !response.payload) {
+    return response;
+  }
+
+  const payload = response.payload as unknown as Record<string, unknown>;
+  
+  // Handle DrawShapeResponsePayload and ModifyShapeResponsePayload
+  if ('shape' in payload && payload.shape) {
+    return {
+      ...response,
+      payload: {
+        ...payload,
+        shape: curateShapeOutput(payload.shape as Shape) as unknown as Shape,
+      } as unknown as typeof response.payload,
+    };
+  }
+
+  // Handle CreateGroupResponsePayload
+  if ('group' in payload && payload.group) {
+    return {
+      ...response,
+      payload: {
+        ...payload,
+        group: curateShapeOutput(payload.group as Shape) as unknown as Shape,
+      } as unknown as typeof response.payload,
+    };
+  }
+
+  return response;
+}
 
 export const drawShape = async (shapeType: PenpotShapeType, params: PenpotShapeProperties) => {
   const response = await sendMessageToPlugin(ClientQueryType.DRAW_SHAPE, {
@@ -16,13 +162,21 @@ export const drawShape = async (shapeType: PenpotShapeType, params: PenpotShapeP
     params,
   });
   
-  return response;
+  return curateShapeResponse(response);
 }
 
 export const modifyShape = async (shapeId: string, params: Omit<ModifyShapeProperties, 'shapeId'>) => {
   const response = await sendMessageToPlugin(ClientQueryType.MODIFY_SHAPE, {
     shapeId,
     params,
+  });
+  
+  return curateShapeResponse(response);
+}
+
+export const deleteShape = async (shapeId: string) => {
+  const response = await sendMessageToPlugin(ClientQueryType.DELETE_SHAPE, {
+    shapeId,
   });
   
   return response;
@@ -83,7 +237,7 @@ export const createShapesArray = async (
           id: shapeId,
           name: shape.name,
           type: shape.type,
-          response,
+          response, // Response already curated by drawShape
         });
       } else if (throwOnError) {
         throw new Error(`Failed to get shape ID for shape: ${shape.name}`);

@@ -1,6 +1,6 @@
 import { pathCommandsToSvgString } from './utils';
 import { Board, Fill, Shape, Shadow, Stroke, Text } from '@penpot/plugin-types';
-import { ClientQueryType, DrawShapeQueryPayload, CreateComponentQueryPayload, CreateGroupQueryPayload, ModifyShapeQueryPayload, MessageSourceName, PenpotShapeType, PluginResponseMessage } from '../types/types';
+import { ClientQueryType, DrawShapeQueryPayload, CreateComponentQueryPayload, ModifyShapeQueryPayload, DeleteShapeQueryPayload, MessageSourceName, PenpotShapeType, PluginResponseMessage, CreateGroupQueryPayload } from '../types/types';
 import { PathShapeProperties, PenpotShapeProperties, TextShapeProperties, ModifyShapeProperties } from '@/types/shapeTypes';
 
 function setParamsToShape(shape: Shape, params: PenpotShapeProperties) {
@@ -108,7 +108,7 @@ export function handleDrawShape( payload: DrawShapeQueryPayload): PluginResponse
 }
 
 export function handleCreateComponent(payload: CreateComponentQueryPayload): PluginResponseMessage {
-  const { shapes, name } = payload;
+  const { shapes, ...properties } = payload;
 
   const pluginResponse: PluginResponseMessage = {
     source: MessageSourceName.Plugin,
@@ -131,10 +131,11 @@ export function handleCreateComponent(payload: CreateComponentQueryPayload): Plu
       return shape;
     }));
 
-    if (!component) {
+    if (!component || !component.mainInstance()) {
       throw new Error('Failed to create component');
     }
-    component.name = name;
+
+    setParamsToShape(component.mainInstance(), properties as PenpotShapeProperties);
 
     return {
       ...pluginResponse,
@@ -144,6 +145,7 @@ export function handleCreateComponent(payload: CreateComponentQueryPayload): Plu
       },
     };
   } catch (error) {
+    console.error('error creating component:', error);
     return {
       ...pluginResponse,
       success: false,
@@ -153,7 +155,7 @@ export function handleCreateComponent(payload: CreateComponentQueryPayload): Plu
 }
 
 export function handleCreateGroup(payload: CreateGroupQueryPayload): PluginResponseMessage {
-  const { shapes, name } = payload;
+  const { shapes, ...properties } = payload;
 
   const pluginResponse: PluginResponseMessage = {
     source: MessageSourceName.Plugin,
@@ -183,9 +185,7 @@ export function handleCreateGroup(payload: CreateGroupQueryPayload): PluginRespo
       throw new Error('Failed to create group');
     }
 
-    if (name) {
-      group.name = name;
-    }
+    setParamsToShape(group, properties as PenpotShapeProperties);
 
     return {
       ...pluginResponse,
@@ -195,6 +195,7 @@ export function handleCreateGroup(payload: CreateGroupQueryPayload): PluginRespo
       },
     };
   } catch (error) {
+    console.error('error creating group:', error);
     return {
       ...pluginResponse,
       success: false,
@@ -319,6 +320,43 @@ export function handleModifyShape(payload: ModifyShapeQueryPayload): PluginRespo
       ...pluginResponse,
       success: false,
       message: `error modifying shape ${shapeId}: ${error}`,
+    };
+  }
+}
+
+export function handleDeleteShape(payload: DeleteShapeQueryPayload): PluginResponseMessage {
+  const { shapeId } = payload;
+
+  const pluginResponse: PluginResponseMessage = {
+    source: MessageSourceName.Plugin,
+    type: ClientQueryType.DELETE_SHAPE,
+    messageId: '',
+    message: '',
+    success: true,
+  };
+
+  try {
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+    if (!shape) {
+      throw new Error(`Shape with ID ${shapeId} not found`);
+    }
+
+    // Remove the shape using Penpot API
+    shape.remove();
+
+    return {
+      ...pluginResponse,
+      message: 'Shape deleted successfully',
+      payload: {
+        shapeId: shapeId,
+        deleted: true,
+      },
+    };
+  } catch (error) {
+    return {
+      ...pluginResponse,
+      success: false,
+      message: `error deleting shape ${shapeId}: ${error}`,
     };
   }
 }

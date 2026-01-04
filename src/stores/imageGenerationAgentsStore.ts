@@ -55,7 +55,6 @@ const initializeImageGenerationAgent = async (agentDef: ImageGenerationAgent): P
           data: uint8Array,
           mimeType: mediaType,
         });
-        console.log('addImageResponse: ', addImageResponse);
         return addImageResponse;
       } catch (error) {
         console.error(`Error executing image generation agent ${agentDef.id}:`, error);

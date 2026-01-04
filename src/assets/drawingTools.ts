@@ -1,6 +1,7 @@
-import { drawShape, sendMessageToPlugin, modifyShape, createShapesArray } from '@/utils/pluginUtils';
+import { drawShape, sendMessageToPlugin, modifyShape, deleteShape, createShapesArray, curateShapeResponse } from '@/utils/pluginUtils';
 import { PenpotShapeType, FunctionTool, ClientQueryType, DrawShapeResponsePayload } from '@/types/types';
 import { baseShapeProperties, pathShapeProperties, textShapeProperties, createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, BaseShapeProperties, modifyShapePropertiesSchema } from '@/types/shapeTypes';
+import { z } from 'zod';
 
 export const drawingTools: FunctionTool[] = [
   {
@@ -50,12 +51,16 @@ export const drawingTools: FunctionTool[] = [
     id: 'text-maker',
     name: 'TextMakerTool',
     description: `
-      Use this tool to draw a text.
-      Use getProjectData first to see available fonts before creating text.
+      Use this tool to draw a text element.
+      
+      REQUIRED STEP: Always use getAvailableFonts BEFORE creating text to verify which fonts are available.
+      You must check available fonts before using this tool.
+      
       Use parentId to place the text inside a specific board.
       
-      🚨 TEXT USUALLY GOES ON TOP: Draw text elements BEFORE background shapes!
-      Text should typically be drawn FIRST or EARLY in the drawing sequence.
+      🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
+      Text should typically be drawn FIRST or EARLY in the drawing sequence (before background shapes).
+      Text elements usually go on top of other elements.
     `,
     inputSchema: textShapeProperties,
     function: async (shapeProperties) => {
@@ -88,11 +93,14 @@ export const drawingTools: FunctionTool[] = [
       
       IMPORTANT: This tool does NOT create boards. Use BoardMakerTool for boards.
       
+      REQUIRED STEP: If creating text shapes, always use getAvailableFonts BEFORE using this tool to verify which fonts are available.
+      
       🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
       - Text and foreground elements should be created FIRST (at the beginning of the shapes array)
       - Backgrounds and containers should be created LAST (at the end of the shapes array)
       
       You can create multiple shapes efficiently in one call. The shapes will be created in the order specified in the array.
+      Use parentId in shape properties to place shapes inside a specific board.
     `,
     inputSchema: createShapesSchema,
     function: async (input) => {
@@ -114,11 +122,19 @@ export const drawingTools: FunctionTool[] = [
       
       IMPORTANT: This tool does NOT create boards. Use BoardMakerTool for boards.
       
-      🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
-      - Text and foreground elements should be created FIRST (at the beginning of the shapes array)
-      - Backgrounds and containers should be created LAST (at the end of the shapes array)
+      🎨 KEY CONCEPT: The component itself IS a shape! You don't need to create a background shape.
+      - You can apply fills, strokes, and shadows directly to the component using the component properties
+      - These visual properties (fills, strokes, shadows) will be applied to the component's background
+      - The component acts as a container with its own visual styling
+      
+      REQUIRED STEP: If creating text shapes, always use getAvailableFonts BEFORE using this tool to verify which fonts are available.
+      
+      🚨 CRITICAL STACKING ORDER: Use zIndex to control stacking order of shapes within the component!
+      - Text and foreground elements should have a higher zIndex than backgrounds
+      - Shapes are created in the order specified, but zIndex determines visual stacking
       
       You can create multiple shapes efficiently in one call. The shapes will be created in the order specified in the array, and then converted into a component with the specified name.
+      Use parentId in shape properties to place shapes inside a specific board before converting to component.
     `,
     inputSchema: createComponentSchema,
     function: async (input) => {
@@ -128,10 +144,13 @@ export const drawingTools: FunctionTool[] = [
       // Extract shape IDs for component creation
       const shapeIds = createdShapes.map(shape => shape.id);
       
+      // Extract component properties (all properties except shapes)
+      const { shapes: _, ...componentProperties } = input;
+      
       // Create component from the shapes
       const componentResponse = await sendMessageToPlugin(ClientQueryType.CREATE_COMPONENT, {
         shapes: shapeIds,
-        name: input.name,
+        ...componentProperties,
       });
         
       return {
@@ -149,11 +168,21 @@ export const drawingTools: FunctionTool[] = [
       
       IMPORTANT: This tool does NOT create boards. Use BoardMakerTool for boards.
       
-      🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
-      - Text and foreground elements should be created FIRST (at the beginning of the shapes array)
-      - Backgrounds and containers should be created LAST (at the end of the shapes array)
+      🎨 KEY CONCEPT: Groups are NOT shapes! They are containers that only have position (x, y) and size (width, height).
+      - Groups do NOT support fills, strokes, or shadows directly
+      - If you need a background for the group, you MUST create a background shape (rectangle, ellipse, or path) with zIndex: 0
+      - The background shape should be included in the shapes array and will be part of the group
+      - Position and size properties apply to the group container itself
+      
+      REQUIRED STEP: If creating text shapes, always use getAvailableFonts BEFORE using this tool to verify which fonts are available.
+      
+      🚨 CRITICAL STACKING ORDER: Use zIndex to control stacking order of shapes within the group!
+      - Background shapes should have zIndex: 0 (lowest, appears at the back)
+      - Text and foreground elements should have a higher zIndex than backgrounds
+      - Shapes are created in the order specified, but zIndex determines visual stacking
       
       You can create multiple shapes efficiently in one call. The shapes will be created in the order specified in the array, and then grouped together with the specified name (if provided).
+      Use parentId in shape properties to place shapes inside a specific board before grouping.
     `,
     inputSchema: createGroupSchema,
     function: async (input) => {
@@ -163,10 +192,13 @@ export const drawingTools: FunctionTool[] = [
       // Extract shape IDs for group creation
       const shapeIds = createdShapes.map(shape => shape.id);
       
+      // Extract group properties (all properties except shapes)
+      const { shapes: _, ...groupProperties } = input;
+      
       // Create group from the shapes
       const groupResponse = await sendMessageToPlugin(ClientQueryType.CREATE_GROUP, {
         shapes: shapeIds,
-        name: input.name,
+        ...groupProperties,
       });
         
       return {
@@ -174,9 +206,9 @@ export const drawingTools: FunctionTool[] = [
           name: shape.name,
           type: shape.type,
           id: shape.id,
-          response: shape.response,
+          response: shape.response, // Already curated by createShapesArray -> drawShape
         })),
-        group: groupResponse,
+        group: curateShapeResponse(groupResponse), // Curate the group response
       };
     },
   },
@@ -189,11 +221,14 @@ export const drawingTools: FunctionTool[] = [
       
       The board will be created first, and then all the specified shapes will be added inside it.
       
+      REQUIRED STEP: If creating text shapes, always use getAvailableFonts BEFORE using this tool to verify which fonts are available.
+      
       🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
       - Text and foreground elements should be created FIRST (at the beginning of the shapes array)
       - Backgrounds and containers should be created LAST (at the end of the shapes array)
       
       You can create multiple shapes efficiently in one call. The board will be created first, and then all shapes will be created inside it in the order specified in the array.
+      The board properties (name, x, y, width, height, borderRadius, fills, strokes) are optional and will use defaults if not provided.
     `,
     inputSchema: createBoardSchema,
     function: async (input) => {
@@ -231,13 +266,13 @@ export const drawingTools: FunctionTool[] = [
         board: {
           id: boardId,
           name: input.name || 'Board',
-          response: boardResponse,
+          response: boardResponse, // Already curated by drawShape
         },
         shapes: createdShapes.map(shape => ({
           name: shape.name,
           type: shape.type,
           id: shape.id,
-          response: shape.response,
+          response: shape.response, // Already curated by createShapesArray -> drawShape
         })),
       };
     },
@@ -261,6 +296,24 @@ export const drawingTools: FunctionTool[] = [
     function: async (input) => {
       const { shapeId, ...params } = input;
       const response = await modifyShape(shapeId, params);
+      return response;
+    },
+  },
+  {
+    id: 'delete-shape',
+    name: 'DeleteShapeTool',
+    description: `
+      Use this tool to delete a shape from the current page.
+      You must provide the shapeId of the shape you want to delete.
+      You can get shape IDs by using GET_CURRENT_PAGE to see all shapes on the current page.
+      
+      IMPORTANT: This action cannot be undone. Make sure you want to delete the shape before using this tool.
+    `,
+    inputSchema: z.object({
+      shapeId: z.string().describe('The ID of the shape to delete'),
+    }),
+    function: async (input) => {
+      const response = await deleteShape(input.shapeId);
       return response;
     },
   },

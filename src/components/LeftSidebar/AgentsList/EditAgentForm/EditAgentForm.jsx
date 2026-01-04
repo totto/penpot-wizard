@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@nanostores/react";
-import { XMarkIcon } from "@heroicons/react/24/outline";
 import { $toolsData } from "@/stores/toolsStore";
 import { $specializedAgentsData } from "@/stores/specializedAgentsStore";
 import { $directorAgentsData } from "@/stores/directorAgentsStore";
@@ -10,7 +9,6 @@ import {
   createUserSpecializedAgent, 
   updateUserSpecializedAgent 
 } from "@/stores/userAgentsStore";
-import SchemaEditor from "@/components/LeftSidebar/AgentsList/SchemaEditor/SchemaEditor";
 import styles from "./EditAgentForm.module.css";
 
 function EditAgentForm({ agentToEdit, onClose }) {
@@ -127,18 +125,14 @@ function EditAgentForm({ agentToEdit, onClose }) {
         if (formData.agent_type === "director") {
           if (agentToEdit) {
             updateUserDirectorAgent(agentData);
-            console.log("Updated director agent:", agentData);
           } else {
             createUserDirectorAgent(agentData);
-            console.log("Created director agent:", agentData);
           }
         } else if (formData.agent_type === "specialized") {
           if (agentToEdit) {
             updateUserSpecializedAgent(agentData);
-            console.log("Updated specialized agent:", agentData);
           } else {
             createUserSpecializedAgent(agentData);
-            console.log("Created specialized agent:", agentData);
           }
         }
         

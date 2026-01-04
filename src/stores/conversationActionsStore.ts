@@ -71,6 +71,15 @@ export const createNewConversation = async (directorAgentId: string): Promise<st
   // 3. Load as active conversation
   loadActiveConversation(conversationId);
 
+  // 4. Add welcome message from assistant
+  addMessageToActive({
+    role: 'assistant',
+    content: '¡Hola! ¿En qué puedo ayudarte hoy?'
+  });
+
+  // 5. Increment message count for welcome message
+  incrementMessageCount(conversationId);
+
   return conversationId;
 };
 
