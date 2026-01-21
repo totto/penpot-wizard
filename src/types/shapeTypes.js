@@ -128,7 +128,7 @@ export const textShapeSchema = z.object({
   fontWeight: z.number().describe('The font weight of the text'),
   fontStyle: z.enum(['normal', 'italic']).optional().describe('The font style of the text'),
   lineHeight: z.number().min(0).max(10).default(1).describe('The separation between lines of text'),
-  letterSpacing: z.number().describe('The letter spacing of the text'),
+  letterSpacing: z.number().optional().describe('The letter spacing of the text'),
   textTransform: z.enum(['uppercase', 'lowercase', 'capitalize']).optional().describe('The text transform of the text'),
   textDecoration: z.enum(['underline', 'line-through']).optional().describe('The text decoration of the text'),
   direction: z.enum(['ltr', 'rtl']).optional().describe('The direction of the text'),

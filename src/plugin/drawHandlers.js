@@ -32,7 +32,6 @@ function setParamsToShape(shape, params) {
 
   if (parentId) {
     const parent = penpot.currentPage?.getShapeById(parentId);
-    console.log('parent', parent);
     if (parent && parent.type === PenpotShapeType.BOARD) {
       parent.appendChild(shape);
     }
@@ -97,6 +96,7 @@ export function handleDrawShape(payload) {
       },
     };
   } catch (error) {
+    console.error('error drawing shape:', error);
     return {
       ...pluginResponse,
       success: false,
@@ -314,6 +314,7 @@ export function handleModifyShape(payload) {
       },
     };
   } catch (error) {
+    console.error('error modifying shape:', error);
     return {
       ...pluginResponse,
       success: false,
@@ -351,6 +352,7 @@ export function handleDeleteShape(payload) {
       },
     };
   } catch (error) {
+    console.error('error deleting shape:', error);
     return {
       ...pluginResponse,
       success: false,

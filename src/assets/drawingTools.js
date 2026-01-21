@@ -1,4 +1,4 @@
-import { drawShape, sendMessageToPlugin, modifyShape, deleteShape, createShapesArray, curateShapeResponse } from '@/utils/pluginUtils';
+import { drawShape, sendMessageToPlugin, modifyShape, deleteShape, createShapesArray, formatToolResponse } from '@/utils/pluginUtils';
 import { PenpotShapeType, ClientQueryType } from '@/types/types';
 import { baseShapeProperties, pathShapeProperties, textShapeProperties, createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, modifyShapePropertiesSchema } from '@/types/shapeTypes';
 import { z } from 'zod';
@@ -104,13 +104,51 @@ export const drawingTools = [
     `,
     inputSchema: createShapesSchema,
     function: async (input) => {
-      const createdShapes = await createShapesArray(input.shapes, { throwOnError: false });
-      
-      return createdShapes.map(shape => ({
-        name: shape.name,
-        type: shape.type,
-        response: shape.response,
-      }));
+      try {
+        const createdShapes = await createShapesArray(input.shapes, { throwOnError: false });
+        
+        // Check if any shapes failed to create
+        const failedShapes = createdShapes.filter(shape => !shape.response?.success);
+        const successCount = createdShapes.length - failedShapes.length;
+        
+        if (failedShapes.length > 0) {
+          return formatToolResponse(
+            ClientQueryType.DRAW_SHAPE,
+            { 
+              shapes: createdShapes.map(shape => ({
+                name: shape.name,
+                type: shape.type,
+                id: shape.id,
+                response: shape.response,
+              })),
+              failedCount: failedShapes.length,
+            },
+            false,
+            `Partially successful: ${successCount} shape(s) created, ${failedShapes.length} failed`
+          );
+        }
+        
+        return formatToolResponse(
+          ClientQueryType.DRAW_SHAPE,
+          { 
+            shapes: createdShapes.map(shape => ({
+              name: shape.name,
+              type: shape.type,
+              id: shape.id,
+              response: shape.response,
+            }))
+          },
+          true,
+          `Successfully created ${createdShapes.length} shape(s)`
+        );
+      } catch (error) {
+        return formatToolResponse(
+          ClientQueryType.DRAW_SHAPE,
+          { error: error.message },
+          false,
+          `Failed to create shapes: ${error.message}`
+        );
+      }
     },
   },
   {
@@ -138,25 +176,37 @@ export const drawingTools = [
     `,
     inputSchema: createComponentSchema,
     function: async (input) => {
-      // Create all shapes first
-      const createdShapes = await createShapesArray(input.shapes, { throwOnError: true });
-      
-      // Extract shape IDs for component creation
-      const shapeIds = createdShapes.map(shape => shape.id);
-      
-      // Extract component properties (all properties except shapes)
-      const { shapes: _, ...componentProperties } = input;
-      
-      // Create component from the shapes
-      const componentResponse = await sendMessageToPlugin(ClientQueryType.CREATE_COMPONENT, {
-        shapes: shapeIds,
-        ...componentProperties,
-      });
+      try {
+        // Create all shapes first
+        const createdShapes = await createShapesArray(input.shapes, { throwOnError: true });
         
-      return {
-        shapes: shapeIds,
-        component: componentResponse,
-      };
+        // Extract shape IDs for component creation
+        const shapeIds = createdShapes.map(shape => shape.id);
+        
+        // Extract component properties (all properties except shapes)
+        const { shapes: _, ...componentProperties } = input;
+        
+        // Create component from the shapes
+        const componentResponse = await sendMessageToPlugin(ClientQueryType.CREATE_COMPONENT, {
+          shapes: shapeIds,
+          ...componentProperties,
+        });
+        
+        // Return the response directly - it's already formatted
+        return componentResponse;
+      } catch (error) {
+        // If error comes from createShapesArray, it might be a formatted response
+        // Otherwise, format a new error response
+        if (error.response && error.response.source) {
+          return error.response;
+        }
+        return formatToolResponse(
+          ClientQueryType.CREATE_COMPONENT,
+          { error: error.message },
+          false,
+          `Failed to create component: ${error.message}`
+        );
+      }
     },
   },
   {
@@ -186,30 +236,37 @@ export const drawingTools = [
     `,
     inputSchema: createGroupSchema,
     function: async (input) => {
-      // Create all shapes first
-      const createdShapes = await createShapesArray(input.shapes, { throwOnError: true });
-      
-      // Extract shape IDs for group creation
-      const shapeIds = createdShapes.map(shape => shape.id);
-      
-      // Extract group properties (all properties except shapes)
-      const { shapes: _, ...groupProperties } = input;
-      
-      // Create group from the shapes
-      const groupResponse = await sendMessageToPlugin(ClientQueryType.CREATE_GROUP, {
-        shapes: shapeIds,
-        ...groupProperties,
-      });
+      try {
+        // Create all shapes first
+        const createdShapes = await createShapesArray(input.shapes, { throwOnError: true });
         
-      return {
-        shapes: createdShapes.map(shape => ({
-          name: shape.name,
-          type: shape.type,
-          id: shape.id,
-          response: shape.response, // Already curated by createShapesArray -> drawShape
-        })),
-        group: curateShapeResponse(groupResponse), // Curate the group response
-      };
+        // Extract shape IDs for group creation
+        const shapeIds = createdShapes.map(shape => shape.id);
+        
+        // Extract group properties (all properties except shapes)
+        const { shapes, ...groupProperties } = input;
+        
+        // Create group from the shapes
+        const groupResponse = await sendMessageToPlugin(ClientQueryType.CREATE_GROUP, {
+          shapes: shapeIds,
+          ...groupProperties,
+        });
+        
+        // Return the response directly - it's already formatted
+        return groupResponse;
+      } catch (error) {
+        // If error comes from createShapesArray, it might be a formatted response
+        // Otherwise, format a new error response
+        if (error.response && error.response.source) {
+          return error.response;
+        }
+        return formatToolResponse(
+          ClientQueryType.CREATE_GROUP,
+          { error: error.message },
+          false,
+          `Failed to create group: ${error.message}`
+        );
+      }
     },
   },
   {
@@ -220,6 +277,12 @@ export const drawingTools = [
       This tool can create rectangles, ellipses, paths, and text shapes inside the board.
       
       The board will be created first, and then all the specified shapes will be added inside it.
+      
+      ⚠️ IMPORTANT: COORDINATE SYSTEM - All coordinates are ABSOLUTE (relative to the main frame board)!
+      - The x and y coordinates in shape definitions are ALWAYS absolute, NOT relative to the board
+      - When placing shapes inside a board, you MUST add the board's x and y coordinates to each shape's coordinates
+      - Example: If board is at (100, 200) and you want a shape at (50, 50) relative to the board, set the shape's coordinates to (150, 250)
+      - Formula: shape.x = board.x + relativeX, shape.y = board.y + relativeY
       
       REQUIRED STEP: If creating text shapes, always use getAvailableFonts BEFORE using this tool to verify which fonts are available.
       
@@ -233,48 +296,78 @@ export const drawingTools = [
     inputSchema: createBoardSchema,
     function: async (input) => {
       // Create the board first
-      const boardProperties = {
-        name: input.name || 'Board',
-        x: input.x ?? 0,
-        y: input.y ?? 0,
-        width: input.width ?? 800,
-        height: input.height ?? 600,
-        borderRadius: 0,
-        opacity: 1,
-        blendMode: 'normal',
-        zIndex: 0,
-      };
+      const { shapes, ...boardProperties } = input;
+      const boardResponse = await drawShape(PenpotShapeType.BOARD, { ...boardProperties });
       
-      const boardResponse = await drawShape(PenpotShapeType.BOARD, boardProperties);
-
+      // If board creation failed, return the error response directly
       if (!boardResponse.success) {
-        throw new Error(`Failed to create board: ${boardResponse.message}`);
+        return boardResponse;
       }
       
       const boardId = boardResponse.payload?.shape?.id;
       if (!boardId) {
-        throw new Error('Failed to get board ID');
+        // Create error response for missing board ID
+        return formatToolResponse(
+          ClientQueryType.DRAW_SHAPE,
+          {
+            board: {
+              response: boardResponse,
+            },
+            shapes: [],
+            error: 'Failed to get board ID from response',
+          },
+          false,
+          'Failed to get board ID from response'
+        );
       }
       
-      // Create all shapes inside the board
-      const createdShapes = await createShapesArray(input.shapes, { 
-        parentId: boardId, 
-        throwOnError: true 
-      });
+      try {
+        // Create all shapes inside the board
+        const createdShapes = await createShapesArray(input.shapes, { 
+          parentId: boardId, 
+          throwOnError: true 
+        });
 
-      return {
-        board: {
-          id: boardId,
-          name: input.name || 'Board',
-          response: boardResponse, // Already curated by drawShape
-        },
-        shapes: createdShapes.map(shape => ({
-          name: shape.name,
-          type: shape.type,
-          id: shape.id,
-          response: shape.response, // Already curated by createShapesArray -> drawShape
-        })),
-      };
+        // Create a combined response with board and shapes info
+        return formatToolResponse(
+          ClientQueryType.DRAW_SHAPE,
+          {
+            board: {
+              id: boardId,
+              name: input.name || 'Board',
+              response: boardResponse, // Already curated by drawShape
+            },
+            shapes: createdShapes.map(shape => ({
+              name: shape.name,
+              type: shape.type,
+              id: shape.id,
+              response: shape.response, // Already curated by createShapesArray -> drawShape
+            })),
+          },
+          true,
+          `Board "${input.name || 'Board'}" created successfully with ${createdShapes.length} shape(s)`
+        );
+      } catch (error) {
+        // If error comes from createShapesArray, it might be a formatted response
+        // Otherwise, format a new error response
+        if (error.response && error.response.source) {
+          return error.response;
+        }
+        return formatToolResponse(
+          ClientQueryType.DRAW_SHAPE,
+          {
+            board: {
+              id: boardId,
+              name: input.name || 'Board',
+              response: boardResponse,
+            },
+            shapes: [],
+            error: error.message,
+          },
+          false,
+          `Failed to create shapes in board: ${error.message}`
+        );
+      }
     },
   },
   {

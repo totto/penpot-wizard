@@ -1,13 +1,32 @@
 import {
   ClientQueryType,
   MessageSourceName,
-  PenpotShapeType,
 } from "@/types/types";
+
 import { 
   baseShapeProperties,
   pathShapeProperties,
   textShapeProperties,
 } from "@/types/shapeTypes";
+
+/**
+ * Formats a tool response to the standard response schema
+ * @param {string} type - The ClientQueryType
+ * @param {any} payload - The response payload data
+ * @param {boolean} success - Whether the operation was successful
+ * @param {string} message - Human-readable status message
+ * @returns Standard response object with source, type, messageId, message, success, payload
+ */
+export function formatToolResponse(type, payload, success = true, message = 'Operation completed successfully') {
+  return {
+    source: MessageSourceName.Plugin,
+    type: type,
+    messageId: crypto.randomUUID(),
+    message: message,
+    success: success,
+    payload: payload,
+  };
+}
 
 /**
  * Curates a shape object by removing properties that are:

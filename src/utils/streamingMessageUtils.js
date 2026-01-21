@@ -10,6 +10,8 @@ export class StreamHandler {
     this.stream = stream;
     this.parentToolCallId = parentToolCallId;
     this.fullResponse = '';
+    // Track tool calls that have been started but not yet completed
+    this.pendingToolCalls = new Set();
   }
 
   async handleStream() {
@@ -30,13 +32,63 @@ export class StreamHandler {
             input: chunk.input
           };
           addToolCall(newToolCall, this.parentToolCallId);
+          // Track this tool call as pending
+          this.pendingToolCalls.add(chunk.toolCallId);
         } else if (chunk.type === 'tool-result') {
-          updateToolCall(chunk.toolCallId, { state: 'success', output: chunk.output });
+          // The AI SDK passes the tool's return value in chunk.result (not chunk.output)
+          // chunk.output might be undefined, so we check chunk.result first
+          const output = chunk.result !== undefined ? chunk.result : chunk.output;
+          
+          // Update tool call with success state and output
+          // Always pass output even if undefined, so the UI can handle it appropriately
+          updateToolCall(chunk.toolCallId, { 
+            state: 'success', 
+            output: output 
+          });
+          
+          // Remove from pending since it completed successfully
+          this.pendingToolCalls.delete(chunk.toolCallId);
         } else if (chunk.type === 'error') {
           console.error('Error during stream:', chunk);
+          
+          // Check if this error is associated with a specific tool call
+          // The AI SDK may include toolCallId in error chunks for validation errors
+          if (chunk.toolCallId) {
+            const errorMessage = chunk.error instanceof Error 
+              ? chunk.error.message 
+              : (typeof chunk.error === 'string' ? chunk.error : 'Unknown error');
+            
+            updateToolCall(chunk.toolCallId, { 
+              state: 'error', 
+              error: errorMessage 
+            });
+            // Remove from pending since we've handled it
+            this.pendingToolCalls.delete(chunk.toolCallId);
+          } else {
+            // General stream error (not tool-specific)
           setStreamingError(`Error: ${chunk.error instanceof Error ? chunk.error.message : 'Unknown error'}`);
         }
       }
+      }
+      
+      // After stream completes, check for any tool calls that never got a result
+      // This handles cases where validation fails before the tool executes
+      // and the SDK doesn't emit a tool-result or error chunk with toolCallId
+      if (this.pendingToolCalls.size > 0) {
+        console.warn(`Found ${this.pendingToolCalls.size} tool call(s) that never completed:`, Array.from(this.pendingToolCalls));
+        
+        for (const toolCallId of this.pendingToolCalls) {
+          // Mark as error with a generic message about validation/execution failure
+          updateToolCall(toolCallId, { 
+            state: 'error', 
+            error: 'Tool execution failed: validation error or execution timeout. Check input parameters.' 
+          });
+        }
+        
+        // Clear the set after handling
+        this.pendingToolCalls.clear();
+      }
+      
       return this.fullResponse;
     } catch (error) {
       // Distinguish between cancellation and real errors
