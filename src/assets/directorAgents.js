@@ -48,6 +48,7 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'get-current-page',
       'get-device-size-presets',
       'penpot-user-guide-rag',
+      'design-styles-rag',
       'create-shapes',
       'create-component',
       'create-group',

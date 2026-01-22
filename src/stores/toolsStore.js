@@ -60,17 +60,20 @@ const initializeRagTool = async (toolDef) => {
           return {
             success: true,
             message: 'No relevant information found in the database for your query.',
-            results: [],
-            query
+            payload: {
+              results: [],
+              query
+            },
           };
         }
-        
+
         return {
           success: true,
           message: `Found ${results.length} relevant sections in the database.`,
-          results,
-          query,
-          totalResults: results.length
+          payload: {
+            results,
+            query,
+          },
         };
         
       } catch (error) {

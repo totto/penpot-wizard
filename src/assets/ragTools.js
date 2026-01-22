@@ -86,6 +86,55 @@ export const ragTools = [
 
       REMEMBER: Penpot doesn't have specific tools for every shape. Always search for alternative methods using existing tools like Path tool, Boolean operations, or combining basic shapes.
     `,
+  },
+  {
+    id: "design-styles-rag",
+    name: "DesignStylesRagTool",
+    ragContentFile: 'designRagToolContents.zip',
+    description: `
+      Use this tool to decide and justify visual styles for design tasks. It searches a curated styles library with definitions, palettes, rules, and fonts. Use it to pick a style direction, compare alternatives, or extract concrete guidance (colors, typography, composition).
+
+      IMPORTANT: All queries to this tool must be in English.
+
+      STYLE FAMILIES (from the index):
+      1) Sensory / Tactile / Human:
+         - Tactile Maximalism / Squishy‑uishy UI
+         - Imperfect by Design / Human Touch
+         - Anti‑AI Crafting
+      2) Natural / Organic / Warm:
+         - Organic Minimalism
+      3) Industrial / Tech / Metallic:
+         - Ultra‑Clean Industrial
+         - Pure Steel
+      4) Vintage / Heritage / Editorial:
+         - Apothecary Aesthetic
+         - Heritage Etch
+         - Alt‑History
+         - Imprinted
+         - Narrative Pop
+      5) Excess / Contrast / Expressive:
+         - New Maximalism
+         - Minimalist Maximalism
+         - Neobrutalism
+      6) Translucent / Depth / Premium Digital:
+         - Glassmorphism
+      7) Typography in Motion:
+         - Kinetic / Expressive Typography
+      8) Systems / Experience / Personalization:
+         - Multi‑Device UX / Fluid Continuity
+         - AI‑Driven Design / Extreme Personalization
+
+      QUERY CONSTRUCTION RULES:
+      - Always include the style family or exact style name
+      - Add the product context and intent (e.g., fintech dashboard, wellness app, brand refresh)
+      - Include at least two concrete attributes: palette, typography, layout density, texture/materiality, motion, or tone
+      - Use the format: "[style] + [context] + [attributes] + [desired outcome]"
+
+      QUERY EXAMPLES:
+      ✅ "Tactile Maximalism for playful commerce app, soft gradients, rounded UI, bouncy motion, warm palette, friendly tone"
+      ✅ "Ultra‑Clean Industrial for B2B SaaS dashboard, cool gray palette, tight grid, minimalist type, precision"
+      ✅ "Apothecary Aesthetic for wellness brand packaging, botanical motifs, serif typography, muted greens, editorial layout"
+    `,
   }
 ];
 
