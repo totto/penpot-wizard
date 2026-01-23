@@ -32,6 +32,12 @@ export const PenpotShapeType = {
   GROUP: 'group',
 };
 
+export const ToolResponse = {
+  message: '',
+  success: true,
+  payload: {},
+};
+
 // Theme type definition
 export const Theme = {
   LIGHT: 'light',

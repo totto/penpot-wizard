@@ -1,5 +1,5 @@
-import { pathCommandsToSvgString } from './utils';
-import { ClientQueryType, MessageSourceName, PenpotShapeType } from '../types/types';
+import { pathCommandsToSvgString, curateShapeOutput } from './utils';
+import { ClientQueryType, MessageSourceName, PenpotShapeType, ToolResponse } from '../types/types';
 
 function setParamsToShape(shape, params) {
   const { x, y, parentId, width, height, flex, grid, layoutChild, layoutCell, ...rest } = params;
@@ -78,14 +78,6 @@ function setParamsToShape(shape, params) {
 
 export function handleDrawShape(payload) {
   const { shapeType, params } = payload;
-  console.log('handleDrawShape', payload);
-  const pluginResponse = {
-    source: MessageSourceName.Plugin,
-    type: ClientQueryType.DRAW_SHAPE,
-    messageId: '',
-    message: '',
-    success: true,
-  };
 
   let newShape;
   try {
@@ -130,32 +122,26 @@ export function handleDrawShape(payload) {
     }
 
     return {
-      ...pluginResponse,
+      success: true,
       message: 'Shape drawn successfully',
       payload: {
-        shape: newShape,
+        shape: curateShapeOutput(newShape),
       },
     };
   } catch (error) {
     console.error('error drawing shape:', error);
     return {
-      ...pluginResponse,
       success: false,
       message: `error drawing shape ${shapeType}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
     };
   }
 }
 
 export function handleCreateComponent(payload) {
   const { shapes, name, ...properties } = payload;
-
-  const pluginResponse = {
-    source: MessageSourceName.Plugin,
-    type: ClientQueryType.CREATE_COMPONENT,
-    messageId: '',
-    message: '',
-    success: true,
-  };
 
   try {
     if (!shapes || shapes.length === 0) {
@@ -179,7 +165,7 @@ export function handleCreateComponent(payload) {
     setParamsToShape(component.mainInstance(), properties);
 
     return {
-      ...pluginResponse,
+      success: true,
       message: 'Component created successfully',
       payload: {
         component: component,
@@ -188,23 +174,17 @@ export function handleCreateComponent(payload) {
   } catch (error) {
     console.error('error creating component:', error);
     return {
-      ...pluginResponse,
       success: false,
       message: `error creating component: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
     };
   }
 }
 
 export function handleCreateGroup(payload) {
   const { shapes, ...properties } = payload;
-
-  const pluginResponse = {
-    source: MessageSourceName.Plugin,
-    type: ClientQueryType.CREATE_GROUP,
-    messageId: '',
-    message: '',
-    success: true,
-  };
 
   try {
     if (!shapes || shapes.length === 0) {
@@ -229,32 +209,26 @@ export function handleCreateGroup(payload) {
     setParamsToShape(group, properties);
 
     return {
-      ...pluginResponse,
+      success: true,
       message: 'Group created successfully',
       payload: {
-        group: group,
+        group: curateShapeOutput(group),
       },
     };
   } catch (error) {
     console.error('error creating group:', error);
     return {
-      ...pluginResponse,
       success: false,
       message: `error creating group: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
     };
   }
 }
 
 export function handleModifyShape(payload) {
   const { shapeId, params } = payload;
-
-  const pluginResponse = {
-    source: MessageSourceName.Plugin,
-    type: ClientQueryType.MODIFY_SHAPE,
-    messageId: '',
-    message: '',
-    success: true,
-  };
 
   try {
     const shape = penpot.currentPage?.getShapeById(shapeId);
@@ -270,32 +244,26 @@ export function handleModifyShape(payload) {
     setParamsToShape(shape, params);
 
     return {
-      ...pluginResponse,
+      success: true,
       message: 'Shape modified successfully',
       payload: {
-        shape: shape,
+        shape: curateShapeOutput(shape),
       },
     };
   } catch (error) {
     console.error('error modifying shape:', error);
     return {
-      ...pluginResponse,
       success: false,
       message: `error modifying shape ${shapeId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
     };
   }
 }
 
 export function handleDeleteShape(payload) {
   const { shapeId } = payload;
-
-  const pluginResponse = {
-    source: MessageSourceName.Plugin,
-    type: ClientQueryType.DELETE_SHAPE,
-    messageId: '',
-    message: '',
-    success: true,
-  };
 
   try {
     const shape = penpot.currentPage?.getShapeById(shapeId);
@@ -307,7 +275,7 @@ export function handleDeleteShape(payload) {
     shape.remove();
 
     return {
-      ...pluginResponse,
+      success: true,
       message: 'Shape deleted successfully',
       payload: {
         shapeId: shapeId,
@@ -317,10 +285,11 @@ export function handleDeleteShape(payload) {
   } catch (error) {
     console.error('error deleting shape:', error);
     return {
-      ...pluginResponse,
       success: false,
       message: `error deleting shape ${shapeId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
     };
   }
 }
-

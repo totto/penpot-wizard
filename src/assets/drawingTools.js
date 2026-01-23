@@ -1,4 +1,5 @@
-import { drawShape, sendMessageToPlugin, modifyShape, deleteShape, createShapesArray, formatToolResponse } from '@/utils/pluginUtils';
+import { drawShape, sendMessageToPlugin, modifyShape, deleteShape, createShapesArray } from '@/utils/pluginUtils';
+import { ToolResponse } from '@/types/types';
 import { PenpotShapeType, ClientQueryType } from '@/types/types';
 import { baseShapeProperties, pathShapeProperties, textShapeProperties, createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, modifyShapePropertiesSchema } from '@/types/shapeTypes';
 import { z } from 'zod';
@@ -94,9 +95,11 @@ export const drawingTools = [
         const successCount = createdShapes.length - failedShapes.length;
         
         if (failedShapes.length > 0) {
-          return formatToolResponse(
-            ClientQueryType.DRAW_SHAPE,
-            { 
+          return {
+            ...ToolResponse,
+            success: false,
+            message: `Partially successful: ${successCount} shape(s) created, ${failedShapes.length} failed`,
+            payload: { 
               shapes: createdShapes.map(shape => ({
                 name: shape.name,
                 type: shape.type,
@@ -105,14 +108,14 @@ export const drawingTools = [
               })),
               failedCount: failedShapes.length,
             },
-            false,
-            `Partially successful: ${successCount} shape(s) created, ${failedShapes.length} failed`
-          );
+          };
         }
         
-        return formatToolResponse(
-          ClientQueryType.DRAW_SHAPE,
-          { 
+        return {
+          ...ToolResponse,
+          success: true,
+          message: `Successfully created ${createdShapes.length} shape(s)`,
+          payload: { 
             shapes: createdShapes.map(shape => ({
               name: shape.name,
               type: shape.type,
@@ -120,16 +123,14 @@ export const drawingTools = [
               response: shape.response,
             }))
           },
-          true,
-          `Successfully created ${createdShapes.length} shape(s)`
-        );
+        };
       } catch (error) {
-        return formatToolResponse(
-          ClientQueryType.DRAW_SHAPE,
-          { error: error.message },
-          false,
-          `Failed to create shapes: ${error.message}`
-        );
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to create shapes: ${error.message}`,
+          payload: { error: error.message },
+        };
       }
     },
   },
@@ -183,12 +184,12 @@ export const drawingTools = [
         if (error.response && error.response.source) {
           return error.response;
         }
-        return formatToolResponse(
-          ClientQueryType.CREATE_COMPONENT,
-          { error: error.message },
-          false,
-          `Failed to create component: ${error.message}`
-        );
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to create component: ${error.message}`,
+          payload: { error: error.message },
+        };
       }
     },
   },
@@ -243,12 +244,12 @@ export const drawingTools = [
         if (error.response && error.response.source) {
           return error.response;
         }
-        return formatToolResponse(
-          ClientQueryType.CREATE_GROUP,
-          { error: error.message },
-          false,
-          `Failed to create group: ${error.message}`
-        );
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to create group: ${error.message}`,
+          payload: { error: error.message },
+        };
       }
     },
   },
@@ -284,18 +285,18 @@ export const drawingTools = [
       const boardId = boardResponse.payload?.shape?.id;
       if (!boardId) {
         // Create error response for missing board ID
-        return formatToolResponse(
-          ClientQueryType.DRAW_SHAPE,
-          {
+        return {
+          ...ToolResponse,
+          success: false,
+          message: 'Failed to get board ID from response',
+          payload: {
             board: {
               response: boardResponse,
             },
             shapes: [],
             error: 'Failed to get board ID from response',
           },
-          false,
-          'Failed to get board ID from response'
-        );
+        };
       }
       
       try {
@@ -306,9 +307,11 @@ export const drawingTools = [
         });
 
         // Create a combined response with board and shapes info
-        return formatToolResponse(
-          ClientQueryType.DRAW_SHAPE,
-          {
+        return {
+          ...ToolResponse,
+          success: true,
+          message: `Board "${input.name || 'Board'}" created successfully with ${createdShapes.length} shape(s)`,
+          payload: {
             board: {
               id: boardId,
               name: input.name || 'Board',
@@ -321,18 +324,18 @@ export const drawingTools = [
               response: shape.response, // Already curated by createShapesArray -> drawShape
             })),
           },
-          true,
-          `Board "${input.name || 'Board'}" created successfully with ${createdShapes.length} shape(s)`
-        );
+        };
       } catch (error) {
         // If error comes from createShapesArray, it might be a formatted response
         // Otherwise, format a new error response
         if (error.response && error.response.source) {
           return error.response;
         }
-        return formatToolResponse(
-          ClientQueryType.DRAW_SHAPE,
-          {
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to create shapes in board: ${error.message}`,
+          payload: {
             board: {
               id: boardId,
               name: input.name || 'Board',
@@ -341,9 +344,7 @@ export const drawingTools = [
             shapes: [],
             error: error.message,
           },
-          false,
-          `Failed to create shapes in board: ${error.message}`
-        );
+        };
       }
     },
   },

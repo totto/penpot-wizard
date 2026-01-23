@@ -1,21 +1,14 @@
 import {
   ClientQueryType,
   MessageSourceName,
+  ToolResponse,
 } from '../types/types';
-
-const pluginResponse = {
-  source: MessageSourceName.Plugin,
-  type: ClientQueryType.ADD_IMAGE,
-  messageId: '',
-  message: '',
-  success: true,
-};
+import { curateShapeOutput } from './utils';
 
 export function handleGetUserData() {
   if (penpot.currentUser) {
     return {
-      ...pluginResponse,
-      type: ClientQueryType.GET_USER_DATA,
+      success: true,
       message: 'User data successfully retrieved',
       payload: {
         name: penpot.currentUser.name || '',
@@ -24,10 +17,11 @@ export function handleGetUserData() {
     };
   } else {
     return {
-      ...pluginResponse,
-      type: ClientQueryType.GET_USER_DATA,
       success: false,
       message: 'Error retrieving user data',
+      payload: {
+        error: 'User data not available',
+      },
     }
   }
 }
@@ -35,8 +29,7 @@ export function handleGetUserData() {
 export function handleGetProjectData() {
   if (penpot.currentFile && penpot.currentPage) {
     return {
-      ...pluginResponse,
-      type: ClientQueryType.GET_PROJECT_DATA,
+      success: true,
       message: 'Project data successfully retrieved',
       payload: {
         name: penpot.currentFile?.name,
@@ -49,36 +42,13 @@ export function handleGetProjectData() {
     };
   } else {
     return {
-      ...pluginResponse,
-      type: ClientQueryType.GET_PROJECT_DATA,
       success: false,
       message: 'Error retrieving project data',
+      payload: {
+        error: 'Project data not available',
+      },
     }
   }
-}
-
-function extractShapeData(shape) {
-  // Para el board root frame, solo enviar name, type e id
-  if (shape.type === 'board' && shape.parent === null) {
-    return {
-      id: shape.id,
-      name: shape.name,
-      type: shape.type,
-    };
-  }
-
-  const shapeData = {
-    ...shape,
-  };
-
-  // Add parentId if parent exists (avoid circular reference)
-  if (shape.parent) {
-    shapeData.parent = shape.parent.id;
-  }
-
-  // Add type-specific properties
-
-  return shapeData;
 }
 
 function getAllShapesFromComponent(component) {
@@ -112,7 +82,7 @@ function getAllShapesFromComponent(component) {
 function extractComponentData(component) {
   // Obtener todos los shapes del componente
   const componentShapes = getAllShapesFromComponent(component);
-  const serializedShapes = componentShapes.map(extractShapeData);
+  const serializedShapes = componentShapes.map(curateShapeOutput);
 
   return {
     id: component.id,
@@ -125,7 +95,7 @@ function extractComponentData(component) {
 
 export function getCurrentPage() {
   const shapes = penpot.currentPage?.findShapes({}) || [];
-  const serializedShapes = shapes.map(extractShapeData);
+  const serializedShapes = shapes.map(curateShapeOutput);
 
   // Obtener componentes de la librería local únicamente
   const localComponents = penpot.library?.local?.components || [];
@@ -137,8 +107,7 @@ export function getCurrentPage() {
   );
 
   return {
-    ...pluginResponse,
-    type: ClientQueryType.GET_CURRENT_PAGE,
+    success: true,
     message: 'Current page successfully retrieved',
     payload: {
       name: penpot.currentPage?.name || '',
@@ -156,7 +125,7 @@ export async function handleAddImage(payload) {
     const imageCreatedData = await penpot.uploadMediaData(name, data, mimeType);
     if (imageCreatedData) {
       return {
-        ...pluginResponse,
+        success: true,
         message: 'Image added successfully',
         payload: {
           newImageData: imageCreatedData,
@@ -167,9 +136,11 @@ export async function handleAddImage(payload) {
     }
   } catch (error) {
     return {
-      ...pluginResponse,
       success: false,
       message: `error adding image ${name}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
     }
   }
 }

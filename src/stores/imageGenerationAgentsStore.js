@@ -1,7 +1,7 @@
 import { atom } from 'nanostores';
 import { tool, generateImage } from 'ai';
 import { imageGenerationAgents } from '@/assets/imageGenerationAgents';
-import { ClientQueryType } from '@/types/types';
+import { ClientQueryType, ToolResponse } from '@/types/types';
 import { createImageModelInstance } from '@/utils/modelUtils';
 import { $isConnected } from '@/stores/settingsStore';
 import { z } from 'zod';
@@ -59,8 +59,12 @@ const initializeImageGenerationAgent = async (agentDef) => {
       } catch (error) {
         console.error(`Error executing image generation agent ${agentDef.id}:`, error);
         return {
+          ...ToolResponse,
           success: false,
           message: `Error generating image: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          payload: {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
         };
       }
     },

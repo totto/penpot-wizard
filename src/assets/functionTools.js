@@ -1,6 +1,7 @@
 import { ClientQueryType } from '@/types/types';
 import { z } from 'zod';
-import { sendMessageToPlugin, curateShapeOutput } from '@/utils/pluginUtils';
+import { sendMessageToPlugin } from '@/utils/pluginUtils';
+import { ToolResponse } from '@/types/types';
 
 // Function to get user data - this would typically come from Penpot context
 export const functionTools = [
@@ -43,39 +44,8 @@ export const functionTools = [
     `,
     inputSchema: z.object({}),
     function: async () => {
+      console.log('getCurrentPage');
       const response = await sendMessageToPlugin(ClientQueryType.GET_CURRENT_PAGE, undefined);
-      
-      // Curate shapes in the response
-      if (response.success && response.payload) {
-        const payload = response.payload;
-        
-        // Curate shapes array
-        const curatedShapes = payload.shapes.map(shape => 
-          curateShapeOutput(shape)
-        );
-        
-        // Curate shapes inside components
-        const curatedComponents = payload.components.map(component => {
-          if (component.shapes && Array.isArray(component.shapes)) {
-            return {
-              ...component,
-              shapes: component.shapes.map(shape => 
-                curateShapeOutput(shape)
-              ),
-            };
-          }
-          return component;
-        });
-        
-        return {
-          ...response,
-          payload: {
-            ...payload,
-            shapes: curatedShapes,
-            components: curatedComponents,
-          },
-        };
-      }
       
       return response;
     },
@@ -208,18 +178,25 @@ export const functionTools = [
         const categoryUpper = category.toUpperCase();
         if (presets[categoryUpper]) {
           return {
+            ...ToolResponse,
             success: true,
-            category: categoryUpper,
-            presets: presets[categoryUpper],
-            total: presets[categoryUpper].length,
-          };
-        } else {
-          return {
-            success: false,
-            message: `Category "${category}" not found. Available categories: ${Object.keys(presets).join(', ')}`,
-            availableCategories: Object.keys(presets),
+            message: `Found ${presets[categoryUpper].length} preset(s) for ${categoryUpper}`,
+            payload: {
+              category: categoryUpper,
+              presets: presets[categoryUpper],
+              total: presets[categoryUpper].length,
+            },
           };
         }
+
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Category "${category}" not found. Available categories: ${Object.keys(presets).join(', ')}`,
+          payload: {
+            availableCategories: Object.keys(presets),
+          },
+        };
       }
 
       // Return all presets organized by category
@@ -232,10 +209,14 @@ export const functionTools = [
       const totalPresets = Object.values(presets).reduce((sum, items) => sum + items.length, 0);
 
       return {
+        ...ToolResponse,
         success: true,
-        categories: allPresets,
-        totalPresets,
-        totalCategories: Object.keys(presets).length,
+        message: `Found ${totalPresets} preset(s) across ${Object.keys(presets).length} categories`,
+        payload: {
+          categories: allPresets,
+          totalPresets,
+          totalCategories: Object.keys(presets).length,
+        },
       };
     },
   },

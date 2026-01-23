@@ -2,7 +2,6 @@ import {
   PluginMessageType,
   ClientQueryType,
   MessageSourceName,
-  PenpotShapeType,
 } from '../types/types';
 
 import { handleDrawShape, handleCreateComponent, handleCreateGroup, handleModifyShape, handleDeleteShape } from './drawHandlers';
@@ -16,57 +15,6 @@ penpot.ui.open("AI Penpot Wizard", `?theme=${penpot.theme}`, {
   height: 700,
 });
 
-const board = handleDrawShape({
-  shapeType: PenpotShapeType.BOARD,
-  params: {
-    x: 100,
-    y: 100,
-    width: 400,
-    height: 400,
-    flex: {
-      dir: 'row',
-      alignItems: 'stretch',
-      justifyContent: 'start',
-      verticalSizing: 'auto',
-    },
-  },
-});
-
-console.log('board:', board);
-
-const square = handleDrawShape({
-  shapeType: PenpotShapeType.RECTANGLE,
-  params: {
-    name: 'HeaderSquare',
-    parentId: board.payload.shape.id,
-    x: 0,
-    y: 0,
-    width: 400,
-    height: 100,
-    fills: [
-      { fillColor: '#FFD700' },
-    ],
-    layoutChild: {
-      "absolute": false,
-      "horizontalSizing": "auto",
-      "verticalSizing": "auto",
-      "alignSelf": "auto",
-      "horizontalMargin": 0,
-      "verticalMargin": 0,
-      "topMargin": 0,
-      "rightMargin": 0,
-      "bottomMargin": 0,
-      "leftMargin": 0,
-      "maxWidth": null,
-      "maxHeight": null,
-      "minWidth": null,
-      "minHeight": null
-  },
-  },
-});
-
-console.log('square:', square);
-
 // Listen for theme change events from Penpot
 penpot.on('themechange', (newTheme) => {
   penpot.ui.sendMessage({
@@ -78,11 +26,26 @@ penpot.on('themechange', (newTheme) => {
 penpot.ui.onMessage(async (message) => {
   const { type, messageId, payload, source } = message;
 
+  let responseMessage;
+
   if (source !== MessageSourceName.Client) {
-    return ;
+    return;
   }
 
-  let responseMessage;
+  if (!messageId) {
+    responseMessage = {
+      source: MessageSourceName.Plugin,
+      type,
+      messageId,
+      success: false,
+      message: 'Missing messageId in client request',
+      payload: {
+        error: 'messageId is required to correlate async responses',
+      },
+    };
+    penpot.ui.sendMessage(responseMessage);
+    return;
+  }
 
   switch (type) {
     case ClientQueryType.DRAW_SHAPE:
@@ -118,20 +81,32 @@ penpot.ui.onMessage(async (message) => {
       break;
 
     case ClientQueryType.GET_CURRENT_PAGE:
+      console.log('<PLUGIN>getCurrentPage');
       responseMessage = getCurrentPage();
+      console.log('<PLUGIN>getCurrentPage response', responseMessage);
       break;
 
     default:
       responseMessage = {
-        source: MessageSourceName.Plugin,
-        type: type,
-        messageId: messageId,
-        message: `unknown command: ${type}`,
         success: false,
+        message: `unknown command: ${type}`,
+        payload: {
+          error: `Unknown command: ${type}`,
+        },
       };
       break;
   }
-  responseMessage.messageId = messageId;
-  penpot.ui.sendMessage(responseMessage);
+  const normalizedResponse = {
+    source: MessageSourceName.Plugin,
+    type,
+    messageId,
+    ...(responseMessage || {}),
+  };
+
+  if (!normalizedResponse.payload || typeof normalizedResponse.payload !== 'object') {
+    normalizedResponse.payload = {};
+  }
+
+  penpot.ui.sendMessage(normalizedResponse);
 });
 

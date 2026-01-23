@@ -2,6 +2,7 @@ import { atom } from 'nanostores';
 import { tool } from 'ai';
 import { functionTools, ragTools, drawingTools } from '@/assets/tools';
 import { initializeDataBase, searchDataBase } from '@/utils/ragUtils';
+import { ToolResponse } from '@/types/types';
 import { z } from 'zod';
 
 let toolsInitialized = false;
@@ -58,16 +59,18 @@ const initializeRagTool = async (toolDef) => {
         
         if (results.length === 0) {
           return {
+            ...ToolResponse,
             success: true,
             message: 'No relevant information found in the database for your query.',
             payload: {
               results: [],
-              query
+              query,
             },
           };
         }
 
         return {
+          ...ToolResponse,
           success: true,
           message: `Found ${results.length} relevant sections in the database.`,
           payload: {
@@ -78,10 +81,13 @@ const initializeRagTool = async (toolDef) => {
         
       } catch (error) {
         return {
+          ...ToolResponse,
           success: false,
           message: 'Sorry, I encountered an error while searching the database. Please try again.',
-          error: error instanceof Error ? error.message : 'Unknown error',
-          query
+          payload: {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            query,
+          },
         };
       }
     },

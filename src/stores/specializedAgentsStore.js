@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { StreamHandler } from '@/utils/streamingMessageUtils';
 import { $userSpecializedAgents } from '@/stores/userAgentsStore';
 import { getAbortSignal } from './streamingMessageStore';
+import { ToolResponse } from '@/types/types';
 
 let specializedAgentsInitialized = false;
 
@@ -141,10 +142,22 @@ const initializeSpecializedAgent = async (specializedAgentId) => {
         const streamHandler = new StreamHandler(stream.fullStream, toolCallId);
         const fullResponse = await streamHandler.handleStream();
 
-        return fullResponse;
+        return {
+          ...ToolResponse,
+          success: true,
+          message: 'Agent completed successfully',
+          payload: fullResponse,
+        };
       } catch (error) {
         console.error(`Error executing specialized agent ${specializedAgentDef.id}:`, error);
-        throw error;
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Error executing agent: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          payload: {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+        };
       }
     },
   });
