@@ -1,11 +1,10 @@
-import { MessageSourceName } from "@/types/types";
+import { MessageSourceName, ClientQueryType } from "@/types/types";
 
 export const drawShape = async (shapeType, params) => {
   const response = await sendMessageToPlugin(ClientQueryType.DRAW_SHAPE, {
     shapeType,
     params,
   });
-
   return response;
 }
 
@@ -86,7 +85,6 @@ export const createShapesArray = async (
 
 export const sendMessageToPlugin = async (type, payload) => {
   const messageId = crypto.randomUUID();
-  console.log('sendMessageToPlugin', type, payload);
   const queryMessage = {
     source: MessageSourceName.Client,
     messageId,
@@ -101,14 +99,12 @@ export const sendMessageToPlugin = async (type, payload) => {
 
     const handleMessage = (event) => {
       const { source, messageId: responseMessageId, ...response } = event.data;
-      console.log('handleMessage', event.data);
       if (
         source === MessageSourceName.Plugin
         && messageId === responseMessageId
       ) {
         clearTimeout(timeout);
         window.removeEventListener('message', handleMessage);
-        console.log('resolve', response);
         resolve(response);
       }
     }

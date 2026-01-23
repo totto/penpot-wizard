@@ -1,5 +1,5 @@
 import { pathCommandsToSvgString, curateShapeOutput } from './utils';
-import { ClientQueryType, MessageSourceName, PenpotShapeType, ToolResponse } from '../types/types';
+import { PenpotShapeType } from '../types/types';
 
 function setParamsToShape(shape, params) {
   const { x, y, parentId, width, height, flex, grid, layoutChild, layoutCell, ...rest } = params;

@@ -273,10 +273,11 @@ export const drawingTools = [
     `,
     inputSchema: createBoardSchema,
     function: async (input) => {
+      console.log('createBoard -> input:', input);
       // Create the board first
       const { shapes, ...boardProperties } = input;
       const boardResponse = await drawShape(PenpotShapeType.BOARD, { ...boardProperties });
-      
+      console.log('createBoard -> boardResponse:', boardResponse);
       // If board creation failed, return the error response directly
       if (!boardResponse.success) {
         return boardResponse;

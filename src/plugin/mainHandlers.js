@@ -1,8 +1,3 @@
-import {
-  ClientQueryType,
-  MessageSourceName,
-  ToolResponse,
-} from '../types/types';
 import { curateShapeOutput } from './utils';
 
 export function handleGetUserData() {
