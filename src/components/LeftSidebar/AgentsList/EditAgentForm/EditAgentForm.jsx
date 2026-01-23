@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@nanostores/react";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import { $toolsData } from "@/stores/toolsStore";
 import { $specializedAgentsData } from "@/stores/specializedAgentsStore";
 import { $directorAgentsData } from "@/stores/directorAgentsStore";
@@ -10,6 +11,7 @@ import {
   updateUserSpecializedAgent 
 } from "@/stores/userAgentsStore";
 import styles from "./EditAgentForm.module.css";
+import SchemaEditor from "../SchemaEditor/SchemaEditor";
 
 function EditAgentForm({ agentToEdit, onClose }) {
   const toolsData = useStore($toolsData);

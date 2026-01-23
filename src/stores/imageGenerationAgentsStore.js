@@ -1,5 +1,5 @@
 import { atom } from 'nanostores';
-import { tool, experimental_generateImage as generateImage } from 'ai';
+import { tool, generateImage } from 'ai';
 import { imageGenerationAgents } from '@/assets/imageGenerationAgents';
 import { ClientQueryType } from '@/types/types';
 import { createImageModelInstance } from '@/utils/modelUtils';

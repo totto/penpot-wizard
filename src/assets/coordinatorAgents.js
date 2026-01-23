@@ -81,7 +81,7 @@ export const coordinatorAgents = [
       success: z.boolean().describe('overall success'),
       summary: z.string().describe('what was done and current status'),
       nextSteps: z.array(z.string()).describe('ordered next actions'),
-      planId: z.string().optional().describe('internal reference to a plan, if any'),
+      planId: z.string().nullable().describe('internal reference to a plan, if any'),
     }),
     toolIds: ['get-project-data', 'get-current-page'],
     specializedAgentIds: [

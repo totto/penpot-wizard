@@ -11,8 +11,9 @@ export default defineConfig([
     files: ['**/*.{js,jsx}'],
     extends: [
       js.configs.recommended,
-      react.configs.recommended,
-      reactHooks.configs['recommended-latest'],
+      react.configs.flat.recommended,
+      react.configs.flat['jsx-runtime'],
+      reactHooks.configs.flat['recommended-latest'],
       reactRefresh.configs.vite,
     ],
     languageOptions: {
@@ -33,11 +34,30 @@ export default defineConfig([
       },
     },
     rules: {
+      'react/prop-types': 'off',
+      'react/react-in-jsx-scope': 'off',
+      'react/jsx-no-comment-textnodes': 'off',
+      'react/no-unescaped-entities': 'off',
+      'react-hooks/set-state-in-effect': 'off',
       'no-unused-vars': ['error', { 
         "ignoreRestSiblings": true,
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_"
       }],
+    },
+  },
+  {
+    files: [
+      '**/*.config.{js,jsx}',
+      '**/*.test.{js,jsx}',
+      '**/__tests__/**/*.{js,jsx}',
+      'vite.config.*',
+      'vite.config.plugin.js',
+    ],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
     },
   },
 ])

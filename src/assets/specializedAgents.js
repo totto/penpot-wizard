@@ -33,7 +33,7 @@ export const specializedAgents = [
     outputSchema: z.object({
       designSystem: z.object({
         colorPalette: z.array(
-          z.object({ name: z.string(), value: z.string(), usage: z.string().optional() })
+          z.object({ name: z.string(), value: z.string(), usage: z.string().nullable() })
         ),
         typography: z.object({
           families: z.array(z.string()),
@@ -44,8 +44,14 @@ export const specializedAgents = [
         spacing: z.array(z.number()).describe('spacing scale in px'),
         radii: z.array(z.number()).describe('border radius scale in px'),
         elevation: z.array(z.number()).describe('shadow/elevation scale'),
-        iconography: z.object({ style: z.string().optional(), source: z.string().optional() }).optional(),
-        imageStyles: z.object({ treatment: z.string().optional(), borders: z.string().optional() }).optional(),
+        iconography: z
+          .object({ style: z.string().nullable(), source: z.string().nullable() })
+          .strict()
+          .nullable(),
+        imageStyles: z
+          .object({ treatment: z.string().nullable(), borders: z.string().nullable() })
+          .strict()
+          .nullable(),
         guidelines: z.object({ layout: z.string(), states: z.string(), accessibility: z.string() }),
       }),
     }),
@@ -79,17 +85,19 @@ export const specializedAgents = [
           purpose: z.string(),
           sections: z.array(z.string()),
           components: z.array(z.string()),
-          states: z.array(z.enum(['empty', 'loading', 'error', 'success'])).optional(),
-          requiredData: z.array(z.string()).optional(),
-          priority: z.enum(['high', 'medium', 'low']).default('high'),
-          breakpoints: z.array(z.string()).default(['mobile']),
+          states: z.array(z.enum(['empty', 'loading', 'error', 'success'])).nullable(),
+          requiredData: z.array(z.string()).nullable(),
+          priority: z.enum(['high', 'medium', 'low']).nullable(),
+          breakpoints: z.array(z.string()).nullable(),
         })
       ),
       flows: z
         .array(
-          z.object({ name: z.string(), fromViewId: z.string(), toViewId: z.string(), action: z.string() })
+          z
+            .object({ name: z.string(), fromViewId: z.string(), toViewId: z.string(), action: z.string() })
+            .strict()
         )
-        .optional(),
+        .nullable(),
     }),
     toolIds: ['penpot-user-guide-rag'],
   },
@@ -127,9 +135,9 @@ export const specializedAgents = [
           tasks: z.array(z.string()),
           deliverables: z.array(z.string()),
           acceptanceCriteria: z.array(z.string()),
-          dependencies: z.array(z.string()).optional(),
-          risks: z.array(z.string()).optional(),
-          estimatedDays: z.number().optional(),
+          dependencies: z.array(z.string()).nullable(),
+          risks: z.array(z.string()).nullable(),
+          estimatedDays: z.number().nullable(),
           order: z.number(),
         })
       ),
@@ -159,7 +167,10 @@ export const specializedAgents = [
     outputSchema: z.object({
       success: z.boolean(),
       description: z.string(),
-      artifacts: z.object({ boardIds: z.array(z.string()).optional(), notes: z.string().optional() }).optional(),
+      artifacts: z
+        .object({ boardIds: z.array(z.string()).nullable(), notes: z.string().nullable() })
+        .strict()
+        .nullable(),
     }),
     toolIds: [
       'board-maker',

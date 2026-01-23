@@ -93,7 +93,7 @@ export const initializeDirectorAgents = () => {
         
         const agentInstance = new Agent({
           model: modelInstance,
-          system: director.system,
+          instructions: director.system,
           tools: allTools.reduce((acc, tool) => {
             acc[tool.id] = tool.instance;
             return acc;

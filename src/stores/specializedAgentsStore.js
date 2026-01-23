@@ -105,12 +105,12 @@ const initializeSpecializedAgent = async (specializedAgentId) => {
   // Create the Agent instance
   const agentInstance = new Agent({
     model: modelInstance,
-    system: specializedAgentDef.system,
+    instructions: specializedAgentDef.system,
     tools: allTools.reduce((acc, tool) => {
       acc[tool.id] = tool.instance;
       return acc;
     }, {}),
-    experimental_output: agentOutputSchema ? Output.object({
+    output: agentOutputSchema ? Output.object({
       schema: agentOutputSchema,
     }) : undefined,
     stopWhen: stepCountIs(20),

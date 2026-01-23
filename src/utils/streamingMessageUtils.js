@@ -81,9 +81,9 @@ export class StreamHandler {
             }
           } else {
             // General stream error (not tool-specific)
-          setStreamingError(`Error: ${chunk.error instanceof Error ? chunk.error.message : 'Unknown error'}`);
+            setStreamingError(`Error: ${chunk.error instanceof Error ? chunk.error.message : 'Unknown error'}`);
+          }
         }
-      }
       }
       
       // After stream completes, check for any tool calls that never got a result
@@ -111,7 +111,6 @@ export class StreamHandler {
         // Clear the set after handling
         this.pendingToolCalls.clear();
       }
-      
       return this.fullResponse;
     } catch (error) {
       // Distinguish between cancellation and real errors
@@ -119,6 +118,16 @@ export class StreamHandler {
         throw error; // Propagate to caller
       }
       console.error('Stream error:', error);
+      // Mark any pending tool calls as failed so UI doesn't show success
+      if (this.pendingToolCalls.size > 0) {
+        for (const [toolCallId] of this.pendingToolCalls) {
+          updateToolCall(toolCallId, {
+            state: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+        this.pendingToolCalls.clear();
+      }
       setStreamingError(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       throw error;
     }
