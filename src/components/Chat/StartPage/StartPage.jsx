@@ -1,10 +1,10 @@
 import { useStore } from '@nanostores/react'
 import { 
   tryCreateNewConversation,
-  trySetActiveConversation,
-  getConversationsForDirector
+  trySetActiveConversation
 } from '@/stores/conversationActionsStore'
 import { $activeDirectorAgent } from '@/stores/directorAgentsStore'
+import { $conversationsMetadata } from '@/stores/conversationsMetadataStore'
 import styles from './StartPage.module.css'
 
 /**
@@ -13,7 +13,12 @@ import styles from './StartPage.module.css'
  */
 function StartPage() {
   const activeDirectorAgent = useStore($activeDirectorAgent)
-  const directorConversations = activeDirectorAgent ? getConversationsForDirector(activeDirectorAgent) : []
+  const conversationsMetadata = useStore($conversationsMetadata)
+  const directorConversations = activeDirectorAgent
+    ? conversationsMetadata
+        .filter(conversation => conversation.directorAgentId === activeDirectorAgent)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    : []
   
   const handleStartConversation = async () => {
     if (activeDirectorAgent) {

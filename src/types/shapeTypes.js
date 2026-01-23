@@ -72,6 +72,77 @@ export const shadowSchema = z.object({
   }).optional().describe('The color object defining the shadow color and opacity.'),
 }).describe('A shadow object defining a drop shadow or inner shadow for a shape');
 
+// Schema for Blur objects (Penpot Plugin API)
+export const blurSchema = z.object({
+  id: z.string().optional().describe('The optional unique identifier for the blur effect'),
+  type: z.enum(['layer-blur']).optional().describe('The type of blur effect. Currently, only "layer-blur" is supported.'),
+  value: z.number().min(0).optional().describe('The intensity value of the blur effect. Defaults to 0 if omitted.'),
+  hidden: z.boolean().optional().describe('Specifies whether the blur effect is hidden. Defaults to false if omitted.'),
+}).describe('A blur object defining a layer blur effect for a shape');
+
+// Schema for CommonLayout objects (Penpot Plugin API)
+export const commonLayoutSchema = z.object({
+  alignItems: z.enum(['start', 'end', 'center', 'stretch']).optional().describe('The default alignment for items inside the container.'),
+  alignContent: z.enum(['start', 'end', 'center', 'space-between', 'space-around', 'space-evenly', 'stretch']).optional().describe('How content is aligned within the container when there is extra space.'),
+  justifyItems: z.enum(['start', 'end', 'center', 'stretch']).optional().describe('The default justification for items inside the container.'),
+  justifyContent: z.enum(['start', 'center', 'end', 'space-between', 'space-around', 'space-evenly', 'stretch']).optional().describe('How content is justified within the container when there is extra space.'),
+  rowGap: z.number().optional().describe('The gap between rows in the layout.'),
+  columnGap: z.number().optional().describe('The gap between columns in the layout.'),
+  verticalPadding: z.number().optional().describe('The vertical padding inside the container.'),
+  horizontalPadding: z.number().optional().describe('The horizontal padding inside the container.'),
+  topPadding: z.number().optional().describe('The padding at the top of the container.'),
+  rightPadding: z.number().optional().describe('The padding at the right of the container.'),
+  bottomPadding: z.number().optional().describe('The padding at the bottom of the container.'),
+  leftPadding: z.number().optional().describe('The padding at the left of the container.'),
+  horizontalSizing: z.enum(['fit-content', 'fill', 'auto']).optional().describe('The horizontal sizing behavior of the container.'),
+  verticalSizing: z.enum(['fit-content', 'fill', 'auto']).optional().describe('The vertical sizing behavior of the container.'),
+}).describe('Common layout properties for flex and grid layouts.');
+
+// Schema for FlexLayout objects (Penpot Plugin API)
+export const flexLayoutSchema = commonLayoutSchema.extend({
+  dir: z.enum(['row', 'row-reverse', 'column', 'column-reverse']).describe('The direction of the flex layout.'),
+  wrap: z.enum(['wrap', 'nowrap']).optional().describe('The wrapping behavior of the flex layout.'),
+}).describe('A flex layout configuration for a container.');
+
+// Schema for Track objects (Penpot Plugin API)
+export const trackSchema = z.object({
+  type: z.enum(['flex', 'fixed', 'percent', 'auto']).default('auto').describe('The type of the grid track. Flex is a flexible track, fixed is a fixed track, percent is a track defined by a percentage, and auto is an automatic track. Do not use fixed type unless you are sure you need it. Auto, flex and percent types are recommended.'),
+  value: z.number().nullable().describe('The value of the track; null or omitted for auto tracks. For flex tracks, the value is the flex-grow factor and is mandatory (default is 1). For fixed tracks, the value is the fixed size in pixels and is mandatory. For percent tracks, the value is the percentage of the container and is mandatory. For auto tracks, the value is null.'),
+}).describe('A grid track definition (row or column).');
+
+// Schema for GridLayout objects (Penpot Plugin API)
+export const gridLayoutSchema = commonLayoutSchema.extend({
+  dir: z.enum(['column', 'row']).describe('The primary direction of the grid layout.'),
+  rows: z.array(trackSchema).optional().describe('Rows to add to the grid in order.'),
+  columns: z.array(trackSchema).optional().describe('Columns to add to the grid in order.'),
+}).describe('A grid layout configuration for a container.');
+
+// Schema for LayoutChildProperties objects (Penpot Plugin API)
+export const layoutChildSchema = z.object({
+  absolute: z.boolean().describe('Whether the child element is positioned absolutely. Important: if this parameter is true, you should use x and y properties of the shape to position the element.'),
+  horizontalSizing: z.enum(['auto', 'fill', 'fix']).describe('The horizontal sizing behavior of the child element.'),
+  verticalSizing: z.enum(['auto', 'fill', 'fix']).describe('The vertical sizing behavior of the child element.'),
+  alignSelf: z.enum(['auto', 'start', 'center', 'end', 'stretch']).describe('Alignment of the child element within its container.'),
+  horizontalMargin: z.number().describe('The horizontal margin of the child element.'),
+  verticalMargin: z.number().describe('The vertical margin of the child element.'),
+  topMargin: z.number().describe('The top margin of the child element.'),
+  rightMargin: z.number().describe('The right margin of the child element.'),
+  bottomMargin: z.number().describe('The bottom margin of the child element.'),
+  leftMargin: z.number().describe('The left margin of the child element.'),
+  maxWidth: z.number().nullable().describe('The maximum width of the child element, or null for no maximum.'),
+  maxHeight: z.number().nullable().describe('The maximum height of the child element, or null for no maximum.'),
+  minWidth: z.number().nullable().describe('The minimum width of the child element, or null for no minimum.'),
+  minHeight: z.number().nullable().describe('The minimum height of the child element, or null for no minimum.'),
+}).describe('Layout properties for a child element inside a layout container.');
+
+// Schema for LayoutCellProperties objects (Penpot Plugin API)
+export const layoutCellSchema = z.object({
+  row: z.number().min(1).describe('The row index of the cell. Important: the row index starts at 1.'),
+  rowSpan: z.number().optional().default(0).describe('The number of rows the cell should span.'),
+  column: z.number().min(1).describe('The column index of the cell. Important: the column index starts at 1.'),
+  columnSpan: z.number().optional().default(0).describe('The number of columns the cell should span.'),
+}).describe('Layout properties for a cell inside a grid layout.');
+
 /**
  * Generates base shape properties schema with descriptions adapted to the specific type.
  * 
@@ -93,9 +164,23 @@ function getBaseShapeProperties(
     borderRadius: z.number().optional().describe(customDesc?.borderRadius || `The border radius of the ${type}`),
     opacity: z.number().optional().describe(customDesc?.opacity || `The opacity of the ${type}`),
     blendMode: z.enum(blendModes).optional().describe(customDesc?.blendMode || `The blend mode of the ${type}`),
-    fills: z.array(fillSchema).optional().describe(customDesc?.fills || `Array of fill objects to apply to the ${type}. Supports fillColor (solid color), fillColorGradient (linear or radial gradient), and fillImage (image fill).`),
+    fills: z.array(fillSchema).optional().describe(
+      customDesc?.fills ||
+      `Array of fill objects to apply to the ${type}. Supports fillColor (solid color), fillColorGradient (linear or radial gradient), and fillImage (image fill). Fills are applied in the order they are defined: the first fills are rendered on top, and the last fills are rendered at the bottom.`
+    ),
     strokes: z.array(strokeSchema).optional().describe(customDesc?.strokes || `Array of stroke objects to apply to the ${type}. Supports strokeColor (solid color) and strokeColorGradient (linear or radial gradient).`),
     shadows: z.array(shadowSchema).optional().describe(customDesc?.shadows || `Array of shadow objects to apply to the ${type}. Supports drop-shadow and inner-shadow styles.`),
+    blur: blurSchema.optional().describe(customDesc?.blur || `The blur effect applied to the ${type}. Currently, only "layer-blur" is supported.`),
+    layoutChild: layoutChildSchema.optional().describe(
+      customDesc?.layoutChild ||
+      `Properties to position this ${type} inside a parent with layout type flex or grid.`
+    ),
+    layoutCell: layoutCellSchema.optional().describe(
+      customDesc?.layoutCell ||
+      `Properties to define the cell placement of this ${type} inside a parent with layout type grid.`
+    ),
+    flex: flexLayoutSchema.optional().describe(customDesc?.flex || `Flex layout configuration applied to the ${type}`),
+    grid: gridLayoutSchema.optional().describe(customDesc?.grid || `Grid layout configuration applied to the ${type}`),
     zIndex: z.number().min(0).describe(customDesc?.zIndex || `The z-index of the ${type}, used to control stacking order.`),
   };
 }
@@ -157,6 +242,16 @@ const textShapeWithTypeSchema = textShapeProperties.extend({
   type: z.literal('text').describe('The type of shape: text'),
 });
 
+const groupShapeWithTypeSchema = z.object(getBaseShapeProperties('group')).extend({
+  type: z.literal('group').describe('The type of shape: group'),
+  groupId: z.string().describe('The id of the main group shape, Important: the group should be created before add it to the shapes array'),
+});
+
+const componentShapeWithTypeSchema = z.object(getBaseShapeProperties('component')).extend({
+  type: z.literal('component').describe('The type of shape: component'),
+  componentId: z.string().describe('The id of the component in the library, Important: the component should be created before add it to the shapes array'),
+});
+
 export const createShapesSchema = z.object({
   shapes: z.array(
     z.discriminatedUnion('type', [
@@ -164,8 +259,10 @@ export const createShapesSchema = z.object({
       ellipseShapeSchema,
       pathShapeWithTypeSchema,
       textShapeWithTypeSchema,
+      groupShapeWithTypeSchema,
+      componentShapeWithTypeSchema,
     ])
-  ).describe('Array of shapes to create. Important: use zIndex to control stacking order. Text and foreground elements should have a higher zIndex than backgrounds.'),
+  ).describe('Array of shapes to create. Important: use zIndex to control stacking order. Text and foreground elements should have a higher zIndex than backgrounds. Create group and component shapes before adding them to the shapes array.'),
 });
 
 export const createComponentSchema = createShapesSchema.extend(
@@ -174,8 +271,8 @@ export const createComponentSchema = createShapesSchema.extend(
 
 export const createGroupSchema = createShapesSchema.extend(
   z.object(getBaseShapeProperties('group'))
-  .omit({ fills: true, strokes: true, shadows: true })
-  .shape
+    .omit({ fills: true, strokes: true, shadows: true, flex: true })
+    .shape
 );
 
 export const createBoardSchema = createShapesSchema.extend(

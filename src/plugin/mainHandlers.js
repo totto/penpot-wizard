@@ -1,5 +1,4 @@
 import {
-  PluginMessageType,
   ClientQueryType,
   MessageSourceName,
 } from '../types/types';
@@ -56,17 +55,6 @@ export function handleGetProjectData() {
       message: 'Error retrieving project data',
     }
   }
-}
-
-export function getAvailableFonts() {
-  return {
-    ...pluginResponse,
-    type: ClientQueryType.GET_AVAILABLE_FONTS,
-    message: 'Available fonts successfully retrieved',
-    payload: {
-      fonts: penpot.fonts.all.map((font) => font.name),
-    },
-  };
 }
 
 function extractShapeData(shape) {

@@ -2,23 +2,36 @@ import { pathCommandsToSvgString } from './utils';
 import { ClientQueryType, MessageSourceName, PenpotShapeType } from '../types/types';
 
 function setParamsToShape(shape, params) {
-  const { x, y, parentId, width, height, fills, strokes, shadows, ...rest } = params;
-  
+  const { x, y, parentId, width, height, flex, grid, layoutChild, layoutCell, ...rest } = params;
+
+  if (flex) {
+    const flexLayout = shape.addFlexLayout();
+    Object.keys(flex).forEach((key) => {
+      flexLayout[key] = flex[key];
+    });
+  }
+
+  if (grid) {
+    const { rows, columns, ...gridProps } = grid;
+    const gridLayout = shape.addGridLayout();
+    Object.keys(gridProps).forEach((key) => {
+      if (gridProps[key] !== undefined) {
+        gridLayout[key] = gridProps[key];
+      }
+    });
+    if (Array.isArray(rows)) {
+      rows.forEach((row) => {
+        gridLayout.addRow(row.type, row.value);
+      });
+    }
+    if (Array.isArray(columns)) {
+      columns.forEach((column) => {
+        gridLayout.addColumn(column.type, column.value);
+      });
+    }
+  }
+
   // Assign fills directly if provided (fills come already properly defined)
-  if (fills && fills.length > 0) {
-    shape.fills = fills;
-  }
-
-  // Assign strokes directly if provided (strokes come already properly defined)
-  if (strokes && strokes.length > 0) {
-    shape.strokes = strokes;
-  }
-
-  // Assign shadows directly if provided (shadows come already properly defined)
-  if (shadows && shadows.length > 0) {
-    shape.shadows = shadows;
-  }
-
   if (width && height) {
     shape.resize(width, height);
   }
@@ -34,7 +47,25 @@ function setParamsToShape(shape, params) {
     const parent = penpot.currentPage?.getShapeById(parentId);
     if (parent && parent.type === PenpotShapeType.BOARD) {
       parent.appendChild(shape);
+
+      if (layoutChild) {  
+        Object.keys(layoutChild).forEach((key) => {
+          if (layoutChild[key] && shape.layoutChild[key] !== 'auto') {
+            shape.layoutChild[key] = layoutChild[key];
+          }
+        });
+      }
+
+      if (layoutCell && parent.grid) {
+        parent.grid.appendChild(shape, layoutCell.row, layoutCell.column);
+        Object.keys(layoutCell).forEach((key) => {
+          if (layoutCell[key] !== undefined) {
+            shape.layoutCell[key] = layoutCell[key];
+          }
+        });
+      }
     }
+
   }
   
   if (x !== undefined) {
@@ -43,12 +74,11 @@ function setParamsToShape(shape, params) {
   if (y !== undefined) {
     shape.y = y;
   }
-
 }
 
 export function handleDrawShape(payload) {
   const { shapeType, params } = payload;
-
+  console.log('handleDrawShape', payload);
   const pluginResponse = {
     source: MessageSourceName.Plugin,
     type: ClientQueryType.DRAW_SHAPE,
@@ -78,6 +108,15 @@ export function handleDrawShape(payload) {
       case PenpotShapeType.BOARD:
         newShape = penpot.createBoard();
         break;
+      case PenpotShapeType.GROUP:
+        newShape = penpot.currentPage?.getShapeById(params.shapeId);
+        delete params.shapeId;
+        break;
+      case PenpotShapeType.COMPONENT:
+        newShape = penpot.library?.local?.components.find(component => component.id === params.componentId);
+        newShape = newShape.instance();
+        delete params.componentId;
+        break;
       default:
         throw new Error('Invalid shape type');
     }
@@ -86,7 +125,9 @@ export function handleDrawShape(payload) {
       throw new Error('Failed to create shape');
     }
 
-    setParamsToShape(newShape, params);
+    if (params && Object.keys(params).length > 0) {
+      setParamsToShape(newShape, params);
+    }
 
     return {
       ...pluginResponse,
@@ -106,7 +147,7 @@ export function handleDrawShape(payload) {
 }
 
 export function handleCreateComponent(payload) {
-  const { shapes, ...properties } = payload;
+  const { shapes, name, ...properties } = payload;
 
   const pluginResponse = {
     source: MessageSourceName.Plugin,
@@ -132,6 +173,8 @@ export function handleCreateComponent(payload) {
     if (!component || !component.mainInstance()) {
       throw new Error('Failed to create component');
     }
+
+    component.name = name || component.name;
 
     setParamsToShape(component.mainInstance(), properties);
 
@@ -220,91 +263,11 @@ export function handleModifyShape(payload) {
     }
 
     // Handle path content modification (convert path commands to SVG string)
-    let pathContent;
     if (params.content && shape.type === PenpotShapeType.PATH) {
-      pathContent = pathCommandsToSvgString(params.content);
+      params.content = pathCommandsToSvgString(params.content);
     }
 
-    // Apply modifications using the same logic as setParamsToShape
-    const { x, y, parentId, width, height, fills, strokes, shadows, content, characters, fontFamily, fontSize, fontWeight, fontStyle, lineHeight, letterSpacing, textTransform, textDecoration, direction, align, verticalAlign, ...rest } = params;
-    
-    // Assign fills directly if provided
-    if (fills && fills.length > 0) {
-      shape.fills = fills;
-    }
-
-    // Assign strokes directly if provided
-    if (strokes && strokes.length > 0) {
-      shape.strokes = strokes;
-    }
-
-    // Assign shadows directly if provided
-    if (shadows && shadows.length > 0) {
-      shape.shadows = shadows;
-    }
-
-    // Handle resize
-    if (width && height) {
-      shape.resize(width, height);
-    } else if (width) {
-      shape.resize(width, shape.height);
-    } else if (height) {
-      shape.resize(shape.width, height);
-    }
-
-    // Handle path content
-    if (pathContent !== undefined && shape.type === PenpotShapeType.PATH) {
-      shape.content = pathContent;
-    }
-
-    // Handle text-specific properties using generic assignment (same approach as setParamsToShape)
-    if (shape.type === PenpotShapeType.TEXT) {
-      const textProps = {
-        characters,
-        fontFamily,
-        fontSize,
-        fontWeight,
-        fontStyle,
-        lineHeight,
-        letterSpacing,
-        textTransform,
-        textDecoration,
-        direction,
-        align,
-        verticalAlign,
-      };
-      
-      Object.keys(textProps).forEach((key) => {
-        const value = textProps[key];
-        if (value !== undefined) {
-          shape[key] = value;
-        }
-      });
-    }
-
-    // Handle other properties
-    Object.keys(rest).forEach((key) => {
-      const value = rest[key];
-      if (value !== undefined) {
-        shape[key] = value;
-      }
-    });
-
-    // Handle position
-    if (x !== undefined) {
-      shape.x = x;
-    }
-    if (y !== undefined) {
-      shape.y = y;
-    }
-
-    // Handle parent change
-    if (parentId !== undefined) {
-      const parent = penpot.currentPage?.getShapeById(parentId);
-      if (parent && parent.type === PenpotShapeType.BOARD) {
-        parent.appendChild(shape);
-      }
-    }
+    setParamsToShape(shape, params);
 
     return {
       ...pluginResponse,

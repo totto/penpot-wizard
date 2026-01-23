@@ -53,8 +53,7 @@ export const drawingTools = [
     description: `
       Use this tool to draw a text element.
       
-      REQUIRED STEP: Always use getAvailableFonts BEFORE creating text to verify which fonts are available.
-      You must check available fonts before using this tool.
+      REQUIRED STEP: Use design-styles-rag to decide fonts, colors, and other design tokens before creating text.
       
       Use parentId to place the text inside a specific board.
       
@@ -67,23 +66,6 @@ export const drawingTools = [
       const response = await drawShape(PenpotShapeType.TEXT, shapeProperties);
       return response;
     },
-  },   {
-    id: 'board-maker',
-    name: 'BoardMakerTool',
-    description: `
-      Use this tool to create a new board.
-      Boards are layers that serve as your high-level containers for content organization and layout. 
-      Boards are useful if you want to design for a specific screen or print size. Boards can contain other boards. 
-      First-level boards act as screens in View mode, acting as screens of a design or pages of a document. 
-      Use boards to organize related elements together.
-      Also, objects inside boards can be clipped. Boards are a powerful element at Penpot, opening up a ton of 
-      possibilities when creating and organizing your designs.
-    `,
-    inputSchema: baseShapeProperties,
-    function: async (shapeProperties) => {
-      const response = await drawShape(PenpotShapeType.BOARD, shapeProperties);
-      return response;
-    },
   },
   {
     id: 'create-shapes',
@@ -91,9 +73,9 @@ export const drawingTools = [
     description: `
       Use this tool to create one or multiple shapes in a single request. This tool can create rectangles, ellipses, paths, and text shapes.
       
-      IMPORTANT: This tool does NOT create boards. Use BoardMakerTool for boards.
+      IMPORTANT: This tool does NOT create boards. Use CreateBoardTool for boards.
       
-      REQUIRED STEP: If creating text shapes, always use getAvailableFonts BEFORE using this tool to verify which fonts are available.
+      REQUIRED STEP: If creating text shapes, use design-styles-rag to decide fonts, colors, and other design tokens.
       
       🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
       - Text and foreground elements should be created FIRST (at the beginning of the shapes array)
@@ -158,14 +140,14 @@ export const drawingTools = [
       Use this tool to create one or multiple shapes and then convert them into a library component.
       This tool can create rectangles, ellipses, paths, and text shapes, and then creates a component from them.
       
-      IMPORTANT: This tool does NOT create boards. Use BoardMakerTool for boards.
+      IMPORTANT: This tool does NOT create boards. Use CreateBoardTool for boards.
       
       🎨 KEY CONCEPT: The component itself IS a shape! You don't need to create a background shape.
       - You can apply fills, strokes, and shadows directly to the component using the component properties
       - These visual properties (fills, strokes, shadows) will be applied to the component's background
       - The component acts as a container with its own visual styling
       
-      REQUIRED STEP: If creating text shapes, always use getAvailableFonts BEFORE using this tool to verify which fonts are available.
+      REQUIRED STEP: If creating text shapes, use design-styles-rag to decide fonts, colors, and other design tokens.
       
       🚨 CRITICAL STACKING ORDER: Use zIndex to control stacking order of shapes within the component!
       - Text and foreground elements should have a higher zIndex than backgrounds
@@ -176,13 +158,14 @@ export const drawingTools = [
     `,
     inputSchema: createComponentSchema,
     function: async (input) => {
+      console.log('createComponent -> input.shapes:', input.shapes);
       try {
         // Create all shapes first
         const createdShapes = await createShapesArray(input.shapes, { throwOnError: true });
-        
+        console.log('createComponent -> createdShapes:', createdShapes);
         // Extract shape IDs for component creation
         const shapeIds = createdShapes.map(shape => shape.id);
-        
+        console.log('createComponent -> shapeIds:', shapeIds);
         // Extract component properties (all properties except shapes)
         const { shapes: _, ...componentProperties } = input;
         
@@ -216,7 +199,7 @@ export const drawingTools = [
       Use this tool to create one or multiple shapes and then group them together.
       This tool can create rectangles, ellipses, paths, and text shapes, and then creates a group from them.
       
-      IMPORTANT: This tool does NOT create boards. Use BoardMakerTool for boards.
+      IMPORTANT: This tool does NOT create boards. Use CreateBoardTool for boards.
       
       🎨 KEY CONCEPT: Groups are NOT shapes! They are containers that only have position (x, y) and size (width, height).
       - Groups do NOT support fills, strokes, or shadows directly
@@ -224,7 +207,7 @@ export const drawingTools = [
       - The background shape should be included in the shapes array and will be part of the group
       - Position and size properties apply to the group container itself
       
-      REQUIRED STEP: If creating text shapes, always use getAvailableFonts BEFORE using this tool to verify which fonts are available.
+      REQUIRED STEP: If creating text shapes, use design-styles-rag to decide fonts, colors, and other design tokens.
       
       🚨 CRITICAL STACKING ORDER: Use zIndex to control stacking order of shapes within the group!
       - Background shapes should have zIndex: 0 (lowest, appears at the back)
@@ -273,25 +256,19 @@ export const drawingTools = [
     id: 'create-board',
     name: 'CreateBoardTool',
     description: `
-      Use this tool to create a board and then add one or multiple shapes inside it.
-      This tool can create rectangles, ellipses, paths, and text shapes inside the board.
-      
+      Use this tool to create a board and then add one or multiple shapes inside it.      
       The board will be created first, and then all the specified shapes will be added inside it.
       
-      ⚠️ IMPORTANT: COORDINATE SYSTEM - All coordinates are ABSOLUTE (relative to the main frame board)!
-      - The x and y coordinates in shape definitions are ALWAYS absolute, NOT relative to the board
-      - When placing shapes inside a board, you MUST add the board's x and y coordinates to each shape's coordinates
-      - Example: If board is at (100, 200) and you want a shape at (50, 50) relative to the board, set the shape's coordinates to (150, 250)
-      - Formula: shape.x = board.x + relativeX, shape.y = board.y + relativeY
+      ✅ PRIORITIZE LAYOUTS (FLEX / GRID)
+      - Prefer configuring the board with "flex" or "grid" to control structure and spacing.
+      - For flex layouts, define child positioning with "layoutChild" (alignSelf, sizing, margins).
+      - For grid layouts, define child placement with "layoutCell" (row/column/rowSpan/columnSpan/areaName/position) and sizing/alignment with "layoutChild".
+      - Use x/y only when you explicitly set layoutChild.absolute = true for absolute positioning.
+      - Layout-driven boards keep spacing consistent and make responsive adjustments easier.
       
-      REQUIRED STEP: If creating text shapes, always use getAvailableFonts BEFORE using this tool to verify which fonts are available.
+      REQUIRED STEP: Before creating shapes, use design-styles-rag to decide layout, fonts, colors, and other design tokens.
       
-      🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
-      - Text and foreground elements should be created FIRST (at the beginning of the shapes array)
-      - Backgrounds and containers should be created LAST (at the end of the shapes array)
-      
-      You can create multiple shapes efficiently in one call. The board will be created first, and then all shapes will be created inside it in the order specified in the array.
-      The board properties (name, x, y, width, height, borderRadius, fills, strokes) are optional and will use defaults if not provided.
+      You can create multiple shapes efficiently in one call. The board will be created first, and then all shapes will be created inside it in the order specified with the zIndex property.
     `,
     inputSchema: createBoardSchema,
     function: async (input) => {

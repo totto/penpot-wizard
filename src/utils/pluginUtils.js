@@ -212,9 +212,9 @@ export const createShapesArray = async (
   // - When adding to board/component (parentId): descending (highest zIndex first, appears on top)
   // - When creating standalone shapes: ascending (lowest zIndex first, appears below)
   const orderedShapes = [...shapes].sort((a, b) => 
-    parentId ? b.zIndex - a.zIndex : a.zIndex - b.zIndex
+    b.zIndex - a.zIndex
   );
-  
+
   const createdShapes = [];
   
   for (const shape of orderedShapes) {

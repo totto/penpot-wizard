@@ -2,10 +2,11 @@ import {
   PluginMessageType,
   ClientQueryType,
   MessageSourceName,
+  PenpotShapeType,
 } from '../types/types';
 
 import { handleDrawShape, handleCreateComponent, handleCreateGroup, handleModifyShape, handleDeleteShape } from './drawHandlers';
-import { handleGetProjectData, handleGetUserData, handleAddImage, getCurrentPage, getAvailableFonts } from './mainHandlers';
+import { handleGetProjectData, handleGetUserData, handleAddImage, getCurrentPage } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
@@ -14,6 +15,57 @@ penpot.ui.open("AI Penpot Wizard", `?theme=${penpot.theme}`, {
   width: 500,
   height: 700,
 });
+
+const board = handleDrawShape({
+  shapeType: PenpotShapeType.BOARD,
+  params: {
+    x: 100,
+    y: 100,
+    width: 400,
+    height: 400,
+    flex: {
+      dir: 'row',
+      alignItems: 'stretch',
+      justifyContent: 'start',
+      verticalSizing: 'auto',
+    },
+  },
+});
+
+console.log('board:', board);
+
+const square = handleDrawShape({
+  shapeType: PenpotShapeType.RECTANGLE,
+  params: {
+    name: 'HeaderSquare',
+    parentId: board.payload.shape.id,
+    x: 0,
+    y: 0,
+    width: 400,
+    height: 100,
+    fills: [
+      { fillColor: '#FFD700' },
+    ],
+    layoutChild: {
+      "absolute": false,
+      "horizontalSizing": "auto",
+      "verticalSizing": "auto",
+      "alignSelf": "auto",
+      "horizontalMargin": 0,
+      "verticalMargin": 0,
+      "topMargin": 0,
+      "rightMargin": 0,
+      "bottomMargin": 0,
+      "leftMargin": 0,
+      "maxWidth": null,
+      "maxHeight": null,
+      "minWidth": null,
+      "minHeight": null
+  },
+  },
+});
+
+console.log('square:', square);
 
 // Listen for theme change events from Penpot
 penpot.on('themechange', (newTheme) => {
@@ -63,10 +115,6 @@ penpot.ui.onMessage(async (message) => {
 
     case ClientQueryType.GET_PROJECT_DATA:
       responseMessage = handleGetProjectData();
-      break;
-
-    case ClientQueryType.GET_AVAILABLE_FONTS:
-      responseMessage = getAvailableFonts();
       break;
 
     case ClientQueryType.GET_CURRENT_PAGE:

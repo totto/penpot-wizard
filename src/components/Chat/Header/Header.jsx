@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '@nanostores/react'
-import { ChevronDownIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { ChevronDownIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { 
   $activeDirectorAgent, 
   $directorAgentsData, 
@@ -12,8 +12,10 @@ import { $activeConversationId } from '@/stores/activeConversationStore'
 import { 
   tryCreateNewConversation,
   trySetActiveConversation,
-  getConversationsForDirector
+  getConversationsForDirector,
+  deleteConversation
 } from '@/stores/conversationActionsStore'
+import { isStreaming, setPendingAction } from '@/stores/streamingMessageStore'
 import styles from './Header.module.css'
 
 /**
@@ -49,6 +51,23 @@ function Header() {
       setShowHistoryDropdown(false)
     }
     // If not switched, dialog will show and dropdown stays open until user decides
+  }
+
+  const handleDeleteConversation = (conversationId) => {
+    const confirmed = window.confirm('¿Eliminar esta conversación? Esta acción no se puede deshacer.')
+    if (!confirmed) {
+      return
+    }
+
+    if (isStreaming()) {
+      setPendingAction({
+        type: 'delete_conversation',
+        data: { conversationId }
+      })
+      return
+    }
+
+    deleteConversation(conversationId)
   }
   
   // Get current conversation metadata for display
@@ -120,18 +139,33 @@ function Header() {
             {showHistoryDropdown && (
               <div className={styles.historyDropdown}>
                 {directorConversations.map(conversation => (
-                  <button
+                  <div
                     key={conversation.id}
                     className={`${styles.historyItem} ${conversation.id === activeConversationId ? styles.active : ''}`}
-                    onClick={() => handleConversationSelect(conversation.id)}
                   >
-                    <div className={styles.historyItemSummary}>
-                      {conversation.summary || 'New conversation'}
-                    </div>
-                    <div className={styles.historyItemDate}>
-                      {conversation.createdAt.toLocaleDateString()}
-                    </div>
-                  </button>
+                    <button
+                      className={styles.historyItemButton}
+                      onClick={() => handleConversationSelect(conversation.id)}
+                    >
+                      <div className={styles.historyItemSummary}>
+                        {conversation.summary || 'New conversation'}
+                      </div>
+                      <div className={styles.historyItemDate}>
+                        {conversation.createdAt.toLocaleDateString()}
+                      </div>
+                    </button>
+                    <button
+                      className={styles.historyDeleteBtn}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        handleDeleteConversation(conversation.id)
+                      }}
+                      title="Delete conversation"
+                      aria-label="Delete conversation"
+                    >
+                      <TrashIcon className={styles.deleteIcon} />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}

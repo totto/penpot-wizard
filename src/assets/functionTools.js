@@ -28,20 +28,6 @@ export const functionTools = [
       const response = await sendMessageToPlugin(ClientQueryType.GET_PROJECT_DATA, undefined);
       return response;
     },
-  },{
-    id: "get-available-fonts",
-    name: "getAvailableFonts",
-    description: `
-      Use this tool to get the available fonts on Penpot.
-      
-      IMPORTANT: Always use this tool BEFORE creating text elements to verify which fonts are available.
-      You must check available fonts before using TextMakerTool or CreateShapesTool with text shapes.
-    `,
-    inputSchema: z.object({}),
-    function: async () => {
-      const response = await sendMessageToPlugin(ClientQueryType.GET_AVAILABLE_FONTS, undefined);
-      return response;
-    },
   },  {
     id: "get-current-page",
     name: "getCurrentPage",

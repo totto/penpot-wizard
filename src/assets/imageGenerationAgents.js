@@ -23,7 +23,7 @@ export const imageGenerationAgents = [
       
       🔗 INTEGRATION WITH SHAPES:
       The returned imageId can be used directly as the 'backgroundImage' parameter when creating 
-      shapes with RectangleMakerTool, EllipseMakerTool, PathMakerTool, or BoardMakerTool.
+      shapes with RectangleMakerTool, EllipseMakerTool, PathMakerTool, or CreateBoardTool.
       
       Example workflow:
       1. Call imageGenerator with a text prompt → receive imageId

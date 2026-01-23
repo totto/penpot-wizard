@@ -11,7 +11,7 @@ export class StreamHandler {
     this.parentToolCallId = parentToolCallId;
     this.fullResponse = '';
     // Track tool calls that have been started but not yet completed
-    this.pendingToolCalls = new Set();
+    this.pendingToolCalls = new Map();
   }
 
   async handleStream() {
@@ -33,7 +33,12 @@ export class StreamHandler {
           };
           addToolCall(newToolCall, this.parentToolCallId);
           // Track this tool call as pending
-          this.pendingToolCalls.add(chunk.toolCallId);
+          this.pendingToolCalls.set(chunk.toolCallId, {
+            toolName: chunk.toolName,
+            input: chunk.input,
+            parentToolCallId: this.parentToolCallId,
+            startedAt: Date.now()
+          });
         } else if (chunk.type === 'tool-result') {
           // The AI SDK passes the tool's return value in chunk.result (not chunk.output)
           // chunk.output might be undefined, so we check chunk.result first
@@ -63,7 +68,17 @@ export class StreamHandler {
               error: errorMessage 
             });
             // Remove from pending since we've handled it
+            const pendingInfo = this.pendingToolCalls.get(chunk.toolCallId);
             this.pendingToolCalls.delete(chunk.toolCallId);
+            if (pendingInfo) {
+              console.error('Tool call failed with error chunk:', {
+                toolCallId: chunk.toolCallId,
+                toolName: pendingInfo.toolName,
+                input: pendingInfo.input,
+                parentToolCallId: pendingInfo.parentToolCallId,
+                error: errorMessage
+              });
+            }
           } else {
             // General stream error (not tool-specific)
           setStreamingError(`Error: ${chunk.error instanceof Error ? chunk.error.message : 'Unknown error'}`);
@@ -75,9 +90,17 @@ export class StreamHandler {
       // This handles cases where validation fails before the tool executes
       // and the SDK doesn't emit a tool-result or error chunk with toolCallId
       if (this.pendingToolCalls.size > 0) {
-        console.warn(`Found ${this.pendingToolCalls.size} tool call(s) that never completed:`, Array.from(this.pendingToolCalls));
+        console.warn(`Found ${this.pendingToolCalls.size} tool call(s) that never completed.`);
         
-        for (const toolCallId of this.pendingToolCalls) {
+        for (const [toolCallId, pendingInfo] of this.pendingToolCalls) {
+          console.error('Tool call did not return a result (validation/timeout likely):', {
+            toolCallId,
+            toolName: pendingInfo.toolName,
+            input: pendingInfo.input,
+            parentToolCallId: pendingInfo.parentToolCallId,
+            startedAt: pendingInfo.startedAt,
+            ageMs: Date.now() - pendingInfo.startedAt
+          });
           // Mark as error with a generic message about validation/execution failure
           updateToolCall(toolCallId, { 
             state: 'error', 

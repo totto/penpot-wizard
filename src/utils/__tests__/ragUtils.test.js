@@ -5,7 +5,7 @@ import { gunzipSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
-import { initializeDataBase } from './ragUtils'
+import { initializeDataBase } from '../ragUtils'
 
 function createDecompressionStream() {
   let controller
@@ -55,7 +55,7 @@ describe('initializeDataBase', () => {
   it('restores Orama database from generated file', async () => {
     const __filename = fileURLToPath(import.meta.url)
     const __dirname = path.dirname(__filename)
-    const dbFilePath = path.resolve(__dirname, '..', '..', 'public', 'penpotRagToolContents.zip')
+    const dbFilePath = path.resolve(__dirname, '..', '..', '../public', 'penpotRagToolContents.zip')
     const fileBuffer = await fs.readFile(dbFilePath)
 
     global.fetch = vi.fn(async () => new Response(fileBuffer, { status: 200 }))

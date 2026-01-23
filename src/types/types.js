@@ -14,7 +14,6 @@ export const PluginMessageType = {
 export const ClientQueryType = {
   GET_USER_DATA: 'GET_USER_DATA',
   GET_PROJECT_DATA: 'GET_PROJECT_DATA',
-  GET_AVAILABLE_FONTS: 'GET_AVAILABLE_FONTS',
   GET_CURRENT_PAGE: 'GET_CURRENT_PAGE',
   DRAW_SHAPE: 'DRAW_SHAPE',
   ADD_IMAGE: 'ADD_IMAGE',
@@ -30,6 +29,7 @@ export const PenpotShapeType = {
   PATH: 'path',
   TEXT: 'text',
   BOARD: 'board',
+  GROUP: 'group',
 };
 
 // Theme type definition

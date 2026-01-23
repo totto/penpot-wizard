@@ -137,6 +137,7 @@ export const fetchModels = async () => {
           const openrouterModelList = data.data
             .filter((model) => {
               return model.supported_parameters.includes('structured_outputs')
+              && model.supported_parameters.includes('tools')
               && model.architecture.input_modalities.includes('text')
             })
             .map((model) => ({

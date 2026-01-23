@@ -425,6 +425,12 @@ export const handleCancelStreaming = () => {
         }
         break;
       
+      case 'delete_conversation':
+        if (action.data?.conversationId) {
+          deleteConversation(action.data.conversationId);
+        }
+        break;
+      
       case 'reload':
         // For reload, we just cancel and add the message if was streaming
         // The actual reload is handled by the browser
