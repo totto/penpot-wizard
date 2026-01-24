@@ -173,11 +173,8 @@ export const specializedAgents = [
         .nullable(),
     }),
     toolIds: [
-      'board-maker',
-      'rectangle-maker',
-      'ellipse-maker',
-      'path-maker',
-      'text-maker',
+      'create-board',
+      'create-shapes',
       'get-current-page',
     ],
     imageGenerationAgentIds: ['image-generator'],

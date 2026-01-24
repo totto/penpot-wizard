@@ -70,7 +70,7 @@ async function decompressGzip(compressedData) {
 /**
  * Inicializa la base de datos Orama desde el archivo ZIP comprimido
  */
-export async function initializeDataBase(dbFile) {
+export async function initializeDataBase(dbFile, embeds = 'openai') {
   try {    
     // Cargar el archivo ZIP comprimido desde la carpeta public
     const response = await fetch(`/${dbFile}`);
@@ -87,6 +87,37 @@ export async function initializeDataBase(dbFile) {
     // Restaurar la base de datos Orama
     const dbInstance = await restore('binary', persistData);
     
+    if (embeds === 'orama') {
+      const [{ pluginEmbeddings }] = await Promise.all([
+        import('@orama/plugin-embeddings'),
+        import('@tensorflow/tfjs-backend-webgl')
+      ]);
+
+      const embeddingsPlugin = await pluginEmbeddings({
+        embeddings: {
+          defaultProperty: 'embedding',
+          onInsert: {
+            generate: false,
+            properties: ['searchableText'],
+            verbose: false,
+          }
+        }
+      });
+
+      // Wrap hooks to ensure Orama awaits them (compiled functions are not AsyncFunction)
+      if (typeof embeddingsPlugin.beforeSearch === 'function') {
+        const originalBeforeSearch = embeddingsPlugin.beforeSearch;
+        embeddingsPlugin.beforeSearch = async (...args) => originalBeforeSearch(...args);
+      }
+      if (typeof embeddingsPlugin.beforeInsert === 'function') {
+        const originalBeforeInsert = embeddingsPlugin.beforeInsert;
+        embeddingsPlugin.beforeInsert = async (...args) => originalBeforeInsert(...args);
+      }
+
+      dbInstance.beforeSearch.push(embeddingsPlugin.beforeSearch);
+      dbInstance.beforeInsert.push(embeddingsPlugin.beforeInsert);
+    }
+    
     return dbInstance;
     
   } catch (error) {
@@ -98,25 +129,36 @@ export async function initializeDataBase(dbFile) {
 /**
  * Realiza una búsqueda vectorial en la base de datos
  */
-export async function searchDataBase(query, limit = 10, dbInstance) {
+export async function searchDataBase(query, limit = 10, dbInstance, embeds = 'openai') {
   try {
     if (!dbInstance) {
       throw new Error('Database instance not initialized');
     }
     
-    // Generar embedding para la consulta
-    const queryEmbedding = await getEmbedding(query);
-    
-    // Realizar búsqueda vectorial
-    const results = await search(dbInstance, {
-      mode: 'vector',
-      vector: {
-        value: queryEmbedding,
-        property: 'embedding'
-      },
-      term: query,
-      limit
-    });
+    let results;
+
+    if (embeds === 'orama') {
+      results = await search(dbInstance, {
+        mode: 'hybrid',
+        term: query,
+        limit,
+        similarity: 0.85
+      });
+    } else {
+      // Generar embedding para la consulta
+      const queryEmbedding = await getEmbedding(query);
+      
+      // Realizar búsqueda vectorial
+      results = await search(dbInstance, {
+        mode: 'vector',
+        vector: {
+          value: queryEmbedding,
+          property: 'embedding'
+        },
+        term: query,
+        limit
+      });
+    }
 
     return results.hits.map(hit => ({
       id: hit.document.id,

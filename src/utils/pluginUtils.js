@@ -8,23 +8,6 @@ export const drawShape = async (shapeType, params) => {
   return response;
 }
 
-export const modifyShape = async (shapeId, params) => {
-  const response = await sendMessageToPlugin(ClientQueryType.MODIFY_SHAPE, {
-    shapeId,
-    params,
-  });
-
-  return response;
-}
-
-export const deleteShape = async (shapeId) => {
-  const response = await sendMessageToPlugin(ClientQueryType.DELETE_SHAPE, {
-    shapeId,
-  });
-  
-  return response;
-}
-
 /**
  * Creates an array of shapes from a list of shape definitions.
  * Shapes are sorted by zIndex before creation to ensure proper stacking order.

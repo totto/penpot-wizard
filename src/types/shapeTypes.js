@@ -119,20 +119,20 @@ export const gridLayoutSchema = commonLayoutSchema.extend({
 
 // Schema for LayoutChildProperties objects (Penpot Plugin API)
 export const layoutChildSchema = z.object({
-  absolute: z.boolean().describe('Whether the child element is positioned absolutely. Important: if this parameter is true, you should use x and y properties of the shape to position the element.'),
-  horizontalSizing: z.enum(['auto', 'fill', 'fix']).describe('The horizontal sizing behavior of the child element.'),
-  verticalSizing: z.enum(['auto', 'fill', 'fix']).describe('The vertical sizing behavior of the child element.'),
-  alignSelf: z.enum(['auto', 'start', 'center', 'end', 'stretch']).describe('Alignment of the child element within its container.'),
-  horizontalMargin: z.number().describe('The horizontal margin of the child element.'),
-  verticalMargin: z.number().describe('The vertical margin of the child element.'),
-  topMargin: z.number().describe('The top margin of the child element.'),
-  rightMargin: z.number().describe('The right margin of the child element.'),
-  bottomMargin: z.number().describe('The bottom margin of the child element.'),
-  leftMargin: z.number().describe('The left margin of the child element.'),
-  maxWidth: z.number().nullable().describe('The maximum width of the child element, or null for no maximum.'),
-  maxHeight: z.number().nullable().describe('The maximum height of the child element, or null for no maximum.'),
-  minWidth: z.number().nullable().describe('The minimum width of the child element, or null for no minimum.'),
-  minHeight: z.number().nullable().describe('The minimum height of the child element, or null for no minimum.'),
+  absolute: z.boolean().default(false).describe('Whether the child element is positioned absolutely. Important: if this parameter is true, you should use x and y properties of the shape to position the element.'),
+  horizontalSizing: z.enum(['fill', 'fix']).optional().describe('The horizontal sizing behavior of the child element.'),
+  verticalSizing: z.enum(['fill', 'fix']).optional().describe('The vertical sizing behavior of the child element.'),
+  alignSelf: z.enum(['start', 'center', 'end', 'stretch']).optional().describe('Alignment of the child element within its container.'),
+  horizontalMargin: z.number().optional().describe('The horizontal margin of the child element.'),
+  verticalMargin: z.number().optional().describe('The vertical margin of the child element.'),
+  topMargin: z.number().optional().describe('The top margin of the child element.'),
+  rightMargin: z.number().optional().describe('The right margin of the child element.'),
+  bottomMargin: z.number().optional().describe('The bottom margin of the child element.'),
+  leftMargin: z.number().optional().describe('The left margin of the child element.'),
+  maxWidth: z.number().optional().nullable().describe('The maximum width of the child element, or null for no maximum.'),
+  maxHeight: z.number().optional().nullable().describe('The maximum height of the child element, or null for no maximum.'),
+  minWidth: z.number().optional().nullable().describe('The minimum width of the child element, or null for no minimum.'),
+  minHeight: z.number().optional().nullable().describe('The minimum height of the child element, or null for no minimum.'),
 }).describe('Layout properties for a child element inside a layout container.');
 
 // Schema for LayoutCellProperties objects (Penpot Plugin API)
@@ -157,10 +157,15 @@ function getBaseShapeProperties(
   return {
     name: z.string().describe(customDesc?.name || `The name of the ${type}, used for visual identification and organization`),
     parentId: z.string().optional().describe('The id of the parent board or component'),
-    x: z.number().describe(customDesc?.x || `The absolute x position of the ${type}, relative to the Root Frame board`),
-    y: z.number().describe(customDesc?.y || `The absolute y position of the ${type}, relative to the Root Frame board`),
-    width: z.number().describe(customDesc?.width || `The width of the ${type}`),
-    height: z.number().describe(customDesc?.height || `The height of the ${type}`),
+    x: z.number().optional().describe(customDesc?.x || `The absolute x position of the ${type}, relative to the Root Frame board`),
+    y: z.number().optional().describe(customDesc?.y || `The absolute y position of the ${type}, relative to the Root Frame board`),
+    parentX: z.number().optional().describe(customDesc?.parentX || `The x position of the ${type} relative to its parent`),
+    parentY: z.number().optional().describe(customDesc?.parentY || `The y position of the ${type} relative to its parent`),
+    rotation: z.number().min(0).max(359).optional().describe(customDesc?.rotation || `The rotation of the ${type} in degrees with respect to its center`),
+    flipX: z.boolean().optional().describe(customDesc?.flipX || `Whether the ${type} is flipped horizontally`),
+    flipY: z.boolean().optional().describe(customDesc?.flipY || `Whether the ${type} is flipped vertically`),
+    width: z.number().optional().describe(customDesc?.width || `The width of the ${type}`),
+    height: z.number().optional().describe(customDesc?.height || `The height of the ${type}`),
     borderRadius: z.number().optional().describe(customDesc?.borderRadius || `The border radius of the ${type}`),
     opacity: z.number().optional().describe(customDesc?.opacity || `The opacity of the ${type}`),
     blendMode: z.enum(blendModes).optional().describe(customDesc?.blendMode || `The blend mode of the ${type}`),
@@ -179,8 +184,8 @@ function getBaseShapeProperties(
       customDesc?.layoutCell ||
       `Properties to define the cell placement of this ${type} inside a parent with layout type grid.`
     ),
-    flex: flexLayoutSchema.optional().describe(customDesc?.flex || `Flex layout configuration applied to the ${type}`),
-    grid: gridLayoutSchema.optional().describe(customDesc?.grid || `Grid layout configuration applied to the ${type}`),
+    flex: flexLayoutSchema.optional().nullable().describe(customDesc?.flex || `Flex layout configuration applied to the ${type}`),
+    grid: gridLayoutSchema.optional().nullable().describe(customDesc?.grid || `Grid layout configuration applied to the ${type}`),
     zIndex: z.number().min(0).describe(customDesc?.zIndex || `The z-index of the ${type}, used to control stacking order.`),
   };
 }
@@ -208,9 +213,9 @@ export const pathShapeSchema = z.object({
 // Schema with only text-specific properties
 export const textShapeSchema = z.object({
   characters: z.string().describe('The characters to draw'),
-  fontFamily: z.string().describe('The font family of the text'),
-  fontSize: z.number().describe('The font size of the text'),
-  fontWeight: z.number().describe('The font weight of the text'),
+  fontFamily: z.string().optional().describe('The font family of the text'),
+  fontSize: z.number().optional().describe('The font size of the text'),
+  fontWeight: z.number().optional().describe('The font weight of the text'),
   fontStyle: z.enum(['normal', 'italic']).optional().describe('The font style of the text'),
   lineHeight: z.number().min(0).max(10).default(1).describe('The separation between lines of text'),
   letterSpacing: z.number().optional().describe('The letter spacing of the text'),
@@ -220,6 +225,11 @@ export const textShapeSchema = z.object({
   align: z.enum(['left', 'center', 'right']).default('left').describe('The align of the text'),
   verticalAlign: z.enum(['center']).default('center').describe('The vertical align of the text'),
 });
+
+export const textRangePropertiesSchema = textShapeSchema
+  .omit({ characters: true })
+  .partial()
+  .describe('Text style properties to apply to a text range');
 
 export const baseShapeProperties = z.object(getBaseShapeProperties('shape'));
 export const pathShapeProperties = z.object(getBaseShapeProperties('path')).extend(pathShapeSchema.shape);
@@ -271,14 +281,12 @@ export const createComponentSchema = createShapesSchema.extend(
 
 export const createGroupSchema = createShapesSchema.extend(
   z.object(getBaseShapeProperties('group'))
-    .omit({ fills: true, strokes: true, shadows: true, flex: true })
+    .omit({ flex: true, grid: true })
     .shape
 );
 
 export const createBoardSchema = createShapesSchema.extend(
-  z.object(getBaseShapeProperties('board'))
-    .omit({ parentId: true, opacity: true, blendMode: true, zIndex: true })
-    .shape
+  z.object(getBaseShapeProperties('board')).shape
 );
 
 // Schema for modifying shape properties - all properties are optional except shapeId
@@ -289,4 +297,32 @@ export const modifyShapePropertiesSchema = z.object({
   .extend(baseShapeProperties.omit({ zIndex: true }).partial().shape) // Omit zIndex as it's not modifiable
   .extend(pathShapeSchema.partial().shape) // Path-specific properties (optional)
   .extend(textShapeSchema.partial().shape); // Text-specific properties (optional)
+
+export const modifyTextRangeSchema = z.object({
+  shapeId: z.string().describe('The ID of the text shape to modify'),
+  start: z.number().int().min(0).describe('Start index (inclusive) of the text range'),
+  end: z.number().int().min(0).describe('End index (exclusive) of the text range'),
+  props: textRangePropertiesSchema.describe('Text properties to apply to the range'),
+});
+
+export const rotateShapeSchema = z.object({
+  shapeId: z.string().describe('The ID of the shape to rotate'),
+  angle: z.number().describe('Rotation angle in degrees'),
+  center: z.object({
+    x: z.number().describe('The x-coordinate of the rotation center'),
+    y: z.number().describe('The y-coordinate of the rotation center'),
+  }).nullable().optional().describe('Optional rotation center; omit or pass null to rotate around the shape center'),
+});
+
+export const cloneShapeSchema = z.object({
+  shapeId: z.string().describe('The ID of the shape to clone'),
+  x: z.number().optional().describe('Optional x coordinate for the cloned shape'),
+  y: z.number().optional().describe('Optional y coordinate for the cloned shape'),
+  width: z.number().optional().describe('Optional width for the cloned shape'),
+  height: z.number().optional().describe('Optional height for the cloned shape'),
+});
+
+export const reorderShapeSchema = z.object({
+  shapeId: z.string().describe('The ID of the shape to reorder'),
+});
 

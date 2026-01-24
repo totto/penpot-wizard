@@ -97,8 +97,9 @@ export function createImageModelInstance() {
       if (!openrouterApiKey || !isValidatedOpenrouter) {
         throw new Error('OpenRouter API key not available or not validated');
       }
-      const openrouter = createOpenRouter({
+      const openrouter = createOpenAI({
         apiKey: openrouterApiKey,
+        baseURL: 'https://openrouter.ai/api/v1',
       });
 
       return openrouter.image(selectedImageModel);

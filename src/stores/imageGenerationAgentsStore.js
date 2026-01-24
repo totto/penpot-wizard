@@ -3,7 +3,12 @@ import { tool, generateImage } from 'ai';
 import { imageGenerationAgents } from '@/assets/imageGenerationAgents';
 import { ClientQueryType, ToolResponse } from '@/types/types';
 import { createImageModelInstance } from '@/utils/modelUtils';
-import { $isConnected } from '@/stores/settingsStore';
+import { 
+  $isConnected,
+  $availableImageModels,
+  $selectedImageModel,
+  $openrouterApiKey
+} from '@/stores/settingsStore';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 
@@ -29,7 +34,72 @@ export const getImageGenerationAgentsByIds = (agentIds) => {
 
 // Initialize a single image generation agent
 const initializeImageGenerationAgent = async (agentDef) => {
-  const imageModelInstance = createImageModelInstance();
+  const getSelectedImageModel = () => {
+    const selectedImageModel = $selectedImageModel.get();
+    const availableImageModels = $availableImageModels.get();
+    return availableImageModels.find((model) => model.id === selectedImageModel) || null;
+  };
+
+  const generateOpenRouterImage = async (prompt) => {
+    const openrouterApiKey = $openrouterApiKey.get();
+    if (!openrouterApiKey?.trim()) {
+      throw new Error('OpenRouter API key not available');
+    }
+
+    const selectedModel = getSelectedImageModel();
+    if (!selectedModel) {
+      throw new Error('Selected image model not found');
+    }
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${openrouterApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: selectedModel.id,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        modalities: ['image', 'text'],
+        stream: false,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+      throw new Error(`OpenRouter image generation failed: ${errorMessage}`);
+    }
+
+    const data = await response.json();
+    const images = data?.choices?.[0]?.message?.images;
+    const imageUrl = images?.[0]?.image_url?.url || images?.[0]?.imageUrl?.url;
+
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      throw new Error('OpenRouter image response did not include image data');
+    }
+
+    if (!imageUrl.startsWith('data:')) {
+      throw new Error('OpenRouter image response is not a data URL');
+    }
+
+    const [header, base64Data] = imageUrl.split(',');
+    const mediaTypeMatch = header.match(/^data:(.*);base64$/);
+    const mediaType = mediaTypeMatch?.[1] || 'image/png';
+
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    return { uint8Array: bytes, mediaType };
+  };
   
   // Create the tool that wraps image generation
   const toolInstance = tool({
@@ -41,13 +111,23 @@ const initializeImageGenerationAgent = async (agentDef) => {
     }),
     execute: async ({ prompt }) => {
       try {
-        const result = await generateImage({
-          model: imageModelInstance,
-          prompt: prompt,
-          size: '1024x1024',
-        });
+        const selectedModel = getSelectedImageModel();
+        const isOpenRouterModel = selectedModel?.provider === 'openrouter';
 
-        const { image: { uint8Array, mediaType } } = result;
+        let imagePayload;
+        if (isOpenRouterModel) {
+          imagePayload = await generateOpenRouterImage(prompt);
+        } else {
+          const imageModelInstance = createImageModelInstance();
+          const result = await generateImage({
+            model: imageModelInstance,
+            prompt: prompt,
+            size: '1024x1024',
+          });
+          imagePayload = result.image;
+        }
+
+        const { uint8Array, mediaType } = imagePayload;
         const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
         const addImageResponse = await sendMessageToPlugin(ClientQueryType.ADD_IMAGE, {

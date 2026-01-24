@@ -44,7 +44,7 @@ const initializeFunctionTool = async (toolDef) => {
 
 const initializeRagTool = async (toolDef) => {
   // Initialize the database instance
-  const dbInstance = await initializeDataBase(toolDef.ragContentFile);
+  const dbInstance = await initializeDataBase(toolDef.ragContentFile, toolDef.embeds);
 
   const toolInstance = tool({
     id: toolDef.id,
@@ -55,7 +55,7 @@ const initializeRagTool = async (toolDef) => {
     }),
     execute: async ({ query }) => {
       try {
-        const results = await searchDataBase(query, 10, dbInstance);
+        const results = await searchDataBase(query, 10, dbInstance, toolDef.embeds);
         
         if (results.length === 0) {
           return {

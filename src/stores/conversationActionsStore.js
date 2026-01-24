@@ -192,10 +192,15 @@ export const sendUserMessage = async (text, hidden = false) => {
     const finalMessage = finalizeStreaming();
 
     if (finalMessage) {
+      const hasError = Boolean(finalMessage.error);
+      const content = hasError
+        ? `${finalMessage.content ? `${finalMessage.content}\n\n` : ''}⚠️ ${finalMessage.error}`
+        : finalMessage.content;
+
       // Add to active conversation
       addMessageToActive({
         role: 'assistant',
-        content: finalMessage.content,
+        content,
         toolCalls: finalMessage.toolCalls
       });
 
@@ -245,12 +250,21 @@ export const sendUserMessage = async (text, hidden = false) => {
 
     // Handle real errors
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    setStreamingError(`Error: ${errorMessage}`);
-    
-    // Clear error and cancel streaming after 3 seconds
-    setTimeout(() => {
-      cancelStreaming();
-    }, 3000);
+    const formattedError = `Error: ${errorMessage}`;
+    setStreamingError(formattedError);
+
+    const finalMessage = finalizeStreaming();
+    const content = finalMessage?.content
+      ? `${finalMessage.content}\n\n⚠️ ${formattedError}`
+      : `⚠️ ${formattedError}`;
+
+    addMessageToActive({
+      role: 'assistant',
+      content,
+      toolCalls: finalMessage?.toolCalls
+    });
+
+    incrementMessageCount(activeConversation.id);
   }
 };
 

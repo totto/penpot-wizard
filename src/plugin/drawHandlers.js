@@ -2,7 +2,8 @@ import { pathCommandsToSvgString, curateShapeOutput } from './utils';
 import { PenpotShapeType } from '../types/types';
 
 function setParamsToShape(shape, params) {
-  const { x, y, parentId, width, height, flex, grid, layoutChild, layoutCell, ...rest } = params;
+  console.log('setParamsToShape', shape, params);
+  const { x, y, parentX, parentY, parentId, width, height, flex, grid, layoutChild, layoutCell, ...rest } = params;
 
   if (flex) {
     const flexLayout = shape.addFlexLayout();
@@ -45,34 +46,40 @@ function setParamsToShape(shape, params) {
 
   if (parentId) {
     const parent = penpot.currentPage?.getShapeById(parentId);
-    if (parent && parent.type === PenpotShapeType.BOARD) {
+    if (parent) {
       parent.appendChild(shape);
-
-      if (layoutChild) {  
-        Object.keys(layoutChild).forEach((key) => {
-          if (layoutChild[key] && shape.layoutChild[key] !== 'auto') {
-            shape.layoutChild[key] = layoutChild[key];
-          }
-        });
-      }
-
-      if (layoutCell && parent.grid) {
-        parent.grid.appendChild(shape, layoutCell.row, layoutCell.column);
-        Object.keys(layoutCell).forEach((key) => {
-          if (layoutCell[key] !== undefined) {
-            shape.layoutCell[key] = layoutCell[key];
-          }
-        });
-      }
     }
+  }
 
+  if (layoutChild) {
+    const parent = shape.parent;
+    if (parent && parent.flex) {
+      parent.flex.appendChild(shape);
+      Object.keys(layoutChild).forEach((key) => {
+        if (layoutChild[key] !== undefined) {
+          shape.layoutChild[key] = layoutChild[key];
+        }
+      });
+    }
+  }
+
+  if (layoutCell) {
+    const parent = shape.parent;
+    if (parent && parent.grid) {
+      parent.grid.appendChild(shape, layoutCell.row, layoutCell.column);
+      Object.keys(layoutCell).forEach((key) => {
+        if (layoutCell[key] !== undefined) {
+          shape.layoutCell[key] = layoutCell[key];
+        }
+      });
+    }
   }
   
-  if (x !== undefined) {
-    shape.x = x;
+  if (parentX !== undefined) {
+    shape.parentX = parentX;
   }
-  if (y !== undefined) {
-    shape.y = y;
+  if (parentY !== undefined) {
+    shape.parentY = parentY;
   }
 }
 
@@ -241,6 +248,50 @@ export function handleModifyShape(payload) {
       params.content = pathCommandsToSvgString(params.content);
     }
 
+    Object.keys(params).forEach((key) => {
+      if (params[key] === null) {
+        if (key === 'grid' && shape.grid?.remove) {
+          shape.grid.remove();
+        } else if (key === 'flex' && shape.flex?.remove) {
+          shape.flex.remove();
+        } else if (key === 'fills') {
+          shape.fills = [];
+        } else {
+          delete shape[key];
+        }
+        delete params[key];
+      }
+      else if (key === 'grid' && shape.grid) {
+        const { rows, columns, ...gridProps } = params.grid;
+        Object.keys(gridProps).forEach((gridKey) => {
+          if (gridProps[gridKey] !== undefined) {
+            shape.grid[gridKey] = gridProps[gridKey];
+          }
+        });
+        if (Array.isArray(rows)) {
+          rows.forEach((row, index) => {
+            shape.grid.rows[index].type = row.type;
+            shape.grid.rows[index].value = row.value;
+          });
+        }
+        if (Array.isArray(columns)) {
+          columns.forEach((column, index) => {
+            shape.grid.columns[index].type = column.type;
+            shape.grid.columns[index].value = column.value;
+          });
+        }
+        delete params.grid;
+      }
+      else if (key === 'flex' && shape.flex) {
+        Object.keys(params.flex).forEach((flexKey) => {
+          if (params.flex[flexKey] !== undefined) {
+            shape.flex[flexKey] = params.flex[flexKey];
+          }
+        });
+        delete params.flex;
+      }
+    });
+
     setParamsToShape(shape, params);
 
     return {
@@ -255,6 +306,253 @@ export function handleModifyShape(payload) {
     return {
       success: false,
       message: `error modifying shape ${shapeId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+export function handleModifyTextRange(payload) {
+  const { shapeId, start, end, props } = payload;
+
+  try {
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+    if (!shape) {
+      throw new Error(`Shape with ID ${shapeId} not found`);
+    }
+    if (shape.type !== PenpotShapeType.TEXT) {
+      throw new Error(`Shape with ID ${shapeId} is not a text shape`);
+    }
+
+    const characters = typeof shape.characters === 'string' ? shape.characters : '';
+    const textLength = characters.length;
+
+    if (start > end) {
+      throw new Error('Invalid range: start must be less than or equal to end');
+    }
+    if (start < 0 || end < 0 || end > textLength) {
+      throw new Error(`Invalid range: must be within 0 and ${textLength}`);
+    }
+
+    const range = shape.getRange(start, end);
+    if (!range) {
+      throw new Error('Failed to get text range');
+    }
+
+    const rangeProps = props || {};
+    Object.keys(rangeProps).forEach((key) => {
+      const value = rangeProps[key];
+      if (value === null) {
+        delete range[key];
+      } else if (value !== undefined) {
+        range[key] = value;
+      }
+    });
+
+    return {
+      success: true,
+      message: 'Text range modified successfully',
+      payload: {
+        shape: curateShapeOutput(shape),
+      },
+    };
+  } catch (error) {
+    console.error('error modifying text range:', error);
+    return {
+      success: false,
+      message: `error modifying text range ${shapeId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+export function handleRotateShape(payload) {
+  const { shapeId, angle, center } = payload;
+
+  try {
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+    if (!shape) {
+      throw new Error(`Shape with ID ${shapeId} not found`);
+    }
+
+    if (center === undefined) {
+      shape.rotate(angle);
+    } else {
+      shape.rotate(angle, center);
+    }
+
+    return {
+      success: true,
+      message: 'Shape rotated successfully',
+      payload: {
+        shape: curateShapeOutput(shape),
+      },
+    };
+  } catch (error) {
+    console.error('error rotating shape:', error);
+    return {
+      success: false,
+      message: `error rotating shape ${shapeId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+export function handleCloneShape(payload) {
+  const { shapeId, ...params } = payload;
+
+  try {
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+    if (!shape) {
+      throw new Error(`Shape with ID ${shapeId} not found`);
+    }
+
+    const clonedShape = shape.clone();
+    if (!clonedShape) {
+      throw new Error(`Failed to clone shape ${shapeId}`);
+    }
+
+    if (params && Object.keys(params).length > 0) {
+      setParamsToShape(clonedShape, params);
+    }
+
+    return {
+      success: true,
+      message: 'Shape cloned successfully',
+      payload: {
+        shape: curateShapeOutput(clonedShape),
+      },
+    };
+  } catch (error) {
+    console.error('error cloning shape:', error);
+    return {
+      success: false,
+      message: `error cloning shape ${shapeId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+export function handleBringToFrontShape(payload) {
+  const { shapeId } = payload;
+
+  try {
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+    if (!shape) {
+      throw new Error(`Shape with ID ${shapeId} not found`);
+    }
+
+    shape.bringToFront();
+
+    return {
+      success: true,
+      message: 'Shape brought to front successfully',
+      payload: {
+        shape: curateShapeOutput(shape),
+      },
+    };
+  } catch (error) {
+    console.error('error bringing shape to front:', error);
+    return {
+      success: false,
+      message: `error bringing shape to front ${shapeId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+export function handleBringForwardShape(payload) {
+  const { shapeId } = payload;
+
+  try {
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+    if (!shape) {
+      throw new Error(`Shape with ID ${shapeId} not found`);
+    }
+
+    shape.bringForward();
+
+    return {
+      success: true,
+      message: 'Shape brought forward successfully',
+      payload: {
+        shape: curateShapeOutput(shape),
+      },
+    };
+  } catch (error) {
+    console.error('error bringing shape forward:', error);
+    return {
+      success: false,
+      message: `error bringing shape forward ${shapeId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+export function handleSendToBackShape(payload) {
+  const { shapeId } = payload;
+
+  try {
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+    if (!shape) {
+      throw new Error(`Shape with ID ${shapeId} not found`);
+    }
+
+    shape.sendToBack();
+
+    return {
+      success: true,
+      message: 'Shape sent to back successfully',
+      payload: {
+        shape: curateShapeOutput(shape),
+      },
+    };
+  } catch (error) {
+    console.error('error sending shape to back:', error);
+    return {
+      success: false,
+      message: `error sending shape to back ${shapeId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+export function handleSendBackwardShape(payload) {
+  const { shapeId } = payload;
+
+  try {
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+    if (!shape) {
+      throw new Error(`Shape with ID ${shapeId} not found`);
+    }
+
+    shape.sendBackward();
+
+    return {
+      success: true,
+      message: 'Shape sent backward successfully',
+      payload: {
+        shape: curateShapeOutput(shape),
+      },
+    };
+  } catch (error) {
+    console.error('error sending shape backward:', error);
+    return {
+      success: false,
+      message: `error sending shape backward ${shapeId}: ${error}`,
       payload: {
         error: error instanceof Error ? error.message : String(error),
       },

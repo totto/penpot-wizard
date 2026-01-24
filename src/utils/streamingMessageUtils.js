@@ -53,7 +53,10 @@ export class StreamHandler {
           
           // Remove from pending since it completed successfully
           this.pendingToolCalls.delete(chunk.toolCallId);
-        } else if (chunk.type === 'error') {
+        } else if (chunk.type === 'tool-error') {
+          console.error('Tool error:', chunk);
+        }
+        else if (chunk.type === 'error') {
           console.error('Error during stream:', chunk);
           
           // Check if this error is associated with a specific tool call

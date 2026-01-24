@@ -44,9 +44,25 @@ export const functionTools = [
     `,
     inputSchema: z.object({}),
     function: async () => {
-      console.log('getCurrentPage');
       const response = await sendMessageToPlugin(ClientQueryType.GET_CURRENT_PAGE, undefined);
       
+      return response;
+    },
+  },
+  {
+    id: "get-selected-shapes",
+    name: "getSelectedShapes",
+    description: `
+      Use this tool to get the currently selected shapes on Penpot (if any).
+      Returns an array of selected shape IDs (empty when nothing is selected).
+      
+      IMPORTANT: Use this tool when you need to:
+      - Modify or delete the user's current selection(s)
+      - Inspect selection IDs without scanning the entire page
+    `,
+    inputSchema: z.object({}),
+    function: async () => {
+      const response = await sendMessageToPlugin(ClientQueryType.GET_SELECTED_SHAPES, undefined);
       return response;
     },
   },

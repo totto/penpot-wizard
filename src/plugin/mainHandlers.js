@@ -113,6 +113,24 @@ export function getCurrentPage() {
   };
 }
 
+export function getSelectedShapes() {
+  const selection = penpot.selection || penpot.currentPage?.selection || [];
+  const selectedShapes = Array.isArray(selection) ? selection : [];
+  const selectedShapeIds = selectedShapes
+    .map((shape) => shape?.id)
+    .filter(Boolean);
+
+  return {
+    success: true,
+    message: selectedShapeIds.length
+      ? 'Selected shapes successfully retrieved'
+      : 'No selected shapes found',
+    payload: {
+      selectedShapeIds,
+    },
+  };
+}
+
 export async function handleAddImage(payload) {
   const { name, data, mimeType } = payload;
 

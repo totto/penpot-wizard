@@ -140,8 +140,8 @@ function SettingsForm() {
                 required
               />
               <small className={styles.helpText}>
-                Required for embeddings and image generation (optional for text
-                models)
+                Required for embeddings and OpenAI image generation (optional
+                for text models)
               </small>
               {openaiError && (
                 <div className={styles.errorMessage}>
@@ -170,8 +170,8 @@ function SettingsForm() {
                 autoComplete="off"
               />
               <small className={styles.helpText}>
-                Optional - enables access to additional text models via
-                OpenRouter (text generation only, no embeddings or images)
+                Optional - enables access to additional text and image models
+                via OpenRouter (no embeddings)
               </small>
               {openrouterError && (
                 <div className={styles.errorMessage}>
@@ -364,18 +364,31 @@ function SettingsForm() {
                 value={selectedImageModel}
                 onChange={handleImageModelChange}
                 className={styles.select}
-                disabled={!isValidatedOpenai}
+                disabled={
+                  (!isValidatedOpenai && !isValidatedOpenrouter) ||
+                  isLoadingModels
+                }
               >
-                {availableImageModels.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.name}
-                  </option>
-                ))}
+                {isLoadingModels ? (
+                  <option value="">Loading models...</option>
+                ) : (
+                  availableImageModels.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.provider}: {model.name}
+                    </option>
+                  ))
+                )}
               </select>
               <small className={styles.helpText}>
-                {!isValidatedOpenai
-                  ? "OpenAI API key required for image generation (OpenRouter does not provide image models)"
-                  : "OpenAI image generation models for creating visual content"}
+                {isLoadingModels
+                  ? "Fetching available models..."
+                  : !isValidatedOpenai && !isValidatedOpenrouter
+                  ? 'Add at least one API key and click "Check API Keys" to see available models'
+                  : availableImageModels.length === 0
+                  ? 'Click "Check API Keys" to fetch available models'
+                  : `${availableImageModels.length} model${
+                      availableImageModels.length !== 1 ? "s" : ""
+                    } available`}
               </small>
               <small className={styles.helpText}>
                 <strong>Used for:</strong> Creating design assets, visual

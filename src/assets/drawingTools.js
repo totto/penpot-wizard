@@ -1,73 +1,10 @@
-import { drawShape, sendMessageToPlugin, modifyShape, deleteShape, createShapesArray } from '@/utils/pluginUtils';
+import { drawShape, sendMessageToPlugin, createShapesArray } from '@/utils/pluginUtils';
 import { ToolResponse } from '@/types/types';
 import { PenpotShapeType, ClientQueryType } from '@/types/types';
-import { baseShapeProperties, pathShapeProperties, textShapeProperties, createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, modifyShapePropertiesSchema } from '@/types/shapeTypes';
+import { createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
 import { z } from 'zod';
 
 export const drawingTools = [
-  {
-    id: "rectangle-maker",
-    name: "RectangleMakerTool",
-    description: `
-      Use this tool to draw a rectangle.
-      Use parentId to place the rectangle inside a specific board.
-      ⚠️ IMPORTANT: If this rectangle is a background, draw it AFTER foreground elements (text, icons).
-    `,
-    inputSchema: baseShapeProperties,
-    function: async (shapeProperties) => {
-      const response = await drawShape(PenpotShapeType.RECTANGLE, shapeProperties);
-      return response;
-    },
-  },   {
-    id: 'ellipse-maker',
-    name: 'EllipseMakerTool',
-    description: `
-      Use this tool to draw an ellipse.
-      Use parentId to place the ellipse inside a specific board.
-      ⚠️ IMPORTANT: If this ellipse is a background, draw it AFTER foreground elements.
-    `,
-    inputSchema: baseShapeProperties,
-    function: async (shapeProperties) => {
-      const response = await drawShape(PenpotShapeType.ELLIPSE, shapeProperties);
-      return response;
-    },
-  },   {
-    id: 'path-maker',
-    name: 'PathMakerTool',
-    description: `
-      Use this tool to draw a path. You can draw complex shapes like stars, polygons, curves, etc. using the path tool.
-      Define the path with the content property, defining an array of path commands.
-      Use parentId to place the path inside a specific board.
-      
-      🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
-      - If this path is decorative/foreground: draw it FIRST
-      - If this path is background/container: draw it LAST (after all foreground elements)
-    `,
-    inputSchema: pathShapeProperties,
-    function: async (shapeProperties) => {
-      const response = await drawShape(PenpotShapeType.PATH, shapeProperties);
-      return response;
-    },
-  },   {
-    id: 'text-maker',
-    name: 'TextMakerTool',
-    description: `
-      Use this tool to draw a text element.
-      
-      REQUIRED STEP: Use design-styles-rag to decide fonts, colors, and other design tokens before creating text.
-      
-      Use parentId to place the text inside a specific board.
-      
-      🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
-      Text should typically be drawn FIRST or EARLY in the drawing sequence (before background shapes).
-      Text elements usually go on top of other elements.
-    `,
-    inputSchema: textShapeProperties,
-    function: async (shapeProperties) => {
-      const response = await drawShape(PenpotShapeType.TEXT, shapeProperties);
-      return response;
-    },
-  },
   {
     id: 'create-shapes',
     name: 'CreateShapesTool',
@@ -159,15 +96,9 @@ export const drawingTools = [
     `,
     inputSchema: createComponentSchema,
     function: async (input) => {
-      console.log('createComponent -> input.shapes:', input.shapes);
       try {
-        // Create all shapes first
         const createdShapes = await createShapesArray(input.shapes, { throwOnError: true });
-        console.log('createComponent -> createdShapes:', createdShapes);
-        // Extract shape IDs for component creation
         const shapeIds = createdShapes.map(shape => shape.id);
-        console.log('createComponent -> shapeIds:', shapeIds);
-        // Extract component properties (all properties except shapes)
         const { shapes: _, ...componentProperties } = input;
         
         // Create component from the shapes
@@ -353,21 +284,123 @@ export const drawingTools = [
     id: 'modify-shape',
     name: 'ModifyShapeTool',
     description: `
-      Use this tool to modify one or multiple properties of an existing shape.
-      You can modify properties like position (x, y), size (width, height), colors, fills, strokes, shadows, opacity, blend mode, border radius, and more.
-      
-      For text shapes, you can also modify text-specific properties like characters, fontFamily, fontSize, fontWeight, fontStyle, lineHeight, letterSpacing, textTransform, textDecoration, direction, align, and verticalAlign.
-      
-      For path shapes, you can also modify the path content.
+      Use this tool to modify or removeone or multiple properties of an existing shape.
       
       IMPORTANT: You must provide the shapeId of the shape you want to modify. You can get shape IDs by using GET_CURRENT_PAGE to see all shapes on the current page.
       
       Only provide the properties you want to modify. All properties are optional except shapeId.
+      if you provide a property with null value, the actual value of the property will be removed.
     `,
     inputSchema: modifyShapePropertiesSchema,
     function: async (input) => {
       const { shapeId, ...params } = input;
-      const response = await modifyShape(shapeId, params);
+      const response = await sendMessageToPlugin(ClientQueryType.MODIFY_SHAPE, {
+        shapeId,
+        params,
+      });
+      return response;
+    },
+  },
+  {
+    id: 'modify-text-range',
+    name: 'ModifyTextRangeTool',
+    description: `
+      Use this tool to modify text styling for a specific range inside an existing text shape.
+      You must provide the text shapeId, and the start/end indices for the range.
+      
+      The range is defined using getRange(start, end) on the text shape.
+      Provide only the text properties you want to modify in props.
+    `,
+    inputSchema: modifyTextRangeSchema,
+    function: async (input) => {
+      const response = await sendMessageToPlugin(ClientQueryType.MODIFY_TEXT_RANGE, input);
+      return response;
+    },
+  },
+  {
+    id: 'rotate-shape',
+    name: 'RotateShapeTool',
+    description: `
+      Use this tool to rotate an existing shape.
+      You must provide the shapeId of the shape you want to rotate.
+      You can get shape IDs by using GET_CURRENT_PAGE or GET_SELECTED_SHAPES.
+      
+      Provide an angle in degrees. Optionally provide a center point to rotate around;
+      omit center or pass null to rotate around the shape's own center.
+    `,
+    inputSchema: rotateShapeSchema,
+    function: async (input) => {
+      const response = await sendMessageToPlugin(ClientQueryType.ROTATE_SHAPE, input);
+      return response;
+    },
+  },
+  {
+    id: 'clone-shape',
+    name: 'CloneShapeTool',
+    description: `
+      Use this tool to clone an existing shape.
+      You must provide the shapeId of the shape you want to clone.
+      You can get shape IDs by using GET_CURRENT_PAGE or GET_SELECTED_SHAPES.
+    `,
+    inputSchema: cloneShapeSchema,
+    function: async (input) => {
+      const response = await sendMessageToPlugin(ClientQueryType.CLONE_SHAPE, input);
+      return response;
+    },
+  },
+  {
+    id: 'bring-to-front-shape',
+    name: 'BringToFrontShapeTool',
+    description: `
+      Use this tool to bring a shape to the front (top of the stacking order).
+      You must provide the shapeId of the shape you want to move.
+      You can get shape IDs by using GET_CURRENT_PAGE or GET_SELECTED_SHAPES.
+    `,
+    inputSchema: reorderShapeSchema,
+    function: async (input) => {
+      const response = await sendMessageToPlugin(ClientQueryType.BRING_TO_FRONT_SHAPE, input);
+      return response;
+    },
+  },
+  {
+    id: 'bring-forward-shape',
+    name: 'BringForwardShapeTool',
+    description: `
+      Use this tool to bring a shape one step forward in the stacking order.
+      You must provide the shapeId of the shape you want to move.
+      You can get shape IDs by using GET_CURRENT_PAGE or GET_SELECTED_SHAPES.
+    `,
+    inputSchema: reorderShapeSchema,
+    function: async (input) => {
+      const response = await sendMessageToPlugin(ClientQueryType.BRING_FORWARD_SHAPE, input);
+      return response;
+    },
+  },
+  {
+    id: 'send-to-back-shape',
+    name: 'SendToBackShapeTool',
+    description: `
+      Use this tool to send a shape to the back (bottom of the stacking order).
+      You must provide the shapeId of the shape you want to move.
+      You can get shape IDs by using GET_CURRENT_PAGE or GET_SELECTED_SHAPES.
+    `,
+    inputSchema: reorderShapeSchema,
+    function: async (input) => {
+      const response = await sendMessageToPlugin(ClientQueryType.SEND_TO_BACK_SHAPE, input);
+      return response;
+    },
+  },
+  {
+    id: 'send-backward-shape',
+    name: 'SendBackwardShapeTool',
+    description: `
+      Use this tool to send a shape one step backward in the stacking order.
+      You must provide the shapeId of the shape you want to move.
+      You can get shape IDs by using GET_CURRENT_PAGE or GET_SELECTED_SHAPES.
+    `,
+    inputSchema: reorderShapeSchema,
+    function: async (input) => {
+      const response = await sendMessageToPlugin(ClientQueryType.SEND_BACKWARD_SHAPE, input);
       return response;
     },
   },
@@ -385,9 +418,8 @@ export const drawingTools = [
       shapeId: z.string().describe('The ID of the shape to delete'),
     }),
     function: async (input) => {
-      const response = await deleteShape(input.shapeId);
+      const response = await sendMessageToPlugin(ClientQueryType.DELETE_SHAPE, input);
       return response;
     },
   },
 ];
-

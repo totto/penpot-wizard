@@ -3,6 +3,7 @@ export const ragTools = [
     id: "penpot-user-guide-rag",
     name: "PenpotUserGuideRagTool",
     ragContentFile: 'penpotRagToolContents.zip',
+    embeds: 'openai',
     description: `
       Use this tool to search the Penpot user guide and documentation. This tool can find specific information about Penpot features, components, and usage instructions.
 
@@ -91,6 +92,7 @@ export const ragTools = [
     id: "design-styles-rag",
     name: "DesignStylesRagTool",
     ragContentFile: 'designRagToolContents.zip',
+    embeds: 'orama',
     description: `
       Use this tool to decide and justify visual styles for design tasks. It searches a curated styles library with definitions, palettes, rules, and fonts. Use it to pick a style direction, compare alternatives, or extract concrete guidance (colors, typography, composition).
 

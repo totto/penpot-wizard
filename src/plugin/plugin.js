@@ -4,8 +4,28 @@ import {
   MessageSourceName,
 } from '../types/types';
 
-import { handleDrawShape, handleCreateComponent, handleCreateGroup, handleModifyShape, handleDeleteShape } from './drawHandlers';
-import { handleGetProjectData, handleGetUserData, handleAddImage, getCurrentPage } from './mainHandlers';
+import {
+  handleDrawShape,
+  handleCreateComponent,
+  handleCreateGroup,
+  handleModifyShape,
+  handleModifyTextRange,
+  handleRotateShape,
+  handleCloneShape,
+  handleDeleteShape,
+  handleBringToFrontShape,
+  handleBringForwardShape,
+  handleSendToBackShape,
+  handleSendBackwardShape,
+} from './drawHandlers';
+
+import {
+  handleGetProjectData,
+  handleGetUserData,
+  handleAddImage,
+  getCurrentPage,
+  getSelectedShapes,
+} from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
@@ -68,8 +88,36 @@ penpot.ui.onMessage(async (message) => {
       responseMessage = handleModifyShape(payload);
       break;
 
+    case ClientQueryType.MODIFY_TEXT_RANGE:
+      responseMessage = handleModifyTextRange(payload);
+      break;
+
+    case ClientQueryType.ROTATE_SHAPE:
+      responseMessage = handleRotateShape(payload);
+      break;
+
+    case ClientQueryType.CLONE_SHAPE:
+      responseMessage = handleCloneShape(payload);
+      break;
+
     case ClientQueryType.DELETE_SHAPE:
       responseMessage = handleDeleteShape(payload);
+      break;
+
+    case ClientQueryType.BRING_TO_FRONT_SHAPE:
+      responseMessage = handleBringToFrontShape(payload);
+      break;
+
+    case ClientQueryType.BRING_FORWARD_SHAPE:
+      responseMessage = handleBringForwardShape(payload);
+      break;
+
+    case ClientQueryType.SEND_TO_BACK_SHAPE:
+      responseMessage = handleSendToBackShape(payload);
+      break;
+
+    case ClientQueryType.SEND_BACKWARD_SHAPE:
+      responseMessage = handleSendBackwardShape(payload);
       break;
 
     case ClientQueryType.GET_USER_DATA:
@@ -81,9 +129,11 @@ penpot.ui.onMessage(async (message) => {
       break;
 
     case ClientQueryType.GET_CURRENT_PAGE:
-      console.log('<PLUGIN>getCurrentPage');
       responseMessage = getCurrentPage();
-      console.log('<PLUGIN>getCurrentPage response', responseMessage);
+      break;
+
+    case ClientQueryType.GET_SELECTED_SHAPES:
+      responseMessage = getSelectedShapes();
       break;
 
     default:

@@ -94,10 +94,21 @@ function getStateDisplay(state) {
 function ToolCallDetails({ toolCall, isNested = false }) {
   const [isExpanded, setIsExpanded] = useState(false)
   
-  const stateDisplay = getStateDisplay(toolCall.state)
-  const formattedInput = formatData(toolCall.input)
   // Filter output to only show success, payload, and error fields
   const filteredOutput = filterOutputFields(toolCall.output)
+  const isOutputFailure =
+    typeof filteredOutput === 'object' &&
+    filteredOutput !== null &&
+    filteredOutput.success === false
+  const effectiveState =
+    toolCall.state === 'success' && isOutputFailure ? 'error' : toolCall.state
+  const outputError =
+    typeof filteredOutput === 'object' && filteredOutput !== null
+      ? filteredOutput.error || filteredOutput.payload?.error || filteredOutput.payload?.message
+      : null
+
+  const stateDisplay = getStateDisplay(effectiveState)
+  const formattedInput = formatData(toolCall.input)
   const formattedOutput = formatData(filteredOutput)
   const hasNestedToolCalls = toolCall.toolCalls && toolCall.toolCalls.length > 0
   
@@ -130,7 +141,7 @@ function ToolCallDetails({ toolCall, isNested = false }) {
           )}
           
           {/* Output Section */}
-          {toolCall.state === 'success' && formattedOutput && (
+          {effectiveState !== 'started' && formattedOutput && (
             <div className={styles.toolCallSection}>
               <div className={styles.toolCallSectionTitle}>Output</div>
               <div className={styles.toolCallData}>{formattedOutput}</div>
@@ -138,11 +149,11 @@ function ToolCallDetails({ toolCall, isNested = false }) {
           )}
           
           {/* Error Section */}
-          {toolCall.state === 'error' && toolCall.error && (
+          {effectiveState === 'error' && (toolCall.error || outputError) && (
             <div className={styles.toolCallSection}>
               <div className={styles.toolCallSectionTitle}>Error</div>
               <div className={styles.toolCallData} style={{ color: '#ff6b6b' }}>
-                {toolCall.error}
+                {toolCall.error || outputError}
               </div>
             </div>
           )}
@@ -164,7 +175,7 @@ function ToolCallDetails({ toolCall, isNested = false }) {
           )}
           
           {/* Empty state when tool is still running */}
-          {toolCall.state === 'started' && !hasNestedToolCalls && (
+          {effectiveState === 'started' && !hasNestedToolCalls && (
             <div className={styles.toolCallEmpty}>
               Tool is running...
             </div>
