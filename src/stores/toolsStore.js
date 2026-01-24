@@ -43,7 +43,17 @@ const initializeFunctionTool = async (toolDef) => {
 };
 
 const initializeRagTool = async (toolDef) => {
-  const dbInstance = await initializeDataBase(toolDef.ragContentFile, toolDef.embeds);
+  let dbInstance = null;
+  let dbError = null;
+  const dbPromise = initializeDataBase(toolDef.ragContentFile, toolDef.embeds)
+    .then((db) => {
+      dbInstance = db;
+      return db;
+    })
+    .catch((error) => {
+      dbError = error;
+      throw error;
+    });
 
   const toolInstance = tool({
     id: toolDef.id,
@@ -54,6 +64,10 @@ const initializeRagTool = async (toolDef) => {
     }),
     execute: async ({ query }) => {
       try {
+        if (!dbInstance) {
+          dbInstance = await dbPromise;
+        }
+
         const results = await searchDataBase(query, 10, dbInstance, toolDef.embeds);
         
         return {
@@ -69,7 +83,9 @@ const initializeRagTool = async (toolDef) => {
         return {
           ...ToolResponse,
           success: false,
-          message: 'Sorry, I encountered an error while searching the database. Please try again.',
+          message: dbError
+            ? 'The knowledge base is still loading or failed to load. Please try again.'
+            : 'Sorry, I encountered an error while searching the database. Please try again.',
           payload: {
             error: error instanceof Error ? error.message : 'Unknown error',
             query,
@@ -82,6 +98,7 @@ const initializeRagTool = async (toolDef) => {
   return {
     ...toolDef,
     dbInstance,
+    dbPromise,
     instance: toolInstance,
     type: 'rag'
   };

@@ -2,35 +2,6 @@ import { restore } from '@orama/plugin-data-persistence';
 import { search } from '@orama/orama';
 import { pluginEmbeddings } from '@orama/plugin-embeddings';
 import '@tensorflow/tfjs-backend-webgl';
-import { $openaiApiKey, $selectedEmbeddingModel } from '@/stores/settingsStore';
-import OpenAI from 'openai';
-
-// Configuración de embeddings
-const VEC_DIM = 1536;
-
-/**
- * Genera embeddings para una consulta usando OpenAI
- */
-async function getEmbedding(text) {
-  const input = text.replace(/\s+/g, ' ').trim();
-  if (!input) return new Array(VEC_DIM).fill(0);
-  
-  try {
-    const openai = new OpenAI({ apiKey: $openaiApiKey.get(), dangerouslyAllowBrowser: true });
-    const response = await openai.embeddings.create({
-      model: $selectedEmbeddingModel.get(),
-      encoding_format: "float",
-      input
-    });
-    
-    const embedding = response.data[0].embedding;
-    if (!embedding) throw new Error('No embedding returned');
-    return embedding;
-  } catch (error) {
-    console.error('Error generating embedding:', error);
-    throw new Error('Failed to generate embedding for query');
-  }
-}
 
 /**
  * Descomprime datos gzip
@@ -72,7 +43,7 @@ async function decompressGzip(compressedData) {
 /**
  * Inicializa la base de datos Orama desde el archivo ZIP comprimido
  */
-export async function initializeDataBase(dbFile, embeds = 'openai') {
+export async function initializeDataBase(dbFile, _embeds = 'orama') {
   try {    
     const response = await fetch(`/${dbFile}`);
 
@@ -86,25 +57,23 @@ export async function initializeDataBase(dbFile, embeds = 'openai') {
     
     const dbInstance = await restore('binary', persistData);
     
-    if (embeds === 'orama') {
-      const embeddingsPlugin = await pluginEmbeddings({
-        embeddings: {
-          defaultProperty: 'embedding',
-          onInsert: {
-            generate: false,
-            properties: ['text'],
-            verbose: false,
-          }
+    const embeddingsPlugin = await pluginEmbeddings({
+      embeddings: {
+        defaultProperty: 'embedding',
+        onInsert: {
+          generate: false,
+          properties: ['text'],
+          verbose: false,
         }
-      });
+      }
+    });
 
-      // Wrap hooks so Orama always awaits them (some builds strip AsyncFunction)
-      if (typeof embeddingsPlugin.beforeSearch === 'function') {
-        dbInstance.beforeSearch.push(async (...args) => embeddingsPlugin.beforeSearch(...args));
-      }
-      if (typeof embeddingsPlugin.beforeInsert === 'function') {
-        dbInstance.beforeInsert.push(async (...args) => embeddingsPlugin.beforeInsert(...args));
-      }
+    // Wrap hooks so Orama always awaits them (some builds strip AsyncFunction)
+    if (typeof embeddingsPlugin.beforeSearch === 'function') {
+      dbInstance.beforeSearch.push(async (...args) => embeddingsPlugin.beforeSearch(...args));
+    }
+    if (typeof embeddingsPlugin.beforeInsert === 'function') {
+      dbInstance.beforeInsert.push(async (...args) => embeddingsPlugin.beforeInsert(...args));
     }
     
     console.log('🔍 Database initialized successfully', dbFile);
@@ -118,7 +87,7 @@ export async function initializeDataBase(dbFile, embeds = 'openai') {
 /**
  * Realiza una búsqueda vectorial en la base de datos
  */
-export async function searchDataBase(query, limit = 10, dbInstance, embeds = 'openai') {
+export async function searchDataBase(query, limit = 10, dbInstance, _embeds = 'orama') {
   try {
     if (!dbInstance) {
       throw new Error('Database instance not initialized');
@@ -126,28 +95,12 @@ export async function searchDataBase(query, limit = 10, dbInstance, embeds = 'op
     
     let results;
 
-    if (embeds === 'orama') {
-      results = await search(dbInstance, {
-        mode: 'hybrid',
-        term: query,
-        limit,
-        similarity: 0.85
-      });
-    } else {
-      // Generar embedding para la consulta
-      const queryEmbedding = await getEmbedding(query);
-      
-      // Realizar búsqueda vectorial
-      results = await search(dbInstance, {
-        mode: 'vector',
-        vector: {
-          value: queryEmbedding,
-          property: 'embedding'
-        },
-        term: query,
-        limit
-      });
-    }
+    results = await search(dbInstance, {
+      mode: 'hybrid',
+      term: query,
+      limit,
+      similarity: 0.85
+    });
 
     return results.hits.map(hit => ({
       id: hit.document.id,

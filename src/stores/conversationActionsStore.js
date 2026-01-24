@@ -26,7 +26,6 @@ import {
 import {
   startStreaming,
   finalizeStreaming,
-  cancelStreaming,
   isStreaming,
   setPendingAction,
   clearPendingAction,
