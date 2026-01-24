@@ -54,11 +54,6 @@ function Header() {
   }
 
   const handleDeleteConversation = (conversationId) => {
-    const confirmed = window.confirm('¿Eliminar esta conversación? Esta acción no se puede deshacer.')
-    if (!confirmed) {
-      return
-    }
-
     if (isStreaming()) {
       setPendingAction({
         type: 'delete_conversation',

@@ -1,5 +1,7 @@
 import { restore } from '@orama/plugin-data-persistence';
 import { search } from '@orama/orama';
+import { pluginEmbeddings } from '@orama/plugin-embeddings';
+import '@tensorflow/tfjs-backend-webgl';
 import { $openaiApiKey, $selectedEmbeddingModel } from '@/stores/settingsStore';
 import OpenAI from 'openai';
 
@@ -72,54 +74,41 @@ async function decompressGzip(compressedData) {
  */
 export async function initializeDataBase(dbFile, embeds = 'openai') {
   try {    
-    // Cargar el archivo ZIP comprimido desde la carpeta public
     const response = await fetch(`/${dbFile}`);
+
     if (!response.ok) {
       throw new Error(`Failed to load embeddings file: ${response.status}`);
     }
     
     const compressedData = await response.arrayBuffer();
-    
-    // Descomprimir los datos
     const decompressedData = await decompressGzip(compressedData);
     const persistData = JSON.parse(decompressedData);
     
-    // Restaurar la base de datos Orama
     const dbInstance = await restore('binary', persistData);
     
     if (embeds === 'orama') {
-      const [{ pluginEmbeddings }] = await Promise.all([
-        import('@orama/plugin-embeddings'),
-        import('@tensorflow/tfjs-backend-webgl')
-      ]);
-
       const embeddingsPlugin = await pluginEmbeddings({
         embeddings: {
           defaultProperty: 'embedding',
           onInsert: {
             generate: false,
-            properties: ['searchableText'],
+            properties: ['text'],
             verbose: false,
           }
         }
       });
 
-      // Wrap hooks to ensure Orama awaits them (compiled functions are not AsyncFunction)
+      // Wrap hooks so Orama always awaits them (some builds strip AsyncFunction)
       if (typeof embeddingsPlugin.beforeSearch === 'function') {
-        const originalBeforeSearch = embeddingsPlugin.beforeSearch;
-        embeddingsPlugin.beforeSearch = async (...args) => originalBeforeSearch(...args);
+        dbInstance.beforeSearch.push(async (...args) => embeddingsPlugin.beforeSearch(...args));
       }
       if (typeof embeddingsPlugin.beforeInsert === 'function') {
-        const originalBeforeInsert = embeddingsPlugin.beforeInsert;
-        embeddingsPlugin.beforeInsert = async (...args) => originalBeforeInsert(...args);
+        dbInstance.beforeInsert.push(async (...args) => embeddingsPlugin.beforeInsert(...args));
       }
-
-      dbInstance.beforeSearch.push(embeddingsPlugin.beforeSearch);
-      dbInstance.beforeInsert.push(embeddingsPlugin.beforeInsert);
     }
     
+    console.log('🔍 Database initialized successfully', dbFile);
     return dbInstance;
-    
   } catch (error) {
     console.error('❌ Error initializing database:', error);
     throw new Error(`Failed to initialize database from ${dbFile}`);
@@ -162,15 +151,9 @@ export async function searchDataBase(query, limit = 10, dbInstance, embeds = 'op
 
     return results.hits.map(hit => ({
       id: hit.document.id,
-      heading: hit.document.heading,
-      summary: hit.document.summary,
       text: hit.document.text,
       url: hit.document.url,
-      sourcePath: hit.document.sourcePath,
-      breadcrumbs: JSON.parse(hit.document.breadcrumbs || '[]'),
       score: hit.score,
-      hasCode: hit.document.hasCode,
-      codeLangs: JSON.parse(hit.document.codeLangs || '[]')
     }));
     
   } catch (error) {

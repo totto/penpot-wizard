@@ -186,7 +186,7 @@ function getBaseShapeProperties(
     ),
     flex: flexLayoutSchema.optional().nullable().describe(customDesc?.flex || `Flex layout configuration applied to the ${type}`),
     grid: gridLayoutSchema.optional().nullable().describe(customDesc?.grid || `Grid layout configuration applied to the ${type}`),
-    zIndex: z.number().min(0).describe(customDesc?.zIndex || `The z-index of the ${type}, used to control stacking order.`),
+    zIndex: z.number().min(0).optional().describe(customDesc?.zIndex || `The z-index of the ${type}, used to control stacking order.`),
   };
 }
 
@@ -217,13 +217,13 @@ export const textShapeSchema = z.object({
   fontSize: z.number().optional().describe('The font size of the text'),
   fontWeight: z.number().optional().describe('The font weight of the text'),
   fontStyle: z.enum(['normal', 'italic']).optional().describe('The font style of the text'),
-  lineHeight: z.number().min(0).max(10).default(1).describe('The separation between lines of text'),
+  lineHeight: z.number().min(0).max(10).default(1).optional().describe('The separation between lines of text'),
   letterSpacing: z.number().optional().describe('The letter spacing of the text'),
   textTransform: z.enum(['uppercase', 'lowercase', 'capitalize']).optional().describe('The text transform of the text'),
   textDecoration: z.enum(['underline', 'line-through']).optional().describe('The text decoration of the text'),
   direction: z.enum(['ltr', 'rtl']).optional().describe('The direction of the text'),
-  align: z.enum(['left', 'center', 'right']).default('left').describe('The align of the text'),
-  verticalAlign: z.enum(['center']).default('center').describe('The vertical align of the text'),
+  align: z.enum(['left', 'center', 'right']).default('left').optional().describe('The align of the text'),
+  verticalAlign: z.enum(['center']).default('center').optional().describe('The vertical align of the text'),
 });
 
 export const textRangePropertiesSchema = textShapeSchema
@@ -252,16 +252,6 @@ const textShapeWithTypeSchema = textShapeProperties.extend({
   type: z.literal('text').describe('The type of shape: text'),
 });
 
-const groupShapeWithTypeSchema = z.object(getBaseShapeProperties('group')).extend({
-  type: z.literal('group').describe('The type of shape: group'),
-  groupId: z.string().describe('The id of the main group shape, Important: the group should be created before add it to the shapes array'),
-});
-
-const componentShapeWithTypeSchema = z.object(getBaseShapeProperties('component')).extend({
-  type: z.literal('component').describe('The type of shape: component'),
-  componentId: z.string().describe('The id of the component in the library, Important: the component should be created before add it to the shapes array'),
-});
-
 export const createShapesSchema = z.object({
   shapes: z.array(
     z.discriminatedUnion('type', [
@@ -269,8 +259,6 @@ export const createShapesSchema = z.object({
       ellipseShapeSchema,
       pathShapeWithTypeSchema,
       textShapeWithTypeSchema,
-      groupShapeWithTypeSchema,
-      componentShapeWithTypeSchema,
     ])
   ).describe('Array of shapes to create. Important: use zIndex to control stacking order. Text and foreground elements should have a higher zIndex than backgrounds. Create group and component shapes before adding them to the shapes array.'),
 });

@@ -43,7 +43,6 @@ const initializeFunctionTool = async (toolDef) => {
 };
 
 const initializeRagTool = async (toolDef) => {
-  // Initialize the database instance
   const dbInstance = await initializeDataBase(toolDef.ragContentFile, toolDef.embeds);
 
   const toolInstance = tool({
@@ -57,28 +56,15 @@ const initializeRagTool = async (toolDef) => {
       try {
         const results = await searchDataBase(query, 10, dbInstance, toolDef.embeds);
         
-        if (results.length === 0) {
-          return {
-            ...ToolResponse,
-            success: true,
-            message: 'No relevant information found in the database for your query.',
-            payload: {
-              results: [],
-              query,
-            },
-          };
-        }
-
         return {
           ...ToolResponse,
           success: true,
-          message: `Found ${results.length} relevant sections in the database.`,
+          message: `Found ${results.length || 'no'} relevant sections in the database.`,
           payload: {
-            results,
+            results : results || [],
             query,
           },
         };
-        
       } catch (error) {
         return {
           ...ToolResponse,

@@ -88,6 +88,7 @@
   padding: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .conversationCard:hover {
@@ -118,5 +119,31 @@
   font-size: 11px;
   color: var(--foreground-secondary);
   opacity: 0.8;
+}
+
+.deleteConversationButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: none;
+  background: transparent;
+  color: var(--foreground-secondary);
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.deleteConversationButton:hover {
+  color: var(--accent-primary);
+  background-color: var(--background-quaternary);
+}
+
+.deleteConversationIcon {
+  width: 16px;
+  height: 16px;
 }
 

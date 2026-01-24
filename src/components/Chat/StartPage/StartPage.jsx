@@ -1,10 +1,13 @@
 import { useStore } from '@nanostores/react'
+import { TrashIcon } from '@heroicons/react/24/outline'
 import { 
   tryCreateNewConversation,
-  trySetActiveConversation
+  trySetActiveConversation,
+  deleteConversation
 } from '@/stores/conversationActionsStore'
 import { $activeDirectorAgent } from '@/stores/directorAgentsStore'
 import { $conversationsMetadata } from '@/stores/conversationsMetadataStore'
+import { isStreaming, setPendingAction } from '@/stores/streamingMessageStore'
 import styles from './StartPage.module.css'
 
 /**
@@ -28,6 +31,18 @@ function StartPage() {
   
   const handleLoadConversation = (conversationId) => {
     trySetActiveConversation(conversationId)
+  }
+
+  const handleDeleteConversation = (conversationId) => {
+    if (isStreaming()) {
+      setPendingAction({
+        type: 'delete_conversation',
+        data: { conversationId }
+      })
+      return
+    }
+
+    deleteConversation(conversationId)
   }
 
   return (
@@ -58,6 +73,17 @@ function StartPage() {
                   className={styles.conversationCard}
                   onClick={() => handleLoadConversation(conversation.id)}
                 >
+                  <button
+                    className={styles.deleteConversationButton}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      handleDeleteConversation(conversation.id)
+                    }}
+                    title="Delete conversation"
+                    aria-label="Delete conversation"
+                  >
+                    <TrashIcon className={styles.deleteConversationIcon} />
+                  </button>
                   <div className={styles.conversationSummary}>
                     {conversation.summary || 'New conversation'}
                   </div>

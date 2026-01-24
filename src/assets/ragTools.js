@@ -3,7 +3,7 @@ export const ragTools = [
     id: "penpot-user-guide-rag",
     name: "PenpotUserGuideRagTool",
     ragContentFile: 'penpotRagToolContents.zip',
-    embeds: 'openai',
+    embeds: 'orama',
     description: `
       Use this tool to search the Penpot user guide and documentation. This tool can find specific information about Penpot features, components, and usage instructions.
 

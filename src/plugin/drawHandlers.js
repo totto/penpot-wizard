@@ -2,7 +2,6 @@ import { pathCommandsToSvgString, curateShapeOutput } from './utils';
 import { PenpotShapeType } from '../types/types';
 
 function setParamsToShape(shape, params) {
-  console.log('setParamsToShape', shape, params);
   const { x, y, parentX, parentY, parentId, width, height, flex, grid, layoutChild, layoutCell, ...rest } = params;
 
   if (flex) {

@@ -27,7 +27,6 @@ export const drawingTools = [
       try {
         const createdShapes = await createShapesArray(input.shapes, { throwOnError: false });
         
-        // Check if any shapes failed to create
         const failedShapes = createdShapes.filter(shape => !shape.response?.success);
         const successCount = createdShapes.length - failedShapes.length;
         
@@ -101,17 +100,13 @@ export const drawingTools = [
         const shapeIds = createdShapes.map(shape => shape.id);
         const { shapes: _, ...componentProperties } = input;
         
-        // Create component from the shapes
         const componentResponse = await sendMessageToPlugin(ClientQueryType.CREATE_COMPONENT, {
           shapes: shapeIds,
           ...componentProperties,
         });
         
-        // Return the response directly - it's already formatted
         return componentResponse;
       } catch (error) {
-        // If error comes from createShapesArray, it might be a formatted response
-        // Otherwise, format a new error response
         if (error.response && error.response.source) {
           return error.response;
         }
@@ -152,26 +147,17 @@ export const drawingTools = [
     inputSchema: createGroupSchema,
     function: async (input) => {
       try {
-        // Create all shapes first
         const createdShapes = await createShapesArray(input.shapes, { throwOnError: true });
-        
-        // Extract shape IDs for group creation
         const shapeIds = createdShapes.map(shape => shape.id);
-        
-        // Extract group properties (all properties except shapes)
         const { shapes, ...groupProperties } = input;
         
-        // Create group from the shapes
         const groupResponse = await sendMessageToPlugin(ClientQueryType.CREATE_GROUP, {
           shapes: shapeIds,
           ...groupProperties,
         });
         
-        // Return the response directly - it's already formatted
         return groupResponse;
       } catch (error) {
-        // If error comes from createShapesArray, it might be a formatted response
-        // Otherwise, format a new error response
         if (error.response && error.response.source) {
           return error.response;
         }
@@ -204,19 +190,16 @@ export const drawingTools = [
     `,
     inputSchema: createBoardSchema,
     function: async (input) => {
-      console.log('createBoard -> input:', input);
-      // Create the board first
       const { shapes, ...boardProperties } = input;
       const boardResponse = await drawShape(PenpotShapeType.BOARD, { ...boardProperties });
-      console.log('createBoard -> boardResponse:', boardResponse);
-      // If board creation failed, return the error response directly
+
       if (!boardResponse.success) {
         return boardResponse;
       }
       
       const boardId = boardResponse.payload?.shape?.id;
+      
       if (!boardId) {
-        // Create error response for missing board ID
         return {
           ...ToolResponse,
           success: false,
@@ -232,13 +215,11 @@ export const drawingTools = [
       }
       
       try {
-        // Create all shapes inside the board
         const createdShapes = await createShapesArray(input.shapes, { 
           parentId: boardId, 
           throwOnError: true 
         });
 
-        // Create a combined response with board and shapes info
         return {
           ...ToolResponse,
           success: true,
@@ -247,22 +228,21 @@ export const drawingTools = [
             board: {
               id: boardId,
               name: input.name || 'Board',
-              response: boardResponse, // Already curated by drawShape
+              response: boardResponse,
             },
             shapes: createdShapes.map(shape => ({
               name: shape.name,
               type: shape.type,
               id: shape.id,
-              response: shape.response, // Already curated by createShapesArray -> drawShape
+              response: shape.response,
             })),
           },
         };
       } catch (error) {
-        // If error comes from createShapesArray, it might be a formatted response
-        // Otherwise, format a new error response
         if (error.response && error.response.source) {
           return error.response;
         }
+
         return {
           ...ToolResponse,
           success: false,
