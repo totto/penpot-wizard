@@ -1,5 +1,5 @@
 {
-  "docsPath": "../orama-persistence-generator/stylesRAG",
+  "docsPath": "../MATERIAL/stylesRAGv2",
   "docsPattern": "**/*.md",
   "outputDir": "./public",
   "outputFilename": "designRagToolContents.zip",

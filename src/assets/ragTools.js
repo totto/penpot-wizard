@@ -125,6 +125,11 @@ export const ragTools = [
       8) Systems / Experience / Personalization:
          - Multi‑Device UX / Fluid Continuity
          - AI‑Driven Design / Extreme Personalization
+      9) Classic / Timeless / Modernist:
+         - Swiss Style (International Typographic Style)
+         - Bauhaus
+         - Art Deco
+         - Classic Minimalism
 
       QUERY CONSTRUCTION RULES:
       - Always include the style family or exact style name
