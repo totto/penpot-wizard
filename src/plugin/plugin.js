@@ -23,6 +23,7 @@ import {
   handleGetProjectData,
   handleGetUserData,
   handleAddImage,
+  handleCreateShapeFromSvg,
   getCurrentPage,
   getSelectedShapes,
 } from './mainHandlers';
@@ -74,6 +75,10 @@ penpot.ui.onMessage(async (message) => {
 
     case ClientQueryType.ADD_IMAGE:
       responseMessage = await handleAddImage(payload);
+      break;
+
+    case ClientQueryType.CREATE_SHAPE_FROM_SVG:
+      responseMessage = handleCreateShapeFromSvg(payload);
       break;
 
     case ClientQueryType.CREATE_COMPONENT:

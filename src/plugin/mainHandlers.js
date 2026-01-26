@@ -131,6 +131,71 @@ export function getSelectedShapes() {
   };
 }
 
+function applyBasicShapeParams(shape, params = {}) {
+  const { name, x, y, parentX, parentY, width, height, parentId } = params;
+
+  if (parentId) {
+    const parent = penpot.currentPage?.getShapeById(parentId);
+    if (parent) {
+      parent.appendChild(shape);
+    }
+  }
+
+  if (name) {
+    shape.name = name;
+  }
+
+  if (width && height) {
+    shape.resize(width, height);
+  }
+
+  if (x !== undefined) {
+    shape.x = x;
+  }
+  if (y !== undefined) {
+    shape.y = y;
+  }
+  if (parentX !== undefined) {
+    shape.parentX = parentX;
+  }
+  if (parentY !== undefined) {
+    shape.parentY = parentY;
+  }
+}
+
+export function handleCreateShapeFromSvg(payload) {
+  const { svgString, params } = payload || {};
+
+  try {
+    if (!svgString || typeof svgString !== 'string') {
+      throw new Error('svgString is required');
+    }
+
+    const group = penpot.createShapeFromSvg(svgString);
+    if (!group) {
+      throw new Error('Failed to create shape from SVG');
+    }
+
+    applyBasicShapeParams(group, params);
+
+    return {
+      success: true,
+      message: 'SVG shape created successfully',
+      payload: {
+        shape: curateShapeOutput(group),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `error creating svg shape: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
 export async function handleAddImage(payload) {
   const { name, data, mimeType } = payload;
 

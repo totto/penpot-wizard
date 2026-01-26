@@ -1,0 +1,396 @@
+{
+  "version": 3,
+  "generatedAt": "2026-01-24",
+  "notes": [
+    "Catalog includes only fully free icon libraries (permissive licenses).",
+    "SVG files are not stored locally; only icon names are stored.",
+    "URL patterns are provided for runtime SVG download.",
+    "Icon names are assumed to be kebab-case unless otherwise noted."
+  ],
+  "libraries": [
+    {
+      "id": "heroicons",
+      "name": "Heroicons",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/tailwindlabs/heroicons/blob/master/LICENSE",
+      "homepage": "https://heroicons.com/",
+      "repoUrl": "https://github.com/tailwindlabs/heroicons",
+      "isFree": true,
+      "attributionRequired": false,
+      "styles": [
+        {
+          "id": "outline-24",
+          "label": "Outline 24px",
+          "urlPattern": "https://raw.githubusercontent.com/tailwindlabs/heroicons/master/optimized/24/outline/{name}.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "solid-24",
+          "label": "Solid 24px",
+          "urlPattern": "https://raw.githubusercontent.com/tailwindlabs/heroicons/master/optimized/24/solid/{name}.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "solid-20",
+          "label": "Solid 20px (mini)",
+          "urlPattern": "https://raw.githubusercontent.com/tailwindlabs/heroicons/master/optimized/20/solid/{name}.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "solid-16",
+          "label": "Solid 16px (micro)",
+          "urlPattern": "https://raw.githubusercontent.com/tailwindlabs/heroicons/master/optimized/16/solid/{name}.svg",
+          "status": "unverified"
+        }
+      ],
+      "iconListStrategy": {
+        "type": "github-api-dir",
+        "repo": "tailwindlabs/heroicons",
+        "paths": [
+          "optimized/24/outline",
+          "optimized/24/solid",
+          "optimized/20/solid",
+          "optimized/16/solid"
+        ]
+      }
+    },
+    {
+      "id": "lucide",
+      "name": "Lucide",
+      "license": "ISC",
+      "licenseUrl": "https://github.com/lucide-icons/lucide/blob/main/LICENSE",
+      "homepage": "https://lucide.dev/",
+      "repoUrl": "https://github.com/lucide-icons/lucide",
+      "isFree": true,
+      "attributionRequired": false,
+      "styles": [
+        {
+          "id": "outline",
+          "label": "Outline",
+          "urlPattern": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/{name}.svg",
+          "status": "unverified"
+        }
+      ],
+      "iconListStrategy": {
+        "type": "github-api-dir",
+        "repo": "lucide-icons/lucide",
+        "paths": [
+          "icons"
+        ]
+      }
+    },
+    {
+      "id": "tabler",
+      "name": "Tabler Icons",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/tabler/tabler-icons/blob/main/LICENSE",
+      "homepage": "https://tabler-icons.io/",
+      "repoUrl": "https://github.com/tabler/tabler-icons",
+      "isFree": true,
+      "attributionRequired": false,
+      "styles": [
+        {
+          "id": "outline",
+          "label": "Outline",
+          "urlPattern": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/{name}.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "filled",
+          "label": "Filled",
+          "urlPattern": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/filled/{name}.svg",
+          "status": "unverified"
+        }
+      ],
+      "iconListStrategy": {
+        "type": "github-api-dir",
+        "repo": "tabler/tabler-icons",
+        "paths": [
+          "icons/outline"
+        ]
+      }
+    },
+    {
+      "id": "phosphor",
+      "name": "Phosphor Icons",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/phosphor-icons/core/blob/main/LICENSE",
+      "homepage": "https://phosphoricons.com/",
+      "repoUrl": "https://github.com/phosphor-icons/core",
+      "isFree": true,
+      "attributionRequired": false,
+      "styles": [
+        {
+          "id": "thin",
+          "label": "Thin",
+          "urlPattern": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/thin/{name}-thin.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "light",
+          "label": "Light",
+          "urlPattern": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/light/{name}-light.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "regular",
+          "label": "Regular",
+          "urlPattern": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/{name}-regular.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "bold",
+          "label": "Bold",
+          "urlPattern": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/{name}-bold.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "fill",
+          "label": "Fill",
+          "urlPattern": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/fill/{name}-fill.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "duotone",
+          "label": "Duotone",
+          "urlPattern": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/duotone/{name}-duotone.svg",
+          "status": "unverified"
+        }
+      ],
+      "iconListStrategy": {
+        "type": "github-api-dir",
+        "repo": "phosphor-icons/core",
+        "paths": [
+          "assets/regular"
+        ],
+        "namePattern": "{base}-{weight}.svg",
+        "notes": "Icon names are shared across weights."
+      }
+    },
+    {
+      "id": "iconoir",
+      "name": "Iconoir",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/iconoir-icons/iconoir/blob/main/LICENSE",
+      "homepage": "https://iconoir.com/",
+      "repoUrl": "https://github.com/iconoir-icons/iconoir",
+      "isFree": true,
+      "attributionRequired": false,
+      "styles": [
+        {
+          "id": "regular",
+          "label": "Regular",
+          "urlPattern": "https://raw.githubusercontent.com/iconoir-icons/iconoir/main/icons/regular/{name}.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "solid",
+          "label": "Solid",
+          "urlPattern": "https://raw.githubusercontent.com/iconoir-icons/iconoir/main/icons/solid/{name}.svg",
+          "status": "unverified"
+        }
+      ],
+      "iconListStrategy": {
+        "type": "github-api-dir",
+        "repo": "iconoir-icons/iconoir",
+        "paths": [
+          "icons/regular",
+          "icons/solid"
+        ]
+      }
+    },
+    {
+      "id": "ionicons",
+      "name": "Ionicons",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/ionic-team/ionicons/blob/main/LICENSE",
+      "homepage": "https://ionicons.com/",
+      "repoUrl": "https://github.com/ionic-team/ionicons",
+      "isFree": true,
+      "attributionRequired": false,
+      "styles": [
+        {
+          "id": "filled",
+          "label": "Filled (default)",
+          "urlPattern": "https://raw.githubusercontent.com/ionic-team/ionicons/main/src/svg/{name}.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "outline",
+          "label": "Outline (suffix -outline)",
+          "urlPattern": "https://raw.githubusercontent.com/ionic-team/ionicons/main/src/svg/{name}-outline.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "sharp",
+          "label": "Sharp (suffix -sharp)",
+          "urlPattern": "https://raw.githubusercontent.com/ionic-team/ionicons/main/src/svg/{name}-sharp.svg",
+          "status": "unverified"
+        }
+      ],
+      "iconListStrategy": {
+        "type": "github-api-dir",
+        "repo": "ionic-team/ionicons",
+        "paths": [
+          "src/svg"
+        ],
+        "notes": "Icon names may include style suffixes."
+      }
+    },
+    {
+      "id": "mingcute",
+      "name": "MingCute",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/Richard9394/MingCute/blob/main/LICENSE",
+      "homepage": "https://www.mingcute.com/",
+      "repoUrl": "https://github.com/Richard9394/MingCute",
+      "isFree": true,
+      "attributionRequired": false,
+      "styles": [
+        {
+          "id": "line",
+          "label": "Line",
+          "urlPattern": "https://raw.githubusercontent.com/Richard9394/MingCute/main/svg/{category}/{name}_line.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "fill",
+          "label": "Fill",
+          "urlPattern": "https://raw.githubusercontent.com/Richard9394/MingCute/main/svg/{category}/{name}_fill.svg",
+          "status": "unverified"
+        }
+      ],
+      "iconListStrategy": {
+        "type": "github-api-tree",
+        "repo": "Richard9394/MingCute",
+        "root": "svg",
+        "namePattern": "{category}/{name}",
+        "suffixes": [
+          "_line",
+          "_fill"
+        ]
+      }
+    },
+    {
+      "id": "flowbite",
+      "name": "Flowbite Icons",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/themesberg/flowbite-icons/blob/main/LICENSE",
+      "homepage": "https://flowbite.com/icons/",
+      "repoUrl": "https://github.com/themesberg/flowbite-icons",
+      "isFree": true,
+      "attributionRequired": false,
+      "styles": [
+        {
+          "id": "outline",
+          "label": "Outline",
+          "urlPattern": "https://raw.githubusercontent.com/themesberg/flowbite-icons/main/src/outline/{name}.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "solid",
+          "label": "Solid",
+          "urlPattern": "https://raw.githubusercontent.com/themesberg/flowbite-icons/main/src/solid/{name}.svg",
+          "status": "unverified"
+        }
+      ],
+      "iconListStrategy": {
+        "type": "github-api-dir",
+        "repo": "themesberg/flowbite-icons",
+        "paths": [
+          "src/outline",
+          "src/solid"
+        ]
+      }
+    },
+    {
+      "id": "boxicons",
+      "name": "Boxicons",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://docs.boxicons.com/license/free",
+      "homepage": "https://boxicons.com/",
+      "repoUrl": "https://github.com/box-icons/boxicons",
+      "isFree": true,
+      "attributionRequired": true,
+      "styles": [
+        {
+          "id": "regular",
+          "label": "Regular",
+          "urlPattern": "https://raw.githubusercontent.com/box-icons/boxicons/master/svg/regular/{name}.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "solid",
+          "label": "Solid",
+          "urlPattern": "https://raw.githubusercontent.com/box-icons/boxicons/master/svg/solid/{name}.svg",
+          "status": "unverified"
+        },
+        {
+          "id": "logos",
+          "label": "Logos",
+          "urlPattern": "https://raw.githubusercontent.com/box-icons/boxicons/master/svg/logos/{name}.svg",
+          "status": "unverified"
+        }
+      ],
+      "iconListStrategy": {
+        "type": "github-api-dir",
+        "repo": "box-icons/boxicons",
+        "paths": [
+          "svg/regular",
+          "svg/solid",
+          "svg/logos"
+        ]
+      }
+    },
+    {
+      "id": "lineicons",
+      "name": "Lineicons",
+      "license": "MIT",
+      "licenseUrl": "https://lineicons.com/license",
+      "homepage": "https://lineicons.com/free-icons",
+      "repoUrl": "https://github.com/LineiconsHQ/Lineicons",
+      "isFree": true,
+      "attributionRequired": false,
+      "styles": [
+        {
+          "id": "regular",
+          "label": "Regular",
+          "urlPattern": "https://raw.githubusercontent.com/LineiconsHQ/Lineicons/main/assets/svgs/regular/{name}.svg",
+          "status": "unverified"
+        }
+      ],
+      "iconListStrategy": {
+        "type": "github-api-dir",
+        "repo": "LineiconsHQ/Lineicons",
+        "paths": [
+          "assets/svgs/regular"
+        ]
+      }
+    },
+    {
+      "id": "circum",
+      "name": "Circum Icons",
+      "license": "MPL-2.0",
+      "licenseUrl": "https://github.com/Klarr-Agency/Circum-Icons/blob/main/LICENSE",
+      "homepage": "https://circumicons.com/",
+      "repoUrl": "https://github.com/Klarr-Agency/Circum-Icons",
+      "isFree": true,
+      "attributionRequired": false,
+      "styles": [
+        {
+          "id": "outline",
+          "label": "Outline",
+          "urlPattern": "https://raw.githubusercontent.com/Klarr-Agency/Circum-Icons/main/svg/{name}.svg",
+          "status": "unverified"
+        }
+      ],
+      "iconListStrategy": {
+        "type": "github-api-dir",
+        "repo": "Klarr-Agency/Circum-Icons",
+        "paths": [
+          "svg"
+        ]
+      }
+    }
+  ]
+}

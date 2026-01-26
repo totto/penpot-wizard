@@ -11,17 +11,27 @@
  */
 
 import dotenv from 'dotenv'
-import { fileURLToPath } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
 import path from 'path'
 import { create, insert } from '@orama/orama'
 import { persist } from '@orama/plugin-data-persistence'
 import { pluginEmbeddings } from '@orama/plugin-embeddings'
 import '@tensorflow/tfjs-node'
-import { generateChunks } from './penpot_chunks_generator.js'
+import { generateChunks as generatePenpotChunks } from './penpot_chunks_generator.js'
 
-// Configurar dotenv para cargar desde el directorio correcto
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+async function loadChunkGenerator(chunkGenerator) {
+  if (!chunkGenerator) return generatePenpotChunks
+  const resolvedPath = path.isAbsolute(chunkGenerator)
+    ? chunkGenerator
+    : path.resolve(__dirname, chunkGenerator)
+  const mod = await import(pathToFileURL(resolvedPath).href)
+  return mod.generateChunks || mod.default || mod
+}
+
+// Configurar dotenv para cargar desde el directorio correcto
 dotenv.config({ path: path.join(__dirname, '.env') })
 
 // -----------------------------
@@ -200,7 +210,8 @@ async function runEmbeddingsPipeline(docsRoot, pattern, options) {
   
   // Generate chunks
   console.log('📚 Generating chunks from documentation...')
-  const { chunks } = await generateChunks(docsRoot, pattern, options)
+  const chunker = await loadChunkGenerator(options?.chunkGenerator)
+  const { chunks } = await chunker(docsRoot, pattern, options)
   
   // Add chunks to database
   console.log('💾 Adding chunks to database...')

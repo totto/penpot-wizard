@@ -142,6 +142,29 @@ export const ragTools = [
       ✅ "Ultra‑Clean Industrial for B2B SaaS dashboard, cool gray palette, tight grid, minimalist type, precision"
       ✅ "Apothecary Aesthetic for wellness brand packaging, botanical motifs, serif typography, muted greens, editorial layout"
     `,
+  },
+  {
+    id: "icons-rag",
+    name: "IconsRagTool",
+    ragContentFile: 'iconsRagToolContents.zip',
+    embeds: 'orama',
+    description: `
+      Use this tool to search the icon library catalog by library, style, and tags.
+      It indexes per-library docs with icon names and tags so you can find icons like "close", "delete", or "settings".
+
+      IMPORTANT: All queries to this tool must be in English.
+
+      QUERY CONSTRUCTION RULES:
+      - Always include library name (e.g., heroicons, tabler, lineicons, boxicons, flowbite, circum)
+      - Include style (outline, solid, filled, regular, logos) when relevant
+      - Include 1-3 semantic tags (close, delete, add, search, settings, user, etc.)
+      - Use the format: "[library] + [style] + [tags]"
+
+      QUERY EXAMPLES:
+      ✅ "tabler outline close delete"
+      ✅ "heroicons solid close cancel"
+      ✅ "flowbite outline settings gear"
+    `,
   }
 ];
 

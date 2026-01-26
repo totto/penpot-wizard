@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "rag:generate": "node ragGenerator/run.js",
+    "rag:optimize": "node ragGenerator/optimize/run.js",
     "test": "vitest",
     "test:ui": "vitest --ui"
   },

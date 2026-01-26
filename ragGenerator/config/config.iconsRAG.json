@@ -1,0 +1,25 @@
+{
+  "docsPath": "../MATERIAL/iconsRAG",
+  "docsPattern": "**/*.md",
+  "outputDir": "./public",
+  "outputFilename": "iconsRagToolContents.zip",
+  "baseUrl": null,
+  "testQueries": [
+    {
+      "query": "close icon heroicons outline tags close",
+      "expectedPath": "heroicons.md"
+    },
+    {
+      "query": "trash delete icon tabler outline tags delete",
+      "expectedPath": "tabler.md"
+    },
+    {
+      "query": "calendar lineicons regular tags calendar",
+      "expectedPath": "lineicons.md"
+    },
+    {
+      "query": "settings cog iconoir regular tags settings",
+      "expectedPath": "iconoir.md"
+    }
+  ]
+}

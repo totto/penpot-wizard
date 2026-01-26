@@ -1,6 +1,6 @@
 import { atom } from 'nanostores';
 import { tool } from 'ai';
-import { functionTools, ragTools, drawingTools } from '@/assets/tools';
+import { functionTools, ragTools, drawingTools, iconsTool } from '@/assets/tools';
 import { initializeDataBase, searchDataBase } from '@/utils/ragUtils';
 import { ToolResponse } from '@/types/types';
 import { z } from 'zod';
@@ -12,6 +12,7 @@ export const $toolsData = atom([
   ...functionTools,
   ...ragTools,
   ...drawingTools,
+  ...iconsTool,
 ]);
 
 // Derived functions for getters
@@ -113,7 +114,7 @@ export const initializeTools = async () => {
   try {
     // Initialize function tools
     const initializedFunctionTools = await Promise.all(
-      [...functionTools, ...drawingTools].map(async (toolDef) => {
+      [...functionTools, ...drawingTools, ...iconsTool].map(async (toolDef) => {
         try {
           return await initializeFunctionTool(toolDef);
         } catch (error) {
@@ -139,6 +140,7 @@ export const initializeTools = async () => {
     const allTools = [...initializedFunctionTools, ...initializedRagTools];
     
     $toolsData.set(allTools);
+    console.log('allTools', allTools);
     toolsInitialized = true;
     return true;
   } catch (error) {

@@ -313,4 +313,3 @@ export const cloneShapeSchema = z.object({
 export const reorderShapeSchema = z.object({
   shapeId: z.string().describe('The ID of the shape to reorder'),
 });
-

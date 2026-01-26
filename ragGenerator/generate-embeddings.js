@@ -54,7 +54,8 @@ function normalizeConfig(rawConfig) {
     options: {
       baseUrl: Object.prototype.hasOwnProperty.call(config, 'baseUrl')
         ? config.baseUrl
-        : 'https://example.com/user-guide/'
+        : 'https://example.com/user-guide/',
+      chunkGenerator: config.chunkGenerator || undefined
     }
   }
 }
