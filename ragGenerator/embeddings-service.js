@@ -17,7 +17,7 @@ import { create, insert } from '@orama/orama'
 import { persist } from '@orama/plugin-data-persistence'
 import { pluginEmbeddings } from '@orama/plugin-embeddings'
 import '@tensorflow/tfjs-node'
-import { generateChunks as generatePenpotChunks } from './penpot_chunks_generator.js'
+import { generateChunks as generatePenpotChunks } from './chunks_generator.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
