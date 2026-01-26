@@ -1,7 +1,7 @@
 import { drawShape, sendMessageToPlugin, createShapesArray } from '@/utils/pluginUtils';
 import { ToolResponse } from '@/types/types';
 import { PenpotShapeType, ClientQueryType } from '@/types/types';
-import { createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
+import { createShapesSchema, createComponentSchema, createComponentFromShapesSchema, createGroupSchema, createBoardSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
 import { z } from 'zod';
 
 export const drawingTools = [
@@ -114,6 +114,38 @@ export const drawingTools = [
           ...ToolResponse,
           success: false,
           message: `Failed to create component: ${error.message}`,
+          payload: { error: error.message },
+        };
+      }
+    },
+  },
+  {
+    id: 'convert-to-component',
+    name: 'ConvertToComponentTool',
+    description: `
+      Use this tool to convert existing shapes into a new library component.
+      Provide a list of shape IDs that you want to convert.
+
+      TIP: Use GET_SELECTED_SHAPES to grab the current selection, then pass the IDs here.
+      You can optionally provide a name and component styling properties (fills, strokes, shadows, etc).
+    `,
+    inputSchema: createComponentFromShapesSchema,
+    function: async (input) => {
+      try {
+        const { shapeIds, ...componentProperties } = input;
+        const componentResponse = await sendMessageToPlugin(ClientQueryType.CREATE_COMPONENT, {
+          shapes: shapeIds,
+          ...componentProperties,
+        });
+        return componentResponse;
+      } catch (error) {
+        if (error.response && error.response.source) {
+          return error.response;
+        }
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to create component from shapes: ${error.message}`,
           payload: { error: error.message },
         };
       }

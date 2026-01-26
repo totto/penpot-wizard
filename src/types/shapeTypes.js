@@ -267,6 +267,12 @@ export const createComponentSchema = createShapesSchema.extend(
   z.object(getBaseShapeProperties('component')).shape
 ).describe('Schema for creating a component from shapes, use component properties to define the background fills, strokes, and shadows.');
 
+export const createComponentFromShapesSchema = z.object({
+  shapeIds: z.array(z.string()).min(1).describe('Array of existing shape IDs to convert into a component'),
+}).extend(
+  z.object(getBaseShapeProperties('component')).partial().shape
+).describe('Schema for creating a component from existing shapes.');
+
 export const createGroupSchema = createShapesSchema.extend(
   z.object(getBaseShapeProperties('group'))
     .omit({ flex: true, grid: true })

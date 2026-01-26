@@ -53,6 +53,7 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'icons-rag',
       'create-shapes',
       'create-component',
+      'convert-to-component',
       'create-group',
       'create-board',
       'draw-icon',
