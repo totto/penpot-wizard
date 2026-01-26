@@ -5,7 +5,6 @@ import { getDirectorById, $activeDirectorAgent } from './directorAgentsStore';
 // Metadata store
 import {
   createConversationMetadata,
-  deleteConversationMetadata,
   getMetadataById,
   incrementMessageCount,
   updateSummary,
@@ -40,7 +39,7 @@ import {
 
 // Messages storage utilities
 import {
-  deleteMessagesFromStorage,
+  deleteConversationData,
   saveMessagesToStorage,
   loadMessagesFromStorage
 } from '@/utils/messagesStorageUtils';
@@ -320,13 +319,10 @@ export const generateConversationSummary = async (conversationId) => {
  * @param conversationId - The conversation ID
  */
 export const deleteConversation = (conversationId) => {
-  // 1. Delete messages from storage
-  deleteMessagesFromStorage(conversationId);
+  // 1. Delete messages + metadata
+  deleteConversationData(conversationId);
 
-  // 2. Delete metadata
-  deleteConversationMetadata(conversationId);
-
-  // 3. If deleting active conversation, clear active
+  // 2. If deleting active conversation, clear active
   const activeId = $activeConversationId.get();
   if (activeId === conversationId) {
     clearActiveConversation();
