@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "rag:generate": "node ragGenerator/run.js",
+    "rag:generate:v2": "node ragGenerator/run-v2.js",
     "rag:optimize": "node ragGenerator/optimize/run.js",
     "test": "vitest",
     "test:ui": "vitest --ui"
@@ -41,10 +42,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@openrouter/sdk": "^0.4.0",
+    "@tensorflow/tfjs-node": "^4.15.0",
     "@types/react": "^19.2.9",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.2",
-    "@tensorflow/tfjs-node": "^4.15.0",
     "@vitest/ui": "^4.0.18",
     "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.3.1",
