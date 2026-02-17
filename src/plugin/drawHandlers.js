@@ -1,8 +1,88 @@
-import { pathCommandsToSvgString, curateShapeOutput } from './utils';
+import { pathCommandsToSvgString, curateShapeOutput, convertToBoard } from './utils';
 import { PenpotShapeType } from '../types/types';
 
 function setParamsToShape(shape, params) {
-  const { x, y, parentX, parentY, parentId, width, height, flex, grid, layoutChild, layoutCell, ...rest } = params;
+  const { x, y, parentX, parentY, parentId, zIndex, width, height, layoutChild, layoutCell, ...rest } = params;
+
+  if (width && height) {
+    shape.resize(width, height);
+  }
+
+  Object.keys(rest).forEach((key) => {
+    const value = rest[key];
+    if (value === 'auto') {
+      shape[key] = null;
+    }
+    else if (value !== undefined) {
+      shape[key] = value;
+    }
+    else {
+      delete shape[key];
+    }
+  });
+
+  let parentShape = null;
+  if (parentId) {
+    parentShape = penpot.currentPage?.getShapeById(parentId);
+  }
+  if (!parentShape) {
+    parentShape = penpot.currentPage?.root || null;
+  }
+  if (parentShape) {
+    const insertIndex = typeof zIndex === 'number'
+      ? zIndex
+      : (parentShape.children?.length ?? 0);
+    if (typeof parentShape.insertChild === 'function') {
+      parentShape.insertChild(insertIndex, shape);
+    } else if (typeof parentShape.appendChild === 'function') {
+      parentShape.appendChild(shape);
+    }
+  }
+
+  if (layoutCell) {
+    const parent = shape.parent;
+    if (parent && parent.grid) {
+      parent.grid.appendChild(shape, layoutCell.row, layoutCell.column);
+      Object.keys(layoutCell).forEach((key) => {
+        if (layoutCell[key] !== undefined) {
+          shape.layoutCell[key] = layoutCell[key];
+        }
+      });
+
+    }
+  }
+  
+  if (layoutChild) {
+    const parent = shape.parent;
+    if (parent && shape.layoutChild) {
+      if (parent.flex) {
+        parent.flex.appendChild(shape);
+      }
+      if (layoutChild.zIndex !== undefined) {
+        shape.setParentIndex(layoutChild.zIndex);
+      }
+      Object.keys(layoutChild).forEach((key) => {
+        if (layoutChild[key] === 'auto') {
+          shape.layoutChild[key] = null;
+        }
+        else if (layoutChild[key] && key !== 'zIndex') {
+          shape.layoutChild[key] = layoutChild[key];
+        }
+      });
+    }
+  }
+
+  if (parentX !== undefined) {
+    shape.parentX = parentX;
+  }
+  if (parentY !== undefined) {
+    shape.parentY = parentY;
+  }
+}
+
+function setParamsToBoard(board, params) {
+  const { flex, grid, horizontalSizing, verticalSizing, ...rest } = params;
+  let shape = board;
 
   if (flex) {
     const flexLayout = shape.addFlexLayout();
@@ -31,55 +111,72 @@ function setParamsToShape(shape, params) {
     }
   }
 
-  // Assign fills directly if provided (fills come already properly defined)
-  if (width && height) {
-    shape.resize(width, height);
+  shape.horizontalSizing = horizontalSizing || 'auto';
+  shape.verticalSizing = verticalSizing || 'auto';
+
+  setParamsToShape(shape, rest);
+}
+
+function applyModifyParamsToShape(shape, params = {}) {
+  if (!params || typeof params !== 'object') {
+    return shape;
   }
 
-  Object.keys(rest).forEach((key) => {
-    const value = rest[key];
-    if (value !== undefined && key !== 'zIndex') {
-      shape[key] = value;
+  // Handle path content modification (convert path commands to SVG string)
+  if (params.content && shape.type === PenpotShapeType.PATH) {
+    params.content = pathCommandsToSvgString(params.content);
+  }
+
+  Object.keys(params).forEach((key) => {
+    if (params[key] === null) {
+      if (key === 'grid' && shape.grid?.remove) {
+        shape.grid.remove();
+      } else if (key === 'flex' && shape.flex?.remove) {
+        shape.flex.remove();
+      } else if (key === 'fills') {
+        shape.fills = [];
+      } else {
+        delete shape[key];
+      }
+      delete params[key];
+    }
+
+    else if (key === 'grid' && shape.grid) {
+      const { rows, columns, ...gridProps } = params.grid;
+      Object.keys(gridProps).forEach((gridKey) => {
+        if (gridProps[gridKey] !== undefined) {
+          shape.grid[gridKey] = gridProps[gridKey];
+        }
+      });
+      if (Array.isArray(rows)) {
+        rows.forEach((row, index) => {
+          shape.grid.setRow(index, row.type, row.value);
+        });
+      }
+      if (Array.isArray(columns)) {
+        columns.forEach((column, index) => {
+          shape.grid.setColumn(index, column.type, column.value);
+        });
+      }
+      delete params.grid;
+    }
+
+    else if (key === 'flex' && shape.flex) {
+      Object.keys(params.flex).forEach((flexKey) => {
+        if (params.flex[flexKey] !== undefined) {
+          shape.flex[flexKey] = params.flex[flexKey];
+        }
+      });
+      delete params.flex;
     }
   });
 
-  if (parentId) {
-    const parent = penpot.currentPage?.getShapeById(parentId);
-    if (parent) {
-      parent.appendChild(shape);
-    }
+  if (shape.type === PenpotShapeType.BOARD) {
+    setParamsToBoard(shape, params);
+    return shape;
   }
-
-  if (layoutChild) {
-    const parent = shape.parent;
-    if (parent && parent.flex) {
-      parent.flex.appendChild(shape);
-      Object.keys(layoutChild).forEach((key) => {
-        if (layoutChild[key] !== undefined) {
-          shape.layoutChild[key] = layoutChild[key];
-        }
-      });
-    }
-  }
-
-  if (layoutCell) {
-    const parent = shape.parent;
-    if (parent && parent.grid) {
-      parent.grid.appendChild(shape, layoutCell.row, layoutCell.column);
-      Object.keys(layoutCell).forEach((key) => {
-        if (layoutCell[key] !== undefined) {
-          shape.layoutCell[key] = layoutCell[key];
-        }
-      });
-    }
-  }
-  
-  if (parentX !== undefined) {
-    shape.parentX = parentX;
-  }
-  if (parentY !== undefined) {
-    shape.parentY = parentY;
-  }
+  setParamsToShape(shape, params);
+  return shape;
 }
 
 export function handleDrawShape(payload) {
@@ -154,10 +251,18 @@ export function handleCreateComponent(payload) {
       throw new Error('No shapes provided to create component');
     }
 
-    const component = penpot.library.local.createComponent(shapes.map(shapeId => {
-      const shape = penpot.currentPage?.getShapeById(shapeId);
+    const normalizedShapes = shapes.map((shapeRef) =>
+      typeof shapeRef === 'string' ? { shapeId: shapeRef } : shapeRef
+    );
+    const hasZIndex = normalizedShapes.some((shapeRef) => typeof shapeRef.zIndex === 'number');
+    const orderedShapes = hasZIndex
+      ? normalizedShapes.slice().sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0))
+      : normalizedShapes;
+
+    const component = penpot.library.local.createComponent(orderedShapes.map(shapeRef => {
+      const shape = penpot.currentPage?.getShapeById(shapeRef.shapeId);
       if (!shape) {
-        throw new Error(`Shape with ID ${shapeId} not found`);
+        throw new Error(`Shape with ID ${shapeRef.shapeId} not found`);
       }
       return shape;
     }));
@@ -168,7 +273,7 @@ export function handleCreateComponent(payload) {
 
     component.name = name || component.name;
 
-    setParamsToShape(component.mainInstance(), properties);
+    setParamsToBoard(component.mainInstance(), properties);
 
     return {
       success: true,
@@ -190,23 +295,41 @@ export function handleCreateComponent(payload) {
 }
 
 export function handleCreateGroup(payload) {
-  const { shapes, ...properties } = payload;
+  const { shapeIds, ...properties } = payload || {};
 
   try {
-    if (!shapes || shapes.length === 0) {
-      throw new Error('No shapes provided to create group');
-    }
+    let group;
 
-    const shapeObjects = shapes.map(shapeId => {
-      const shape = penpot.currentPage?.getShapeById(shapeId);
-      if (!shape) {
-        throw new Error(`Shape with ID ${shapeId} not found`);
+    if (Array.isArray(shapeIds) && shapeIds.length > 0) {
+      const shapeRefs = shapeIds.map((shapeRef) =>
+        typeof shapeRef === 'string' ? { shapeId: shapeRef } : shapeRef
+      );
+      const shapesToGroup = shapeRefs.map((shapeRef) => {
+        const shape = penpot.currentPage?.getShapeById(shapeRef.shapeId);
+        if (!shape) {
+          throw new Error(`Shape with ID ${shapeRef.shapeId} not found`);
+        }
+        return shape;
+      });
+      group = penpot.group(shapesToGroup);
+    } else {
+      try {
+        group = penpot.group([]);
+      } catch {
+        group = null;
       }
-      return shape;
-    });
 
-    // Create group using Penpot API
-    const group = penpot.group(shapeObjects);
+      if (!group) {
+        const placeholder = penpot.createRectangle();
+        placeholder.resize(1, 1);
+        const root = penpot.currentPage?.root;
+        if (root && typeof root.appendChild === 'function') {
+          root.appendChild(placeholder);
+        }
+        group = penpot.group([placeholder]);
+        placeholder.remove();
+      }
+    }
 
     if (!group) {
       throw new Error('Failed to create group');
@@ -219,6 +342,13 @@ export function handleCreateGroup(payload) {
       message: 'Group created successfully',
       payload: {
         group: curateShapeOutput(group),
+        shapes: Array.isArray(shapeIds)
+          ? shapeIds.map((shapeRef) => {
+            const shapeId = typeof shapeRef === 'string' ? shapeRef : shapeRef.shapeId;
+            const shape = penpot.currentPage?.getShapeById(shapeId);
+            return shape ? curateShapeOutput(shape) : { id: shapeId };
+          })
+          : undefined,
       },
     };
   } catch (error) {
@@ -233,65 +363,203 @@ export function handleCreateGroup(payload) {
   }
 }
 
+export function handleCreateBoard(payload) {
+  const { shapes, ...properties } = payload;
+
+  try {
+    // Get all shape objects first (optional)
+    const shapeRefs = Array.isArray(shapes)
+      ? shapes.map((shapeRef) =>
+        typeof shapeRef === 'string' ? { shapeId: shapeRef } : shapeRef
+      )
+      : [];
+    const shapeObjects = shapeRefs
+      .map(shapeRef => {
+        const shape = penpot.currentPage?.getShapeById(shapeRef.shapeId);
+        if (!shape) {
+          throw new Error(`Shape with ID ${shapeRef.shapeId} not found`);
+        }
+        return { shape, shapeRef };
+      })
+      ;
+
+    // Create the board
+    let board = penpot.createBoard();
+
+    if (!board) {
+      throw new Error('Failed to create board');
+    }
+
+    // Apply properties to the board
+    setParamsToBoard(board, properties);
+
+    // Move all shapes into the board
+    shapeObjects.forEach(({ shape, shapeRef }) => {
+      const insertIndex = typeof shapeRef.zIndex === 'number'
+        ? shapeRef.zIndex
+        : (board.children?.length ?? 0);
+      if (typeof board.insertChild === 'function') {
+        board.insertChild(insertIndex, shape);
+      } else {
+        board.appendChild(shape);
+      }
+    });
+
+    return {
+      success: true,
+      message: 'Board created successfully',
+      payload: {
+        board: curateShapeOutput(board),
+        shapes: shapeObjects.map(({ shape }) => curateShapeOutput(shape)),
+      },
+    };
+  } catch (error) {
+    console.error('error creating board:', error);
+    return {
+      success: false,
+      message: `error creating board: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+export function handleConvertGroupToBoard(payload) {
+  const { groupId, properties } = payload;
+
+  try {
+    const shape = penpot.currentPage?.getShapeById(groupId);
+    if (!shape) {
+      throw new Error(`Shape with ID ${groupId} not found`);
+    }
+    if (shape.type !== PenpotShapeType.GROUP && shape.type !== PenpotShapeType.BOARD) {
+      throw new Error(`Shape with ID ${groupId} is not a group`);
+    }
+
+    let board = convertToBoard(shape);
+
+    if (properties && Object.keys(properties).length > 0) {
+      setParamsToBoard(board, properties);
+    }
+
+    return {
+      success: true,
+      message: 'Group converted to board successfully',
+      payload: {
+        board: curateShapeOutput(board),
+      },
+    };
+  } catch (error) {
+    console.error('error converting group to board:', error);
+    return {
+      success: false,
+      message: `error converting group to board ${groupId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+export function handleModifyBoard(payload) {
+  const { boardId, properties } = payload;
+
+  try {
+    let board = penpot.currentPage?.getShapeById(boardId);
+    if (!board) {
+      throw new Error(`Board with ID ${boardId} not found`);
+    }
+    if (board.type !== PenpotShapeType.BOARD) {
+      throw new Error(`Shape with ID ${boardId} is not a board`);
+    }
+
+    board = applyModifyParamsToShape(board, properties || {});
+
+    return {
+      success: true,
+      message: 'Board modified successfully',
+      payload: {
+        board: curateShapeOutput(board),
+      },
+    };
+  } catch (error) {
+    console.error('error modifying board:', error);
+    return {
+      success: false,
+      message: `error modifying board ${boardId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+export function handleModifyComponent(payload) {
+  const { componentId, properties } = payload;
+
+  try {
+    const { name, path, ...boardProps } = properties || {};
+    let component = penpot.library?.local?.components?.find((comp) => comp.id === componentId);
+
+    if (!component) {
+      const shape = penpot.currentPage?.getShapeById(componentId);
+      if (!shape) {
+        throw new Error(`Component with ID ${componentId} not found`);
+      }
+      component = shape.component?.();
+    }
+
+    if (!component) {
+      throw new Error(`Component with ID ${componentId} not found`);
+    }
+
+    if (typeof name === 'string') {
+      component.name = name;
+    }
+    if (typeof path === 'string') {
+      component.path = path;
+    }
+
+    const mainInstance = component.mainInstance?.();
+    if (!mainInstance) {
+      throw new Error(`Component with ID ${componentId} does not have a main instance`);
+    }
+
+    if (boardProps && Object.keys(boardProps).length > 0) {
+      applyModifyParamsToShape(mainInstance, boardProps);
+    }
+
+    return {
+      success: true,
+      message: 'Component modified successfully',
+      payload: {
+        component,
+        mainInstance: curateShapeOutput(mainInstance),
+      },
+    };
+  } catch (error) {
+    console.error('error modifying component:', error);
+    return {
+      success: false,
+      message: `error modifying component ${componentId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
 export function handleModifyShape(payload) {
   const { shapeId, params } = payload;
 
   try {
-    const shape = penpot.currentPage?.getShapeById(shapeId);
+    let shape = penpot.currentPage?.getShapeById(shapeId);
     if (!shape) {
       throw new Error(`Shape with ID ${shapeId} not found`);
     }
 
-    // Handle path content modification (convert path commands to SVG string)
-    if (params.content && shape.type === PenpotShapeType.PATH) {
-      params.content = pathCommandsToSvgString(params.content);
-    }
-
-    Object.keys(params).forEach((key) => {
-      if (params[key] === null) {
-        if (key === 'grid' && shape.grid?.remove) {
-          shape.grid.remove();
-        } else if (key === 'flex' && shape.flex?.remove) {
-          shape.flex.remove();
-        } else if (key === 'fills') {
-          shape.fills = [];
-        } else {
-          delete shape[key];
-        }
-        delete params[key];
-      }
-      else if (key === 'grid' && shape.grid) {
-        const { rows, columns, ...gridProps } = params.grid;
-        Object.keys(gridProps).forEach((gridKey) => {
-          if (gridProps[gridKey] !== undefined) {
-            shape.grid[gridKey] = gridProps[gridKey];
-          }
-        });
-        if (Array.isArray(rows)) {
-          rows.forEach((row, index) => {
-            shape.grid.rows[index].type = row.type;
-            shape.grid.rows[index].value = row.value;
-          });
-        }
-        if (Array.isArray(columns)) {
-          columns.forEach((column, index) => {
-            shape.grid.columns[index].type = column.type;
-            shape.grid.columns[index].value = column.value;
-          });
-        }
-        delete params.grid;
-      }
-      else if (key === 'flex' && shape.flex) {
-        Object.keys(params.flex).forEach((flexKey) => {
-          if (params.flex[flexKey] !== undefined) {
-            shape.flex[flexKey] = params.flex[flexKey];
-          }
-        });
-        delete params.flex;
-      }
-    });
-
-    setParamsToShape(shape, params);
+    shape = applyModifyParamsToShape(shape, params);
 
     return {
       success: true,
@@ -411,7 +679,15 @@ export function handleCloneShape(payload) {
       throw new Error(`Shape with ID ${shapeId} not found`);
     }
 
-    const clonedShape = shape.clone();
+    let clonedShape;
+
+    const libraryComponent = shape.component();
+    if (libraryComponent) {
+      clonedShape = libraryComponent.instance();
+    } else {
+      clonedShape = shape.clone();
+    }
+
     if (!clonedShape) {
       throw new Error(`Failed to clone shape ${shapeId}`);
     }
@@ -428,7 +704,6 @@ export function handleCloneShape(payload) {
       },
     };
   } catch (error) {
-    console.error('error cloning shape:', error);
     return {
       success: false,
       message: `error cloning shape ${shapeId}: ${error}`,

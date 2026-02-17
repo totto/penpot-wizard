@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 const blendModes = ['difference','normal','darken','multiply','color-burn','lighten','screen','color-dodge','overlay','soft-light','hard-light','exclusion','hue','saturation','color','luminosity'];
 
-// Schema for Gradient objects
 export const gradientSchema = z.object({
   type: z.enum(['linear', 'radial']).describe('The type of gradient: linear (transitions along a straight line) or radial (transitions radiating outward from a central point)'),
   startX: z.number().min(0).max(1).describe('The X-coordinate of the starting point of the gradient, ranging from 0 to 1'),
@@ -17,7 +16,6 @@ export const gradientSchema = z.object({
   })).min(2).describe('Array of color stops that define the gradient. Must have at least 2 stops.'),
 }).describe('A gradient object defining a linear or radial gradient fill');
 
-// Schema for ImageData objects
 export const imageDataSchema = z.object({
   id: z.string().describe('The unique identifier for the image'),
   width: z.number().describe('The width of the image'),
@@ -27,7 +25,6 @@ export const imageDataSchema = z.object({
   keepAspectRatio: z.boolean().default(true).describe('Whether to keep the aspect ratio of the image when resizing. Defaults to false if omitted.'),
 }).describe('An image data object defining an image fill for a shape');
 
-// Schema for Fill objects - supports fillColor, fillColorGradient, and fillImage
 export const fillSchema = z.object({
   fillColor: z.string().optional().describe('The fill color in hex format (e.g., "#FF5733"). One of fillColor, fillColorGradient, or fillImage must be provided.'),
   fillOpacity: z.number().min(0).max(1).optional().describe('The opacity level of the fill color, ranging from 0 (fully transparent) to 1 (fully opaque). Defaults to 1 if omitted. Only applies when using fillColor.'),
@@ -40,7 +37,6 @@ export const fillSchema = z.object({
   }
 ).describe('A fill object defining a solid color fill, gradient fill, or image fill for a shape');
 
-// Schema for Stroke objects - supports strokeColor and strokeColorGradient
 export const strokeSchema = z.object({
   strokeColor: z.string().optional().describe('The stroke color in hex format (e.g., "#FF5733"). Either strokeColor or strokeColorGradient must be provided.'),
   strokeOpacity: z.number().min(0).max(1).optional().describe('The opacity level of the stroke color, ranging from 0 (fully transparent) to 1 (fully opaque). Defaults to 1 if omitted. Only applies when using strokeColor.'),
@@ -57,7 +53,6 @@ export const strokeSchema = z.object({
   }
 ).describe('A stroke object defining either a solid color stroke or a gradient stroke for a shape');
 
-// Schema for Shadow objects
 export const shadowSchema = z.object({
   id: z.string().optional().describe('The optional unique identifier for the shadow'),
   style: z.enum(['drop-shadow', 'inner-shadow']).optional().describe('The style of the shadow: "drop-shadow" (cast outside the element) or "inner-shadow" (cast inside the element). Defaults to "drop-shadow" if omitted.'),
@@ -72,7 +67,6 @@ export const shadowSchema = z.object({
   }).optional().describe('The color object defining the shadow color and opacity.'),
 }).describe('A shadow object defining a drop shadow or inner shadow for a shape');
 
-// Schema for Blur objects (Penpot Plugin API)
 export const blurSchema = z.object({
   id: z.string().optional().describe('The optional unique identifier for the blur effect'),
   type: z.enum(['layer-blur']).optional().describe('The type of blur effect. Currently, only "layer-blur" is supported.'),
@@ -80,7 +74,6 @@ export const blurSchema = z.object({
   hidden: z.boolean().optional().describe('Specifies whether the blur effect is hidden. Defaults to false if omitted.'),
 }).describe('A blur object defining a layer blur effect for a shape');
 
-// Schema for CommonLayout objects (Penpot Plugin API)
 export const commonLayoutSchema = z.object({
   alignItems: z.enum(['start', 'end', 'center', 'stretch']).optional().describe('The default alignment for items inside the container.'),
   alignContent: z.enum(['start', 'end', 'center', 'space-between', 'space-around', 'space-evenly', 'stretch']).optional().describe('How content is aligned within the container when there is extra space.'),
@@ -98,31 +91,28 @@ export const commonLayoutSchema = z.object({
   verticalSizing: z.enum(['fit-content', 'fill', 'auto']).optional().describe('The vertical sizing behavior of the container.'),
 }).describe('Common layout properties for flex and grid layouts.');
 
-// Schema for FlexLayout objects (Penpot Plugin API)
 export const flexLayoutSchema = commonLayoutSchema.extend({
   dir: z.enum(['row', 'row-reverse', 'column', 'column-reverse']).describe('The direction of the flex layout.'),
   wrap: z.enum(['wrap', 'nowrap']).optional().describe('The wrapping behavior of the flex layout.'),
 }).describe('A flex layout configuration for a container.');
 
-// Schema for Track objects (Penpot Plugin API)
 export const trackSchema = z.object({
   type: z.enum(['flex', 'fixed', 'percent', 'auto']).default('auto').describe('The type of the grid track. Flex is a flexible track, fixed is a fixed track, percent is a track defined by a percentage, and auto is an automatic track. Do not use fixed type unless you are sure you need it. Auto, flex and percent types are recommended.'),
   value: z.number().nullable().describe('The value of the track; null or omitted for auto tracks. For flex tracks, the value is the flex-grow factor and is mandatory (default is 1). For fixed tracks, the value is the fixed size in pixels and is mandatory. For percent tracks, the value is the percentage of the container and is mandatory. For auto tracks, the value is null.'),
 }).describe('A grid track definition (row or column).');
 
-// Schema for GridLayout objects (Penpot Plugin API)
 export const gridLayoutSchema = commonLayoutSchema.extend({
   dir: z.enum(['column', 'row']).describe('The primary direction of the grid layout.'),
   rows: z.array(trackSchema).optional().describe('Rows to add to the grid in order.'),
   columns: z.array(trackSchema).optional().describe('Columns to add to the grid in order.'),
 }).describe('A grid layout configuration for a container.');
 
-// Schema for LayoutChildProperties objects (Penpot Plugin API)
 export const layoutChildSchema = z.object({
   absolute: z.boolean().default(false).describe('Whether the child element is positioned absolutely. Important: if this parameter is true, you should use x and y properties of the shape to position the element.'),
-  horizontalSizing: z.enum(['fill', 'fix']).optional().describe('The horizontal sizing behavior of the child element.'),
-  verticalSizing: z.enum(['fill', 'fix']).optional().describe('The vertical sizing behavior of the child element.'),
-  alignSelf: z.enum(['start', 'center', 'end', 'stretch']).optional().describe('Alignment of the child element within its container.'),
+  zIndex: z.number().max(-1).min(-10000).optional().describe('The z-index of the child element.'),
+  horizontalSizing: z.enum(['auto', 'fill', 'fix']).optional().describe('The horizontal sizing behavior of the child element.'),
+  verticalSizing: z.enum(['auto', 'fill', 'fix']).optional().describe('The vertical sizing behavior of the child element.'),
+  alignSelf: z.enum(['auto','start', 'center', 'end', 'stretch']).optional().describe('Alignment of the child element within its container.'),
   horizontalMargin: z.number().optional().describe('The horizontal margin of the child element.'),
   verticalMargin: z.number().optional().describe('The vertical margin of the child element.'),
   topMargin: z.number().optional().describe('The top margin of the child element.'),
@@ -135,7 +125,6 @@ export const layoutChildSchema = z.object({
   minHeight: z.number().optional().nullable().describe('The minimum height of the child element, or null for no minimum.'),
 }).describe('Layout properties for a child element inside a layout container.');
 
-// Schema for LayoutCellProperties objects (Penpot Plugin API)
 export const layoutCellSchema = z.object({
   row: z.number().min(1).describe('The row index of the cell. Important: the row index starts at 1.'),
   rowSpan: z.number().optional().default(0).describe('The number of rows the cell should span.'),
@@ -143,20 +132,12 @@ export const layoutCellSchema = z.object({
   columnSpan: z.number().optional().default(0).describe('The number of columns the cell should span.'),
 }).describe('Layout properties for a cell inside a grid layout.');
 
-/**
- * Generates base shape properties schema with descriptions adapted to the specific type.
- * 
- * @param type - The type of element: 'component', 'group', 'board', or 'shape'
- * @param customDesc - Optional object to override default descriptions for specific properties
- * @returns A Zod object schema with all base shape properties and contextualized descriptions
- */
 function getBaseShapeProperties(
   type,
   customDesc
 ) {
   return {
     name: z.string().describe(customDesc?.name || `The name of the ${type}, used for visual identification and organization`),
-    parentId: z.string().optional().describe('The id of the parent board or component'),
     x: z.number().optional().describe(customDesc?.x || `The absolute x position of the ${type}, relative to the Root Frame board`),
     y: z.number().optional().describe(customDesc?.y || `The absolute y position of the ${type}, relative to the Root Frame board`),
     parentX: z.number().optional().describe(customDesc?.parentX || `The x position of the ${type} relative to its parent`),
@@ -167,6 +148,10 @@ function getBaseShapeProperties(
     width: z.number().optional().describe(customDesc?.width || `The width of the ${type}`),
     height: z.number().optional().describe(customDesc?.height || `The height of the ${type}`),
     borderRadius: z.number().optional().describe(customDesc?.borderRadius || `The border radius of the ${type}`),
+    borderRadiusTopLeft: z.number().optional().describe(customDesc?.borderRadiusTopLeft || `The top-left border radius of the ${type}`),
+    borderRadiusTopRight: z.number().optional().describe(customDesc?.borderRadiusTopRight || `The top-right border radius of the ${type}`),
+    borderRadiusBottomRight: z.number().optional().describe(customDesc?.borderRadiusBottomRight || `The bottom-right border radius of the ${type}`),
+    borderRadiusBottomLeft: z.number().optional().describe(customDesc?.borderRadiusBottomLeft || `The bottom-left border radius of the ${type}`),
     opacity: z.number().optional().describe(customDesc?.opacity || `The opacity of the ${type}`),
     blendMode: z.enum(blendModes).optional().describe(customDesc?.blendMode || `The blend mode of the ${type}`),
     fills: z.array(fillSchema).optional().describe(
@@ -184,14 +169,17 @@ function getBaseShapeProperties(
       customDesc?.layoutCell ||
       `Properties to define the cell placement of this ${type} inside a parent with layout type grid.`
     ),
-    flex: flexLayoutSchema.optional().nullable().describe(customDesc?.flex || `Flex layout configuration applied to the ${type}`),
-    grid: gridLayoutSchema.optional().nullable().describe(customDesc?.grid || `Grid layout configuration applied to the ${type}`),
-    zIndex: z.number().min(0).optional().describe(customDesc?.zIndex || `The z-index of the ${type}, used to control stacking order.`),
   };
 }
 
-// Schema with only path-specific properties
-export const pathShapeSchema = z.object({
+function getChildShapeProperties(type, customDesc) {
+  return {
+    parentId: z.string().optional().describe(customDesc?.parentId || `The id of the parent board, group or component for the ${type}`),
+    zIndex: z.number().min(0).describe(customDesc?.zIndex || `The z-index (index) inside the parent. Higher values appear on top of lower values.`),
+  };
+}
+
+export const pathShapePropertiesSchema = z.object({
   content: z.array(z.object({
     command: z.enum(['M', 'move-to', 'Z', 'close-path', 'L', 'line-to', 'H', 'line-to-horizontal', 'V', 'line-to-vertical', 'C', 'curve-to', 'S', 'smooth-curve-to', 'Q', 'quadratic-bezier-curve-to', 'T', 'smooth-quadratic-bezier-curve-to', 'A', 'elliptical-arc']).describe('The path command type'),
     params: z.object({
@@ -210,87 +198,125 @@ export const pathShapeSchema = z.object({
   })).describe('The array of path commands that defines the path'),
 });
 
-// Schema with only text-specific properties
-export const textShapeSchema = z.object({
+export const textShapePropertiesSchema = z.object({
   characters: z.string().describe('The characters to draw'),
   fontFamily: z.string().optional().describe('The font family of the text'),
   fontSize: z.number().optional().describe('The font size of the text'),
   fontWeight: z.number().optional().describe('The font weight of the text'),
   fontStyle: z.enum(['normal', 'italic']).optional().describe('The font style of the text'),
-  lineHeight: z.number().min(0).max(10).default(1).optional().describe('The separation between lines of text'),
+  lineHeight: z.number().min(0).max(10).optional().describe('The separation between lines of text'),
   letterSpacing: z.number().optional().describe('The letter spacing of the text'),
   textTransform: z.enum(['uppercase', 'lowercase', 'capitalize']).optional().describe('The text transform of the text'),
   textDecoration: z.enum(['underline', 'line-through']).optional().describe('The text decoration of the text'),
   direction: z.enum(['ltr', 'rtl']).optional().describe('The direction of the text'),
-  align: z.enum(['left', 'center', 'right']).default('left').optional().describe('The align of the text'),
-  verticalAlign: z.enum(['center']).default('center').optional().describe('The vertical align of the text'),
+  align: z.enum(['left', 'center', 'right']).optional().describe('The align of the text'),
+  verticalAlign: z.enum(['center']).optional().describe('The vertical align of the text'),
 });
 
-export const textRangePropertiesSchema = textShapeSchema
+export const textRangePropertiesSchema = textShapePropertiesSchema
   .omit({ characters: true })
   .partial()
   .describe('Text style properties to apply to a text range');
 
 export const baseShapeProperties = z.object(getBaseShapeProperties('shape'));
-export const pathShapeProperties = z.object(getBaseShapeProperties('path')).extend(pathShapeSchema.shape);
-export const textShapeProperties = z.object(getBaseShapeProperties('text')).extend(textShapeSchema.shape);
 
-// Schema for creating multiple shapes at once
-const rectangleShapeSchema = z.object(getBaseShapeProperties('rectangle')).extend({
-  type: z.literal('rectangle').describe('The type of shape: rectangle'),
+export const boardShapeSchema = z.object(getBaseShapeProperties('board'))
+  .extend(getChildShapeProperties('board'))
+  .extend({
+    flex: flexLayoutSchema.optional().nullable().describe('Flex layout configuration applied to the board'),
+    grid: gridLayoutSchema.optional().nullable().describe('Grid layout configuration applied to the board'),
+    clipContent: z.boolean().optional().describe('Whether the board clips its children'),
+    horizontalSizing: z.enum(['auto', 'fix']).default('auto').describe('The horizontal sizing behavior of the board. Auto means the board will size to fit its children width, fix means the board will be fixed width.'),
+    verticalSizing: z.enum(['auto', 'fix']).default('auto').describe('The vertical sizing behavior of the board. Auto means the board will size to fit its children height, fix means the board will be fixed height.'),
+  });
+
+export const componentSchema = boardShapeSchema.extend({
+  path: z.string().describe('The path of the library component.'),
 });
 
-const ellipseShapeSchema = z.object(getBaseShapeProperties('ellipse')).extend({
-  type: z.literal('ellipse').describe('The type of shape: ellipse'),
-});
+export const groupShapeSchema = z.object(getBaseShapeProperties('group'))
+  .extend(getChildShapeProperties('group'))
 
-const pathShapeWithTypeSchema = pathShapeProperties.extend({
-  type: z.literal('path').describe('The type of shape: path'),
-});
+const rectangleShapeSchema = z.object(getBaseShapeProperties('rectangle'))
+  .extend(getChildShapeProperties('rectangle'))
+  .extend({
+    type: z.literal('rectangle').describe('The type of shape: rectangle (always lowercase)'),
+  });
 
-const textShapeWithTypeSchema = textShapeProperties.extend({
-  type: z.literal('text').describe('The type of shape: text'),
-});
+const ellipseShapeSchema = z.object(getBaseShapeProperties('ellipse'))
+  .extend(getChildShapeProperties('ellipse'))
+  .extend({
+    type: z.literal('ellipse').describe('The type of shape: ellipse (always lowercase)'),
+  });
+
+export const pathShapeSchema = z.object(getBaseShapeProperties('path'))
+  .extend(getChildShapeProperties('path'))
+  .extend(pathShapePropertiesSchema.shape)
+  .extend({
+    type: z.literal('path').describe('The type of shape: path (always lowercase)'),
+  });
+
+export const textShapeSchema = z.object(getBaseShapeProperties('text'))
+  .extend(getChildShapeProperties('text'))
+  .extend(textShapePropertiesSchema.shape)
+  .extend({
+    type: z.literal('text').describe('The type of shape: text (always lowercase)'),
+  });
 
 export const createShapesSchema = z.object({
   shapes: z.array(
     z.discriminatedUnion('type', [
       rectangleShapeSchema,
       ellipseShapeSchema,
-      pathShapeWithTypeSchema,
-      textShapeWithTypeSchema,
+      pathShapeSchema,
+      textShapeSchema,
     ])
-  ).describe('Array of shapes to create. Important: use zIndex to control stacking order. Text and foreground elements should have a higher zIndex than backgrounds. Create group and component shapes before adding them to the shapes array.'),
+  ).optional().describe('Array of shape objects to create. Each object must define the properties of one shape. Provide each shape as a proper object (not a string), following the expected type (always lowercase).'),
 });
 
-export const createComponentSchema = createShapesSchema.extend(
-  z.object(getBaseShapeProperties('component')).shape
-).describe('Schema for creating a component from shapes, use component properties to define the background fills, strokes, and shadows.');
+export const shapeIdsSchema = z.object({
+  shapeIds: z.array(
+    z.object({
+      shapeId: z.string().describe('The ID of the shape to include'),
+      zIndex: z.number().optional().describe('Optional zIndex for ordering; lower values appear first'),
+    })
+  ).optional().describe('Array of shape references to include. Use CreateShapesTool first to create new shapes, or provide existing shape IDs. Can include shapes, groups, components, or boards.'),
+});
 
-export const createComponentFromShapesSchema = z.object({
-  shapeIds: z.array(z.string()).min(1).describe('Array of existing shape IDs to convert into a component'),
-}).extend(
-  z.object(getBaseShapeProperties('component')).partial().shape
-).describe('Schema for creating a component from existing shapes.');
+export const createComponentSchema = shapeIdsSchema.extend(
+  componentSchema.shape
+).describe('Schema for creating a component from existing shapes. Use component properties to define the background fills, strokes, and shadows.');
 
-export const createGroupSchema = createShapesSchema.extend(
-  z.object(getBaseShapeProperties('group'))
-    .omit({ flex: true, grid: true })
-    .shape
-);
+export const createGroupSchema = groupShapeSchema
+  .extend(shapeIdsSchema.shape)
+  .extend(createShapesSchema.shape)
+  .describe('Schema for creating a group from existing shapes or creating new shapes inside the group.');
 
-export const createBoardSchema = createShapesSchema.extend(
-  z.object(getBaseShapeProperties('board')).shape
-);
+export const createBoardSchema = shapeIdsSchema.partial().extend(
+  boardShapeSchema.shape
+).describe('Schema for creating a board and optionally moving existing shapes into it.');
 
-// Schema for modifying shape properties - all properties are optional except shapeId
-// Reuses baseShapeProperties, pathShapeSchema, and textShapeSchema to avoid duplication
+export const convertGroupToBoardSchema = z.object({
+  groupId: z.string().describe('The ID of the group to convert into a board'),
+  properties: boardShapeSchema.partial().optional().describe('Optional board properties to apply after conversion'),
+}).describe('Schema for converting an existing group into a board.');
+
+export const modifyBoardSchema = z.object({
+  boardId: z.string().describe('The ID of the board to modify'),
+  properties: boardShapeSchema.partial().optional().describe('Board properties to modify. Provide only the fields you want to change. Use null to remove a property.'),
+}).describe('Schema for modifying an existing board.');
+
+export const modifyComponentSchema = z.object({
+  componentId: z.string().describe('The ID of the component to modify (library component id or component instance id)'),
+  properties: componentSchema.partial().optional().describe('Component properties to modify. Provide only the fields you want to change. Use null to remove a property.'),
+}).describe('Schema for modifying an existing component.');
+
 export const modifyShapePropertiesSchema = z.object({
   shapeId: z.string().describe('The ID of the shape to modify'),
 })
-  .extend(baseShapeProperties.omit({ zIndex: true }).partial().shape) // Omit zIndex as it's not modifiable
-  .extend(pathShapeSchema.partial().shape) // Path-specific properties (optional)
-  .extend(textShapeSchema.partial().shape); // Text-specific properties (optional)
+  .extend(baseShapeProperties.partial().shape)
+  .extend(pathShapePropertiesSchema.partial().shape)
+  .extend(textShapePropertiesSchema.partial().shape);
 
 export const modifyTextRangeSchema = z.object({
   shapeId: z.string().describe('The ID of the text shape to modify'),

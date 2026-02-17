@@ -4,13 +4,13 @@ import {
   setStreamingError,
   updateToolCall,
 } from '@/stores/streamingMessageStore';
+import { InvalidToolInputError, NoSuchToolError } from 'ai';
 
 export class StreamHandler {
   constructor(stream, parentToolCallId) {
     this.stream = stream;
     this.parentToolCallId = parentToolCallId;
     this.fullResponse = '';
-    // Track tool calls that have been started but not yet completed
     this.pendingToolCalls = new Map();
   }
 
@@ -32,7 +32,7 @@ export class StreamHandler {
             input: chunk.input
           };
           addToolCall(newToolCall, this.parentToolCallId);
-          // Track this tool call as pending
+
           this.pendingToolCalls.set(chunk.toolCallId, {
             toolName: chunk.toolName,
             input: chunk.input,
@@ -40,51 +40,97 @@ export class StreamHandler {
             startedAt: Date.now()
           });
         } else if (chunk.type === 'tool-result') {
-          // The AI SDK passes the tool's return value in chunk.result (not chunk.output)
-          // chunk.output might be undefined, so we check chunk.result first
           const output = chunk.result !== undefined ? chunk.result : chunk.output;
-          
-          // Update tool call with success state and output
-          // Always pass output even if undefined, so the UI can handle it appropriately
+
           updateToolCall(chunk.toolCallId, { 
             state: 'success', 
             output: output 
           });
           
-          // Remove from pending since it completed successfully
           this.pendingToolCalls.delete(chunk.toolCallId);
+
         } else if (chunk.type === 'tool-error') {
-          console.error('Tool error:', chunk);
-        }
-        else if (chunk.type === 'error') {
+          const errorMessage = chunk.error instanceof Error 
+            ? chunk.error.message 
+            : (typeof chunk.error === 'string' ? chunk.error : 'Tool execution failed');
+          
+          if (chunk.toolCallId) {
+            updateToolCall(chunk.toolCallId, { 
+              state: 'error', 
+              error: `Tool execution error: ${errorMessage}` 
+            });
+            this.pendingToolCalls.delete(chunk.toolCallId);
+          }
+        } else if (chunk.type === 'error') {
           console.error('Error during stream:', chunk);
           
-          // Check if this error is associated with a specific tool call
-          // The AI SDK may include toolCallId in error chunks for validation errors
-          if (chunk.toolCallId) {
-            const errorMessage = chunk.error instanceof Error 
-              ? chunk.error.message 
-              : (typeof chunk.error === 'string' ? chunk.error : 'Unknown error');
+          const error = chunk.error;
+          let errorMessage = 'Unknown error';
+          let toolCallId = chunk.toolCallId;
+          let toolName = null;
+          
+          // Check for InvalidToolInputError (schema validation failure)
+          if (InvalidToolInputError.isInstance(error)) {
+            toolName = error.toolName;
             
-            updateToolCall(chunk.toolCallId, { 
+            // Log the full error structure to understand what the SDK provides
+            console.error('InvalidToolInputError detected - Full error object:', {
+              toolName: error.toolName,
+              message: error.message,
+              cause: error.cause,
+              // Log Zod issues if available
+              zodIssues: error.cause?.issues,
+              // Full error for inspection
+              fullError: error,
+            });
+            
+            // For now, use the raw error message from the SDK
+            errorMessage = error.message;
+            
+            // Try to find the associated tool call if not provided in chunk
+            if (!toolCallId && toolName) {
+              for (const [id, pending] of this.pendingToolCalls) {
+                if (pending.toolName === toolName) {
+                  toolCallId = id;
+                  break;
+                }
+              }
+            }
+          }
+          // Check for NoSuchToolError (tool doesn't exist)
+          else if (NoSuchToolError.isInstance(error)) {
+            toolName = error.toolName;
+            errorMessage = `❌ Tool "${toolName}" does not exist. Please use one of the available tools.`;           
+            console.error('NoSuchToolError detected:', { toolName });
+          }
+          // Generic error handling
+          else if (error instanceof Error) {
+            errorMessage = error.message;
+          } else if (typeof error === 'string') {
+            errorMessage = error;
+          }
+          
+          // Update the specific tool call if we have an ID
+          if (toolCallId) {
+            updateToolCall(toolCallId, { 
               state: 'error', 
               error: errorMessage 
             });
-            // Remove from pending since we've handled it
-            const pendingInfo = this.pendingToolCalls.get(chunk.toolCallId);
-            this.pendingToolCalls.delete(chunk.toolCallId);
+            
+            const pendingInfo = this.pendingToolCalls.get(toolCallId);
+            this.pendingToolCalls.delete(toolCallId);
+            
             if (pendingInfo) {
-              console.error('Tool call failed with error chunk:', {
-                toolCallId: chunk.toolCallId,
+              console.error('Tool call failed:', {
+                toolCallId,
                 toolName: pendingInfo.toolName,
                 input: pendingInfo.input,
-                parentToolCallId: pendingInfo.parentToolCallId,
                 error: errorMessage
               });
             }
           } else {
             // General stream error (not tool-specific)
-            setStreamingError(`Error: ${chunk.error instanceof Error ? chunk.error.message : 'Unknown error'}`);
+            setStreamingError(`Error: ${errorMessage}`);
           }
         }
       }
@@ -96,29 +142,37 @@ export class StreamHandler {
         console.warn(`Found ${this.pendingToolCalls.size} tool call(s) that never completed.`);
         
         for (const [toolCallId, pendingInfo] of this.pendingToolCalls) {
-          console.error('Tool call did not return a result (validation/timeout likely):', {
+          const ageMs = Date.now() - pendingInfo.startedAt;
+          
+          console.error('Tool call did not return a result:', {
             toolCallId,
             toolName: pendingInfo.toolName,
             input: pendingInfo.input,
             parentToolCallId: pendingInfo.parentToolCallId,
             startedAt: pendingInfo.startedAt,
-            ageMs: Date.now() - pendingInfo.startedAt
+            ageMs
           });
-          // Mark as error with a generic message about validation/execution failure
+          
+          // Build a more helpful error message
+          let errorMessage = `❌ Tool "${pendingInfo.toolName}" failed to execute.\n`;
+          errorMessage += 'This is likely due to invalid input parameters that did not match the expected schema.\n\n';
+          errorMessage += 'Received input:\n';
+          errorMessage += '```json\n' + JSON.stringify(pendingInfo.input, null, 2) + '\n```\n\n';
+          errorMessage += 'Please review the tool schema and ensure all required parameters are provided with correct types.';
+          
           updateToolCall(toolCallId, { 
             state: 'error', 
-            error: 'Tool execution failed: validation error or execution timeout. Check input parameters.' 
+            error: errorMessage 
           });
         }
         
-        // Clear the set after handling
+        // Clear the map after handling
         this.pendingToolCalls.clear();
       }
       return this.fullResponse;
     } catch (error) {
-      // Distinguish between cancellation and real errors
       if (error instanceof Error && error.name === 'AbortError') {
-        throw error; // Propagate to caller
+        throw error;
       }
       console.error('Stream error:', error);
       // Mark any pending tool calls as failed so UI doesn't show success

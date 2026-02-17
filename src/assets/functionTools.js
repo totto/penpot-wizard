@@ -2,7 +2,6 @@ import { ClientQueryType } from '@/types/types';
 import { z } from 'zod';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 import { ToolResponse } from '@/types/types';
-
 // Function to get user data - this would typically come from Penpot context
 export const functionTools = [
   {

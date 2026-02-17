@@ -18,7 +18,11 @@ vi.mock('@orama/plugin-embeddings', () => ({
   }))
 }))
 
-import { initializeDataBase, searchDataBase } from '../ragUtils'
+vi.mock('@/stores/settingsStore', () => ({
+  $openrouterApiKey: { get: () => 'test-api-key' }
+}))
+
+import { ragTools } from '../ragTools'
 
 const ORAMA_SCHEMA = {
   id: 'string',
@@ -76,7 +80,7 @@ class MockDecompressionStream {
   }
 }
 
-describe('initializeDataBase', () => {
+describe('ragTools', () => {
   beforeAll(() => {
     if (!globalThis.DecompressionStream) {
       globalThis.DecompressionStream = MockDecompressionStream
@@ -87,21 +91,42 @@ describe('initializeDataBase', () => {
     vi.restoreAllMocks()
   })
 
-  it('restores Orama database from generated file', async () => {
-    const fileBuffer = await createMinimalOramaFixture()
+  describe('penpot-user-guide-rag', () => {
+    it('returns ToolResponse with success, message and payload.results', async () => {
+      const fileBuffer = await createMinimalOramaFixture()
 
-    global.fetch = vi.fn(async (url) => {
-      if (typeof url === 'string' && url.includes('penpotRagToolContents')) {
-        return new Response(fileBuffer, { status: 200 })
-      }
-      return new Response(JSON.stringify({ error: 'Not mocked' }), { status: 404 })
+      global.fetch = vi.fn(async (url) => {
+        if (typeof url === 'string' && url.includes('penpotRagToolContents')) {
+          return new Response(fileBuffer, { status: 200 })
+        }
+        return new Response(JSON.stringify({ error: 'Not mocked' }), { status: 404 })
+      })
+
+      const tool = ragTools.find(t => t.id === 'penpot-user-guide-rag')
+      expect(tool).toBeTruthy()
+      expect(tool.function).toBeTypeOf('function')
+
+      const response = await tool.function({ query: 'Penpot components' })
+
+      expect(response).toBeTruthy()
+      expect(response).toHaveProperty('success')
+      expect(response).toHaveProperty('message')
+      expect(response).toHaveProperty('payload')
+      expect(response.payload).toHaveProperty('results')
+      expect(response.payload.results).toBeInstanceOf(Array)
+      expect(response.success).toBe(true)
+      expect(response.payload.results.length).toBeGreaterThan(0)
+
+      // Response must be JSON-serializable for AI SDK stream
+      expect(() => JSON.stringify(response)).not.toThrow()
+      const serialized = JSON.stringify(response)
+      const parsed = JSON.parse(serialized)
+      expect(parsed.success).toBe(true)
+      expect(parsed.payload.results).toBeInstanceOf(Array)
+
+      // Structure expected by ToolCallDetails (filterOutputFields)
+      expect(parsed).toHaveProperty('success')
+      expect(parsed).toHaveProperty('payload')
     })
-
-    const db = await initializeDataBase('penpotRagToolContents.zip')
-    expect(db).toBeTruthy()
-
-    const results = await searchDataBase('Penpot components', 5, db)
-    expect(results).toBeInstanceOf(Array)
-    expect(results.length).toBeGreaterThan(0)
   })
 })

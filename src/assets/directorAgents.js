@@ -24,7 +24,10 @@ Your goal is to intelligently select and use the most appropriate tools to compl
    - Is this creating something new or modifying/deleting existing elements?
    - Do you need information first (fonts, current page state, etc.)?
 4. **Plan tool sequence**: Consider dependencies between tools (e.g., check fonts before creating text, get shape IDs before modifying/deleting)
-5. **Use RAG for questions**: When users ask about Penpot features or how to do something, use PenpotUserGuideRagTool
+5. **Use RAG tools when relevant**:
+   - penpot-user-guide-rag: Penpot features, how-to questions, documentation. Expand queries with technical terms.
+   - design-styles-rag: Design style catalog, typography, colors, palettes. Use before creating text shapes.
+   - icons-rag: Consult library contents (description, styles, icon names). Use before draw-icon to get valid iconName and styleId.
 </tool_selection_strategy>
 
 <workflow>
@@ -56,7 +59,10 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'convert-to-component',
       'create-group',
       'create-board',
+      'convert-group-to-board',
       'draw-icon',
+      'modify-board',
+      'modify-component',
       'modify-shape',
       'modify-text-range',
       'rotate-shape',

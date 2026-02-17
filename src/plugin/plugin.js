@@ -8,7 +8,10 @@ import {
   handleDrawShape,
   handleCreateComponent,
   handleCreateGroup,
+  handleCreateBoard,
   handleModifyShape,
+  handleModifyBoard,
+  handleModifyComponent,
   handleModifyTextRange,
   handleRotateShape,
   handleCloneShape,
@@ -17,6 +20,7 @@ import {
   handleBringForwardShape,
   handleSendToBackShape,
   handleSendBackwardShape,
+  handleConvertGroupToBoard,
 } from './drawHandlers';
 
 import {
@@ -29,6 +33,11 @@ import {
 } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
+
+penpot.on('selectionchange', (_event) => {
+  console.log('selectionchange', penpot.selection);
+
+});
 
 // Open the plugin UI with current theme
 penpot.ui.open("AI Penpot Wizard", `?theme=${penpot.theme}`, {
@@ -87,6 +96,22 @@ penpot.ui.onMessage(async (message) => {
 
     case ClientQueryType.CREATE_GROUP:
       responseMessage = handleCreateGroup(payload);
+      break;
+
+    case ClientQueryType.CREATE_BOARD:
+      responseMessage = handleCreateBoard(payload);
+      break;
+
+    case ClientQueryType.MODIFY_BOARD:
+      responseMessage = handleModifyBoard(payload);
+      break;
+
+    case ClientQueryType.MODIFY_COMPONENT:
+      responseMessage = handleModifyComponent(payload);
+      break;
+
+    case ClientQueryType.CONVERT_GROUP_TO_BOARD:
+      responseMessage = handleConvertGroupToBoard(payload);
       break;
 
     case ClientQueryType.MODIFY_SHAPE:

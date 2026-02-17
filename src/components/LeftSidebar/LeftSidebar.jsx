@@ -5,17 +5,16 @@ import AgentsList from "./AgentsList/AgentsList";
 import Tools from "./Tools/Tools";
 import Download from "./Download/Download";
 import { useStore } from "@nanostores/react";
-import { $openaiApiKey, $isConnected } from "@/stores/settingsStore";
+import { $isConnected } from "@/stores/settingsStore";
 import styles from "@/components/LeftSidebar/LeftSidebar.module.css";
 
 function LeftSidebar() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState("agents");
-  const openaiApiKey = useStore($openaiApiKey);
   const isConnected = useStore($isConnected);
 
-  // Check if configuration is complete
-  const isConfigComplete = Boolean(openaiApiKey?.trim());
+  // Config is complete when we have a valid API key (OpenAI or OpenRouter) and a selected model
+  const isConfigComplete = isConnected;
 
   // Force sidebar to stay open if config is not complete
   useEffect(() => {
@@ -143,7 +142,7 @@ function LeftSidebar() {
             className={`${styles.statusButton} ${
               isConnected ? styles.connected : styles.disconnected
             }`}
-            title={isConnected ? "Connected to OpenAI" : "Not connected"}
+            title={isConnected ? "Connected" : "Not connected"}
           >
             {isConnected ? "●" : "●"}
           </button>

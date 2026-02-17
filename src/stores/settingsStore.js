@@ -51,13 +51,28 @@ export const $isLoadingModels = atom(false);
 export const $openaiError = atom(null);
 export const $openrouterError = atom(null);
 
-// Derived atoms
+// Derived atoms - user is connected when they have a valid OpenAI OR OpenRouter key
+// and have selected a language model that uses that key
 export const $isConnected = computed(
-  [$openaiApiKey, $isValidatedOpenai, $availableModels, $selectedLanguageModel],
-  (openaiApiKey, isValidatedOpenai, availableModels, selectedLanguageModel) => {
-    return openaiApiKey !== '' 
-      && isValidatedOpenai 
-      && availableModels.some(model => model.id === selectedLanguageModel);
+  [
+    $openaiApiKey,
+    $openrouterApiKey,
+    $isValidatedOpenai,
+    $isValidatedOpenrouter,
+    $availableModels,
+    $selectedLanguageModel,
+  ],
+  (
+    openaiApiKey,
+    openrouterApiKey,
+    isValidatedOpenai,
+    isValidatedOpenrouter,
+    availableModels,
+    selectedLanguageModel
+  ) => {
+    const hasValidKey = (openaiApiKey?.trim() && isValidatedOpenai) || (openrouterApiKey?.trim() && isValidatedOpenrouter);
+    const hasSelectedModel = selectedLanguageModel && availableModels.some((model) => model.id === selectedLanguageModel);
+    return Boolean(hasValidKey && hasSelectedModel);
   }
 );
 

@@ -132,11 +132,22 @@ export function getSelectedShapes() {
 }
 
 function applyBasicShapeParams(shape, params = {}) {
-  const { name, x, y, parentX, parentY, width, height, parentId } = params;
+  const { name, x, y, parentX, parentY, width, height, parentId, zIndex } = params;
 
+  let parent = null;
   if (parentId) {
-    const parent = penpot.currentPage?.getShapeById(parentId);
-    if (parent) {
+    parent = penpot.currentPage?.getShapeById(parentId);
+  }
+  if (!parent) {
+    parent = penpot.currentPage?.root || null;
+  }
+  if (parent) {
+    const insertIndex = typeof zIndex === 'number'
+      ? zIndex
+      : (parent.children?.length ?? 0);
+    if (typeof parent.insertChild === 'function') {
+      parent.insertChild(insertIndex, shape);
+    } else if (typeof parent.appendChild === 'function') {
       parent.appendChild(shape);
     }
   }

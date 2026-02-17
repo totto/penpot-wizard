@@ -95,7 +95,19 @@ export const iconsTool = [
       The tool resolves the icon within the library catalog, downloads its SVG, and creates a vector group in Penpot.
       
       IMPORTANT:
-      - Use IconsRagTool to discover available icons and tags.
+      - available libraries and styles:
+      boxicons: regular, solid, logos
+      circum: outline
+      flowbite: outline, solid
+      heroicons: outline-24, solid-24, solid-20, solid-16
+      iconoir: regular, solid
+      ionicons: filled, outline, sharp
+      lineicons: regular
+      lucide: outline
+      mingcute: line, fill
+      phosphor: thin, light, regular, bold, fill, duotone
+      tabler: outline, filled
+      -to get the list of available icons for each library and style, use the IconsRagTool
     `,
     inputSchema,
     function: async ({ libraryId, iconName, styleId, name, ...params }) => {

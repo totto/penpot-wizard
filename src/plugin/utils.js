@@ -19,8 +19,9 @@
  */
 import { 
   baseShapeProperties,
-  pathShapeProperties,
-  textShapeProperties,
+  boardShapeSchema,
+  pathShapeSchema,
+  textShapeSchema,
 } from '../types/shapeTypes';
 
 export function pathCommandsToSvgString(commands) {
@@ -79,6 +80,101 @@ export function pathCommandsToSvgString(commands) {
 }
 
 /**
+ * Properties that can be copied from a shape to a board
+ */
+const COPYABLE_BOARD_PROPERTIES = [
+  'name',
+  'x',
+  'y',
+  'rotation',
+  'flipX',
+  'flipY',
+  'borderRadius',
+  'opacity',
+  'blendMode',
+  'fills',
+  'strokes',
+  'shadows',
+  'blur',
+];
+
+/**
+ * Converts any shape to a board while preserving its properties and children.
+ * This is useful when you need to apply flex or grid layouts to shapes that
+ * don't support addFlexLayout/addGridLayout methods (like groups).
+ * 
+ * @param shape - The shape to convert to a board
+ * @returns The new board with the same properties and children
+ * 
+ * @example
+ * ```js
+ * const group = penpot.currentPage?.getShapeById(groupId);
+ * const board = convertToBoard(group);
+ * // Now you can add flex/grid layout to the board
+ * board.addFlexLayout();
+ * ```
+ */
+export function convertToBoard(shape) {
+  if (!shape) {
+    throw new Error('Shape is required for conversion to board');
+  }
+
+  // If it's already a board, return it as-is
+  if (shape.type === 'board') {
+    return shape;
+  }
+
+  // Store original properties
+  const originalProps = {};
+  for (const key of COPYABLE_BOARD_PROPERTIES) {
+    if (shape[key]) {
+      originalProps[key] = shape[key];
+    }
+  }
+
+  // Store original dimensions
+  const _width = shape.width;
+  const _height = shape.height;
+
+  // Get the parent before we modify anything
+  const parent = shape.parent;
+
+  // Get children if the shape has any (groups have children)
+  const children = shape.children ? [...shape.children] : [];
+
+  // Create new board
+  const board = penpot.createBoard();
+  if (!board) {
+    throw new Error('Failed to create board');
+  }
+
+  // Copy properties to board
+  for (const [key, value] of Object.entries(originalProps)) {
+    if (value !== undefined) {
+      board[key] = value;
+    }
+  }
+
+  // Move children to the new board (if any)
+  for (const child of children) {
+    board.appendChild(child);
+  }
+
+  // If the original shape had a parent, add the board to that parent
+  if (parent && parent.appendChild) {
+    parent.appendChild(board);
+  }
+
+  board.horizontalSizing = 'auto';
+  board.verticalSizing = 'auto';
+  
+  // Remove the original shape
+  shape.remove();
+
+  return board;
+}
+
+/**
  * Curates a shape object by keeping only configurable properties
  * based on the shape type schemas from shapeTypes.js.
  */
@@ -99,16 +195,18 @@ export function curateShapeOutput(shape) {
   
   switch (shapeType) {
     case 'path':
-      validSchema = pathShapeProperties;
+      validSchema = pathShapeSchema;
       break;
     case 'text':
-      validSchema = textShapeProperties;
+      validSchema = textShapeSchema;
       break;
     case 'rectangle':
     case 'ellipse':
-    case 'board':
     default:
       validSchema = baseShapeProperties;
+      break;
+    case 'board':
+      validSchema = boardShapeSchema;
       break;
   }
 
