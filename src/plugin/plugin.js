@@ -10,6 +10,8 @@ import {
   handleCreateGroup,
   handleCreateBoard,
   handleModifyShape,
+  handleModifyBoard,
+  handleModifyComponent,
   handleModifyTextRange,
   handleRotateShape,
   handleCloneShape,
@@ -32,7 +34,7 @@ import {
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
-penpot.on('selectionchange', (event) => {
+penpot.on('selectionchange', (_event) => {
   console.log('selectionchange', penpot.selection);
 
 });
@@ -98,6 +100,14 @@ penpot.ui.onMessage(async (message) => {
 
     case ClientQueryType.CREATE_BOARD:
       responseMessage = handleCreateBoard(payload);
+      break;
+
+    case ClientQueryType.MODIFY_BOARD:
+      responseMessage = handleModifyBoard(payload);
+      break;
+
+    case ClientQueryType.MODIFY_COMPONENT:
+      responseMessage = handleModifyComponent(payload);
       break;
 
     case ClientQueryType.CONVERT_GROUP_TO_BOARD:

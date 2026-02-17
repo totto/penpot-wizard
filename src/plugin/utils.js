@@ -133,8 +133,8 @@ export function convertToBoard(shape) {
   }
 
   // Store original dimensions
-  const width = shape.width;
-  const height = shape.height;
+  const _width = shape.width;
+  const _height = shape.height;
 
   // Get the parent before we modify anything
   const parent = shape.parent;

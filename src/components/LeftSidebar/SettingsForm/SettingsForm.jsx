@@ -120,7 +120,7 @@ function SettingsForm() {
             <div className={styles.formGroup}>
               <label htmlFor="openai-key" className={styles.label}>
                 <span>
-                  OpenAI API Key <span className={styles.required}>*</span>
+                  OpenAI API Key
                 </span>
                 {isValidatedOpenai && (
                   <span className={styles.validatedIndicator}>
@@ -137,11 +137,9 @@ function SettingsForm() {
                 className={styles.input}
                 placeholder="sk-..."
                 autoComplete="off"
-                required
               />
               <small className={styles.helpText}>
-                Required for embeddings and OpenAI image generation (optional
-                for text models)
+                For embeddings and OpenAI image models. Use OpenRouter key for text models (and optionally for embeddings via OpenRouter)
               </small>
               {openaiError && (
                 <div className={styles.errorMessage}>
@@ -311,7 +309,7 @@ function SettingsForm() {
                 value={selectedEmbeddingModel}
                 onChange={handleEmbeddingModelChange}
                 className={styles.select}
-                disabled={!isValidatedOpenai}
+                disabled={!isValidatedOpenai && !isValidatedOpenrouter}
               >
                 {availableEmbeddingModels.map((model) => (
                   <option key={model.id} value={model.id}>
@@ -320,9 +318,9 @@ function SettingsForm() {
                 ))}
               </select>
               <small className={styles.helpText}>
-                {!isValidatedOpenai
-                  ? "OpenAI API key required for embeddings (OpenRouter does not provide embeddings)"
-                  : "OpenAI embedding models for RAG functionality"}
+                {!isValidatedOpenai && !isValidatedOpenrouter
+                  ? "API key (OpenAI or OpenRouter) required for embeddings - click 'Check API Keys' first"
+                  : "Embedding models for RAG (OpenRouter proxies to OpenAI models)"}
               </small>
               <small className={styles.helpText}>
                 <strong>Used for:</strong> RAG (Retrieval-Augmented Generation),

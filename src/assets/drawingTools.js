@@ -1,6 +1,6 @@
 import { sendMessageToPlugin, createShapesArray } from '@/utils/pluginUtils';
 import { ToolResponse, ClientQueryType } from '@/types/types';
-import { createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, convertGroupToBoardSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
+import { createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, convertGroupToBoardSchema, modifyBoardSchema, modifyComponentSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
 import { z } from 'zod';
 
 export const drawingTools = [
@@ -19,7 +19,7 @@ export const drawingTools = [
       - Backgrounds and containers should be created LAST (at the end of the shapes array)
       
       You can create multiple shapes efficiently in one call. The shapes will be created in the order specified in the array.
-      Use parentId in shape properties to place shapes inside a specific board.
+      Use the optional parent property to place shapes inside a board, group, or component.
     `,
     inputSchema: createShapesSchema,
     function: async (input) => {
@@ -86,7 +86,7 @@ export const drawingTools = [
       
       📋 WORKFLOW:
       1. Create the shapes you need using CreateShapesTool (get the shape IDs from the response)
-      2. Call this tool with the shapeIds array to convert them into a component
+      2. Call this tool with the shapeIds array (objects with shapeId and optional zIndex) to convert them into a component
       
       TIP: You can also use GET_SELECTED_SHAPES to grab existing shapes, then pass their IDs here.
     `,
@@ -116,35 +116,135 @@ export const drawingTools = [
     id: 'create-group',
     name: 'CreateGroupTool',
     description: `
-      Use this tool to group existing shapes together.
+      Use this tool to create a group from existing shapes, new shapes, or both.
       
-      ⚠️ PREREQUISITE: You must first create shapes using CreateShapesTool, then pass their IDs to this tool.
+      Groups support all ShapeBase properties (fills, strokes, shadows, blur, etc).
       
-      This tool can group any existing shapes (rectangles, ellipses, paths, text, groups, components, or boards) together.
+      You can provide:
+      - shapeIds: existing shapes to group (objects with shapeId and optional zIndex)
+      - shapes: new shapes to create and include in the group
       
-      🎨 KEY CONCEPT: Groups are NOT shapes! They are containers that only have position (x, y) and size (width, height).
-      - Groups do NOT support fills, strokes, or shadows directly
-      - If you need a background for the group, create a background shape (rectangle, ellipse, or path) with zIndex: 0 using CreateShapesTool
-      - The background shape should be included in the shapeIds array and will be part of the group
-      
-      📋 WORKFLOW:
-      1. Create the shapes you need using CreateShapesTool (get the shape IDs from the response)
-      2. Call this tool with the shapeIds array to group them together
-      
-      TIP: You can also use GET_SELECTED_SHAPES to grab existing shapes, then pass their IDs here.
-      This allows grouping existing shapes without creating new ones first.
+      If both are provided, all shapes will be grouped together.
+      To add content later, create new items with CreateShapesTool, CreateGroupTool, CreateComponentTool, or CreateBoardTool
+      and pass the group's id as the parentId of those new items.
     `,
     inputSchema: createGroupSchema,
     function: async (input) => {
       try {
-        const { shapeIds, ...groupProperties } = input;
-        
+        const { shapes, shapeIds, ...groupProperties } = input;
+        const createdShapes = shapes?.length
+          ? await createShapesArray(shapes, { throwOnError: false })
+          : [];
+
+        const createdEntries = createdShapes
+          .map((shape, index) => ({
+            shapeId: shape.id,
+            zIndex: shapes?.[index]?.zIndex,
+            created: true,
+            meta: shape,
+          }))
+          .filter(entry => Boolean(entry.shapeId));
+
+        const providedEntries = Array.isArray(shapeIds)
+          ? shapeIds.map((shapeRef) => (
+            typeof shapeRef === 'string'
+              ? { shapeId: shapeRef, zIndex: undefined, created: false }
+              : {
+                shapeId: shapeRef.shapeId,
+                zIndex: shapeRef.zIndex,
+                created: false,
+              }
+          ))
+          : [];
+
+        const combinedEntries = [...createdEntries, ...providedEntries]
+          .filter(entry => Boolean(entry.shapeId));
+
+        const hasShapesToGroup = combinedEntries.length > 0;
+        if (!hasShapesToGroup) {
+          return {
+            ...ToolResponse,
+            success: false,
+            message: 'Failed to create group: no shapes provided or created',
+            payload: { error: 'Provide shapeIds and/or shapes to create a group' },
+          };
+        }
+
+        const sortedShapeIds = [...combinedEntries]
+          .sort((a, b) => {
+            if (typeof a.zIndex === 'number' && typeof b.zIndex === 'number') {
+              return b.zIndex - a.zIndex;
+            }
+            if (typeof a.zIndex === 'number') {
+              return -1;
+            }
+            if (typeof b.zIndex === 'number') {
+              return 1;
+            }
+            return 0;
+          })
+          .map(entry => entry.shapeId);
+
         const groupResponse = await sendMessageToPlugin(ClientQueryType.CREATE_GROUP, {
-          shapes: shapeIds,
+          shapeIds: sortedShapeIds,
           ...groupProperties,
         });
-        
-        return groupResponse;
+
+        if (!groupResponse?.success) {
+          const errorMessage = groupResponse?.message || 'Failed to create group';
+          const errorDetail = groupResponse?.payload?.error || 'Unknown error while creating group';
+          return {
+            ...ToolResponse,
+            success: false,
+            message: errorMessage,
+            payload: { error: errorDetail },
+          };
+        }
+
+        const groupId = groupResponse.payload?.group?.id;
+        if (!groupId) {
+          return {
+            ...ToolResponse,
+            success: false,
+            message: 'Group created but no group id returned to add shapes',
+            payload: { error: 'Missing group id in create-group response' },
+          };
+        }
+
+        const totalCreatedCount = shapes?.length ?? 0;
+        const failedCount = totalCreatedCount - createdShapes.length;
+        if (failedCount > 0) {
+          return {
+            ...ToolResponse,
+            success: false,
+            message: `Partially successful: group created, ${createdShapes.length} shape(s) created, ${failedCount} failed`,
+            payload: {
+              group: groupResponse.payload?.group,
+              shapes: createdShapes.map(shape => ({
+                name: shape.name,
+                type: shape.type,
+                id: shape.id,
+                response: shape.response,
+              })),
+              failedCount,
+            },
+          };
+        }
+
+        return {
+          ...ToolResponse,
+          success: true,
+          message: `Group created successfully`,
+          payload: {
+            group: groupResponse.payload?.group,
+            shapes: createdShapes.map(shape => ({
+              name: shape.name,
+              type: shape.type,
+              id: shape.id,
+              response: shape.response,
+            })),
+          },
+        };
       } catch (error) {
         if (error.response && error.response.source) {
           return error.response;
@@ -162,9 +262,9 @@ export const drawingTools = [
     id: 'create-board',
     name: 'CreateBoardTool',
     description: `
-      Use this tool to create a board and move existing shapes inside it.
+      Use this tool to create a board and optionally move existing shapes inside it.
       
-      ⚠️ PREREQUISITE: You must first create shapes using CreateShapesTool, then pass their IDs to this tool.
+      ⚠️ PREREQUISITE: If you want to move shapes into the board, first create them using CreateShapesTool, then pass their IDs to this tool.
       
       This tool creates a board and moves the specified shapes inside it. The shapes can be rectangles, ellipses, paths, text, groups, components, or other boards.
       
@@ -177,7 +277,7 @@ export const drawingTools = [
       
       📋 WORKFLOW:
       1. Create the shapes you need using CreateShapesTool (get the shape IDs from the response)
-      2. Call this tool with the shapeIds array to create a board containing them
+      2. Call this tool with the shapeIds array (objects with shapeId and optional zIndex) to create a board containing them
       
       TIP: You can also use GET_SELECTED_SHAPES to grab existing shapes, then pass their IDs here.
       This allows creating a board from existing shapes without creating new ones first.
@@ -234,6 +334,38 @@ export const drawingTools = [
           payload: { error: error.message },
         };
       }
+    },
+  },
+  {
+    id: 'modify-board',
+    name: 'ModifyBoardTool',
+    description: `
+      Use this tool to modify one or more properties of an existing board.
+      
+      IMPORTANT: You must provide the boardId of the board you want to modify.
+      Only provide the properties you want to modify. Use null to remove a property.
+    `,
+    inputSchema: modifyBoardSchema,
+    function: async (input) => {
+      const response = await sendMessageToPlugin(ClientQueryType.MODIFY_BOARD, input);
+      return response;
+    },
+  },
+  {
+    id: 'modify-component',
+    name: 'ModifyComponentTool',
+    description: `
+      Use this tool to modify one or more properties of an existing component.
+      
+      IMPORTANT: You must provide the componentId (library component id or component instance id).
+      Only provide the properties you want to modify. Use null to remove a property.
+      
+      TIP: Use GET_CURRENT_PAGE to list available components from the local library.
+    `,
+    inputSchema: modifyComponentSchema,
+    function: async (input) => {
+      const response = await sendMessageToPlugin(ClientQueryType.MODIFY_COMPONENT, input);
+      return response;
     },
   },
   {

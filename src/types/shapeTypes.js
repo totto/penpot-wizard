@@ -175,7 +175,7 @@ function getBaseShapeProperties(
 function getChildShapeProperties(type, customDesc) {
   return {
     parentId: z.string().optional().describe(customDesc?.parentId || `The id of the parent board, group or component for the ${type}`),
-    zIndex: z.number().min(0).optional().describe(customDesc?.zIndex || `The z-index of the ${type}, used to control stacking order. Higher z-index values appear on top of lower values. Text and foreground elements should have a higher zIndex than backgrounds.`),
+    zIndex: z.number().min(0).describe(customDesc?.zIndex || `The z-index (index) inside the parent. Higher values appear on top of lower values.`),
   };
 }
 
@@ -234,30 +234,33 @@ export const componentSchema = boardShapeSchema.extend({
   path: z.string().describe('The path of the library component.'),
 });
 
+export const groupShapeSchema = z.object(getBaseShapeProperties('group'))
+  .extend(getChildShapeProperties('group'))
+
 const rectangleShapeSchema = z.object(getBaseShapeProperties('rectangle'))
   .extend(getChildShapeProperties('rectangle'))
-    .extend({
-    type: z.literal('rectangle').describe('The type of shape: rectangle'),
+  .extend({
+    type: z.literal('rectangle').describe('The type of shape: rectangle (always lowercase)'),
   });
 
 const ellipseShapeSchema = z.object(getBaseShapeProperties('ellipse'))
   .extend(getChildShapeProperties('ellipse'))
   .extend({
-    type: z.literal('ellipse').describe('The type of shape: ellipse'),
+    type: z.literal('ellipse').describe('The type of shape: ellipse (always lowercase)'),
   });
 
 export const pathShapeSchema = z.object(getBaseShapeProperties('path'))
   .extend(getChildShapeProperties('path'))
   .extend(pathShapePropertiesSchema.shape)
   .extend({
-    type: z.literal('path').describe('The type of shape: path'),
+    type: z.literal('path').describe('The type of shape: path (always lowercase)'),
   });
 
 export const textShapeSchema = z.object(getBaseShapeProperties('text'))
   .extend(getChildShapeProperties('text'))
   .extend(textShapePropertiesSchema.shape)
   .extend({
-    type: z.literal('text').describe('The type of shape: text'),
+    type: z.literal('text').describe('The type of shape: text (always lowercase)'),
   });
 
 export const createShapesSchema = z.object({
@@ -268,29 +271,45 @@ export const createShapesSchema = z.object({
       pathShapeSchema,
       textShapeSchema,
     ])
-  ).describe('Array of shape objects to create. Each object must define the properties of one shape. Provide each shape as a proper object (not a string), following the expected type.'),
+  ).optional().describe('Array of shape objects to create. Each object must define the properties of one shape. Provide each shape as a proper object (not a string), following the expected type (always lowercase).'),
 });
 
 export const shapeIdsSchema = z.object({
-  shapeIds: z.array(z.string()).min(1).describe('Array of shape IDs to include. Use CreateShapesTool first to create new shapes, or provide existing shape IDs. Can include shapes, groups, components, or boards.'),
+  shapeIds: z.array(
+    z.object({
+      shapeId: z.string().describe('The ID of the shape to include'),
+      zIndex: z.number().optional().describe('Optional zIndex for ordering; lower values appear first'),
+    })
+  ).optional().describe('Array of shape references to include. Use CreateShapesTool first to create new shapes, or provide existing shape IDs. Can include shapes, groups, components, or boards.'),
 });
 
 export const createComponentSchema = shapeIdsSchema.extend(
   componentSchema.shape
 ).describe('Schema for creating a component from existing shapes. Use component properties to define the background fills, strokes, and shadows.');
 
-export const createGroupSchema = shapeIdsSchema.extend(
-  z.object(getBaseShapeProperties('group')).shape
-).describe('Schema for creating a group from existing shapes.');
+export const createGroupSchema = groupShapeSchema
+  .extend(shapeIdsSchema.shape)
+  .extend(createShapesSchema.shape)
+  .describe('Schema for creating a group from existing shapes or creating new shapes inside the group.');
 
-export const createBoardSchema = shapeIdsSchema.extend(
+export const createBoardSchema = shapeIdsSchema.partial().extend(
   boardShapeSchema.shape
-).describe('Schema for creating a board and moving existing shapes into it.');
+).describe('Schema for creating a board and optionally moving existing shapes into it.');
 
 export const convertGroupToBoardSchema = z.object({
   groupId: z.string().describe('The ID of the group to convert into a board'),
   properties: boardShapeSchema.partial().optional().describe('Optional board properties to apply after conversion'),
 }).describe('Schema for converting an existing group into a board.');
+
+export const modifyBoardSchema = z.object({
+  boardId: z.string().describe('The ID of the board to modify'),
+  properties: boardShapeSchema.partial().optional().describe('Board properties to modify. Provide only the fields you want to change. Use null to remove a property.'),
+}).describe('Schema for modifying an existing board.');
+
+export const modifyComponentSchema = z.object({
+  componentId: z.string().describe('The ID of the component to modify (library component id or component instance id)'),
+  properties: componentSchema.partial().optional().describe('Component properties to modify. Provide only the fields you want to change. Use null to remove a property.'),
+}).describe('Schema for modifying an existing component.');
 
 export const modifyShapePropertiesSchema = z.object({
   shapeId: z.string().describe('The ID of the shape to modify'),

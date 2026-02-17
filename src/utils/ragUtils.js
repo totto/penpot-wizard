@@ -1,117 +1,175 @@
+import pako from 'pako';
 import { restore } from '@orama/plugin-data-persistence';
 import { search } from '@orama/orama';
 import { pluginEmbeddings } from '@orama/plugin-embeddings';
 import '@tensorflow/tfjs-backend-webgl';
 
-/**
- * Descomprime datos gzip
- */
-async function decompressGzip(compressedData) {
-  const stream = new DecompressionStream('gzip');
-  const writer = stream.writable.getWriter();
-  const reader = stream.readable.getReader();
-  
-  // Escribir datos comprimidos
-  writer.write(new Uint8Array(compressedData));
-  writer.close();
-  
-  // Leer datos descomprimidos
-  const chunks = [];
-  let done = false;
-  
-  while (!done) {
-    const { value, done: readerDone } = await reader.read();
-    done = readerDone;
-    if (value) {
-      chunks.push(value);
-    }
+const OPENROUTER_EMBEDDINGS_URL = 'https://openrouter.ai/api/v1/embeddings';
+const dbCache = new Map();
+
+function decompressGzip(compressedData) {
+  const bytes = compressedData instanceof ArrayBuffer
+    ? new Uint8Array(compressedData)
+    : new Uint8Array(compressedData);
+  return pako.ungzip(bytes, { to: 'uint8array' });
+}
+
+function isLikelyHex(bytes, sampleSize = 4096) {
+  const len = Math.min(bytes.length, sampleSize);
+  if (!len) return false;
+  for (let i = 0; i < len; i += 1) {
+    const c = bytes[i];
+    const isHex = (c >= 48 && c <= 57) || (c >= 97 && c <= 102);
+    const isWhitespace = c === 10 || c === 13 || c === 9 || c === 32;
+    if (!isHex && !isWhitespace) return false;
   }
-  
-  // Combinar chunks y convertir a string
-  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-  
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
+  return true;
+}
+
+async function getQueryEmbedding(query, apiKey, modelId) {
+  if (!apiKey) throw new Error('Missing API key for embedding model');
+  const response = await fetch(OPENROUTER_EMBEDDINGS_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ model: modelId, input: query })
+  });
+  if (!response.ok) {
+    const err = await response.text().catch(() => '');
+    throw new Error(`Embeddings API error: ${response.status} ${err}`);
   }
-  
-  return new TextDecoder().decode(result);
+  const data = await response.json();
+  const embedding = data?.data?.[0]?.embedding;
+  if (!Array.isArray(embedding)) throw new Error('Invalid embedding response');
+  return embedding;
 }
 
 /**
- * Inicializa la base de datos Orama desde el archivo ZIP comprimido
+ * Public API: Initialize Orama DB from a .zip file and load it.
+ * @param {string} dbFile - Path to the gzipped .zip file (served from public/)
+ * @param {string} embeddingModel - 'orama' | 'openai' (orama = plugin embeddings, openai = precomputed vectors)
+ * @returns {Promise<object>} Orama database instance
  */
-export async function initializeDataBase(dbFile, _embeds = 'orama') {
-  try {    
-    const response = await fetch(`/${dbFile}`);
+export async function initializeOramaDb(dbFile, embeddingModel = 'orama') {
+  const cacheKey = `${dbFile}:${embeddingModel}`;
+  if (dbCache.has(cacheKey)) {
+    return dbCache.get(cacheKey);
+  }
 
-    if (!response.ok) {
-      throw new Error(`Failed to load embeddings file: ${response.status}`);
+  const response = await fetch(`/${dbFile}`);
+  if (!response.ok) throw new Error(`Failed to load embeddings file: ${response.status}`);
+
+  const compressedData = await response.arrayBuffer();
+  const decompressedBytes = decompressGzip(compressedData);
+
+  let dbInstance;
+  const jsonText = new TextDecoder().decode(decompressedBytes);
+  try {
+    const parsed = JSON.parse(jsonText);
+    dbInstance = await restore('binary', parsed);
+  } catch {
+    if (isLikelyHex(decompressedBytes)) {
+      dbInstance = await restore('binary', jsonText);
+    } else {
+      try {
+        dbInstance = await restore('dpack', decompressedBytes);
+      } catch {
+        dbInstance = await restore('seqproto', decompressedBytes);
+      }
     }
-    
-    const compressedData = await response.arrayBuffer();
-    const decompressedData = await decompressGzip(compressedData);
-    const persistData = JSON.parse(decompressedData);
-    
-    const dbInstance = await restore('binary', persistData);
-    
+  }
+
+  if (embeddingModel === 'orama') {
     const embeddingsPlugin = await pluginEmbeddings({
       embeddings: {
         defaultProperty: 'embedding',
-        onInsert: {
-          generate: false,
-          properties: ['text'],
-          verbose: false,
-        }
+        onInsert: { generate: false, properties: ['text'], verbose: false }
       }
     });
-
-    // Wrap hooks so Orama always awaits them (some builds strip AsyncFunction)
     if (typeof embeddingsPlugin.beforeSearch === 'function') {
       dbInstance.beforeSearch.push(async (...args) => embeddingsPlugin.beforeSearch(...args));
     }
     if (typeof embeddingsPlugin.beforeInsert === 'function') {
       dbInstance.beforeInsert.push(async (...args) => embeddingsPlugin.beforeInsert(...args));
     }
-    
-    console.log('🔍 Database initialized successfully', dbFile);
-    return dbInstance;
-  } catch (error) {
-    console.error('❌ Error initializing database:', error);
-    throw new Error(`Failed to initialize database from ${dbFile}`);
   }
+
+  dbCache.set(cacheKey, dbInstance);
+  return dbInstance;
 }
 
 /**
- * Realiza una búsqueda vectorial en la base de datos
+ * Public API: Search Orama DB.
+ * @param {string} query - Search query
+ * @param {object} options - { dbInstance, limit?, similarity?, embeddingModel?, apiKey?, modelId? }
+ * @returns {Promise<Array>} Hits array
  */
-export async function searchDataBase(query, limit = 10, dbInstance, _embeds = 'orama') {
-  try {
-    if (!dbInstance) {
-      throw new Error('Database instance not initialized');
-    }
-    
-    let results;
+export async function searchOramaDb(query, options = {}) {
+  const {
+    dbInstance,
+    limit = 10,
+    similarity = 0.85,
+    embeddingModel = 'orama',
+    apiKey,
+    modelId
+  } = options;
 
-    results = await search(dbInstance, {
+  if (!dbInstance) throw new Error('Database instance not initialized');
+
+  if (embeddingModel === 'orama') {
+    const results = await search(dbInstance, {
       mode: 'hybrid',
       term: query,
       limit,
-      similarity: 0.85
+      similarity
     });
-
     return results.hits.map(hit => ({
       id: hit.document.id,
       text: hit.document.text,
       url: hit.document.url,
-      score: hit.score,
+      score: hit.score
     }));
-    
-  } catch (error) {
-    console.error('Error searching database:', error);
-    throw new Error('Failed to search database');
   }
+
+  const vector = await getQueryEmbedding(query, apiKey, modelId);
+  const results = await search(dbInstance, {
+    mode: 'vector',
+    vector: { value: vector, property: 'embedding' },
+    limit,
+    similarity
+  });
+  return results.hits.map(hit => ({
+    id: hit.document.id,
+    text: hit.document.text,
+    url: hit.document.url,
+    score: hit.score
+  }));
 }
 
+// --- Backward compatibility (deprecated, use initializeOramaDb + searchOramaDb) ---
+
+export async function initializeDataBase(dbFile, embeds = 'orama') {
+  return initializeOramaDb(dbFile, embeds);
+}
+
+export async function searchDataBase(query, limit = 10, dbInstance, embeds = 'orama') {
+  return searchOramaDb(query, {
+    dbInstance,
+    limit,
+    similarity: 0.85,
+    embeddingModel: embeds
+  });
+}
+
+export async function initializeDataBaseV2(dbFile) {
+  return initializeOramaDb(dbFile, 'openai');
+}
+
+export async function searchDataBaseV2(query, options) {
+  return searchOramaDb(query, {
+    ...options,
+    embeddingModel: 'openai'
+  });
+}

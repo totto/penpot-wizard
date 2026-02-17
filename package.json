@@ -10,9 +10,6 @@
     "build": "vite build -c vite.config.plugin.js && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "rag:generate": "node ragGenerator/run.js",
-    "rag:generate:v2": "node ragGenerator/run-v2.js",
-    "rag:optimize": "node ragGenerator/optimize/run.js",
     "test": "vitest",
     "test:ui": "vitest --ui"
   },
@@ -32,6 +29,7 @@
     "jsonrepair": "^3.13.2",
     "nanostores": "^1.1.0",
     "openai": "^6.16.0",
+    "pako": "^2.1.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-intersection-observer": "^10.0.2",

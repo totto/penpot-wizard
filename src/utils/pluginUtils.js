@@ -10,38 +10,23 @@ export const drawShape = async (shapeType, params) => {
 
 /**
  * Creates an array of shapes from a list of shape definitions.
- * Shapes are sorted by zIndex before creation to ensure proper stacking order.
- * - When parentId is provided (shapes added to board/component): descending order (highest zIndex first)
- * - When parentId is not provided: ascending order (lowest zIndex first)
+ * Shapes are created in the order provided. Use parent.zIndex to control stacking.
  * 
  * @param shapes - Array of shape definitions with type and zIndex
  * @param options - Optional configuration (parentId to set as parent for all shapes, throwOnError to throw on failure)
  * @returns Array of created shape information including id, name, type, and response
  */
-export const createShapesArray = async (
-  shapes,
-  options = {}
-) => {
+export const createShapesArray = async (shapes, options = {}) => {
   const { parentId, throwOnError = false } = options;
-  
-  // Sort shapes by zIndex:
-  // - When adding to board/component (parentId): descending (highest zIndex first, appears on top)
-  // - When creating standalone shapes: ascending (lowest zIndex first, appears below)
-  const orderedShapes = [...shapes].sort((a, b) => 
-    b.zIndex - a.zIndex
-  );
-
   const createdShapes = [];
-  
-  for (const shape of orderedShapes) {
-    const { type, zIndex, ...shapeParams } = shape;
-    
-    // Set parentId if provided
-    // Note: zIndex is excluded from shapeParams as it's only used for sorting, not for the API call
-    const shapeParamsWithParent = parentId 
-      ? { ...shapeParams, parentId }
-      : shapeParams;
-    
+
+  for (const shape of shapes) {
+    const { type, parentId: shapeParentId, zIndex, ...shapeParams } = shape;
+    const resolvedParentId = parentId || shapeParentId;
+    const shapeParamsWithParent = resolvedParentId
+      ? { ...shapeParams, parentId: resolvedParentId, zIndex }
+      : { ...shapeParams, zIndex };
+
     const response = await drawShape(type, shapeParamsWithParent);
     
     if (response.success) {
