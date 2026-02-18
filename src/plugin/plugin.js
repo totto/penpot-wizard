@@ -21,6 +21,10 @@ import {
   handleSendToBackShape,
   handleSendBackwardShape,
   handleConvertGroupToBoard,
+  handleConvertGroupToComponent,
+  handleConvertBoardToComponent,
+  handleCreateBoolean,
+  handleUngroupShape,
 } from './drawHandlers';
 
 import {
@@ -112,6 +116,22 @@ penpot.ui.onMessage(async (message) => {
 
     case ClientQueryType.CONVERT_GROUP_TO_BOARD:
       responseMessage = handleConvertGroupToBoard(payload);
+      break;
+
+    case ClientQueryType.CONVERT_GROUP_TO_COMPONENT:
+      responseMessage = handleConvertGroupToComponent(payload);
+      break;
+
+    case ClientQueryType.CONVERT_BOARD_TO_COMPONENT:
+      responseMessage = handleConvertBoardToComponent(payload);
+      break;
+
+    case ClientQueryType.CREATE_BOOLEAN:
+      responseMessage = handleCreateBoolean(payload);
+      break;
+
+    case ClientQueryType.UNGROUP_SHAPE:
+      responseMessage = handleUngroupShape(payload);
       break;
 
     case ClientQueryType.MODIFY_SHAPE:

@@ -301,6 +301,27 @@ export const convertGroupToBoardSchema = z.object({
   properties: boardShapeSchema.partial().optional().describe('Optional board properties to apply after conversion'),
 }).describe('Schema for converting an existing group into a board.');
 
+export const convertGroupToComponentSchema = z.object({
+  groupId: z.string().describe('The ID of the group to convert into a component'),
+  name: z.string().optional().describe('Optional name for the new component'),
+  properties: boardShapeSchema.partial().optional().describe('Optional component properties to apply after conversion'),
+}).describe('Schema for converting an existing group into a component.');
+
+export const convertBoardToComponentSchema = z.object({
+  boardId: z.string().describe('The ID of the board to convert into a component'),
+  name: z.string().optional().describe('Optional name for the new component'),
+  properties: boardShapeSchema.partial().optional().describe('Optional component properties to apply after conversion'),
+}).describe('Schema for converting an existing board into a component.');
+
+export const createBooleanSchema = z.object({
+  boolType: z.enum(['union', 'difference', 'exclude', 'intersection']).describe('The boolean operation: union (combine), difference (cut out), exclude (xor), intersection (keep overlap)'),
+  shapeIds: z.array(z.string()).min(2).describe('Array of at least 2 shape IDs to perform the boolean operation on'),
+}).merge(baseShapeProperties.partial()).describe('Schema for creating a boolean shape from existing shapes.');
+
+export const ungroupShapeSchema = z.object({
+  groupId: z.string().describe('The ID of the group to ungroup'),
+}).describe('Schema for ungrouping a group.');
+
 export const modifyBoardSchema = z.object({
   boardId: z.string().describe('The ID of the board to modify'),
   properties: boardShapeSchema.partial().optional().describe('Board properties to modify. Provide only the fields you want to change. Use null to remove a property.'),

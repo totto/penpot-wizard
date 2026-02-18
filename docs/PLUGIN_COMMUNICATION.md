@@ -45,6 +45,10 @@ UI (React)                    Plugin (Penpot)
 | CREATE_GROUP | handleCreateGroup | Group shapes |
 | CREATE_BOARD | handleCreateBoard | Create board with shapes |
 | CONVERT_GROUP_TO_BOARD | handleConvertGroupToBoard | Convert group to board |
+| CONVERT_GROUP_TO_COMPONENT | handleConvertGroupToComponent | Convert group to component |
+| CONVERT_BOARD_TO_COMPONENT | handleConvertBoardToComponent | Convert board to component |
+| CREATE_BOOLEAN | handleCreateBoolean | Boolean ops (union, difference, etc.) |
+| UNGROUP_SHAPE | handleUngroupShape | Ungroup a group |
 | MODIFY_BOARD | handleModifyBoard | Edit board properties |
 | MODIFY_COMPONENT | handleModifyComponent | Edit component properties |
 | MODIFY_SHAPE | handleModifyShape | Edit shape properties |

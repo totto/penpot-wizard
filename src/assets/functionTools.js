@@ -49,6 +49,44 @@ export const functionTools = [
     },
   },
   {
+    id: "add-image",
+    name: "AddImageTool",
+    description: `
+      Use this tool to add an image to the Penpot project. The image becomes available as ImageData for use in shape fills (fillImage).
+      
+      Provide EITHER:
+      - url: A publicly accessible image URL (e.g. https://example.com/image.png)
+      - data + mimeType: Base64-encoded image data with its MIME type (e.g. image/png, image/jpeg)
+      
+      Returns newImageData with id, width, height - use fillImage: newImageData when creating or modifying shapes.
+    `,
+    inputSchema: z.object({
+      name: z.string().optional().describe('Optional name for the image. Auto-generated if omitted.'),
+      url: z.string().url().optional().describe('Public URL of the image to fetch and add'),
+      data: z.string().optional().describe('Base64-encoded image data (without data:...;base64, prefix). Required if url is not provided.'),
+      mimeType: z.string().optional().describe('MIME type (e.g. image/png, image/jpeg). Required when using data.'),
+    }).refine(
+      (input) => input.url || (input.data && input.mimeType),
+      { message: 'Provide either url or both data and mimeType' }
+    ),
+    function: async ({ name, url, data, mimeType }) => {
+      let payload = { name: name || `image-${Date.now()}` };
+      if (url) {
+        payload.url = url;
+      } else if (data && mimeType) {
+        const binaryString = atob(data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        payload.data = bytes;
+        payload.mimeType = mimeType;
+      }
+      const response = await sendMessageToPlugin(ClientQueryType.ADD_IMAGE, payload);
+      return response;
+    },
+  },
+  {
     id: "get-selected-shapes",
     name: "getSelectedShapes",
     description: `

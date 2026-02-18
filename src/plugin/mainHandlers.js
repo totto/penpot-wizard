@@ -208,10 +208,18 @@ export function handleCreateShapeFromSvg(payload) {
 }
 
 export async function handleAddImage(payload) {
-  const { name, data, mimeType } = payload;
+  const { name, data, mimeType, url } = payload;
 
   try {
-    const imageCreatedData = await penpot.uploadMediaData(name, data, mimeType);
+    let imageCreatedData;
+    if (url) {
+      imageCreatedData = await penpot.uploadMediaUrl(name || `image-${Date.now()}`, url);
+    } else if (data && mimeType) {
+      imageCreatedData = await penpot.uploadMediaData(name, data, mimeType);
+    } else {
+      throw new Error('Provide either url or (data and mimeType)');
+    }
+
     if (imageCreatedData) {
       return {
         success: true,
@@ -226,11 +234,11 @@ export async function handleAddImage(payload) {
   } catch (error) {
     return {
       success: false,
-      message: `error adding image ${name}: ${error}`,
+      message: `error adding image ${name || 'unknown'}: ${error}`,
       payload: {
         error: error instanceof Error ? error.message : String(error),
       },
-    }
+    };
   }
 }
 

@@ -55,7 +55,7 @@ export const specializedAgents = [
         guidelines: z.object({ layout: z.string(), states: z.string(), accessibility: z.string() }),
       }),
     }),
-    toolIds: ['penpot-user-guide-rag', 'get-available-fonts'],
+    toolIds: ['penpot-user-guide-rag', 'design-styles-rag'],
   },
   {
     id: 'ux-design-specialist',

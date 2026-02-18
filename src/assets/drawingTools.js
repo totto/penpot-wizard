@@ -1,6 +1,6 @@
 import { sendMessageToPlugin, createShapesArray } from '@/utils/pluginUtils';
 import { ToolResponse, ClientQueryType } from '@/types/types';
-import { createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, convertGroupToBoardSchema, modifyBoardSchema, modifyComponentSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
+import { createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, convertGroupToBoardSchema, convertGroupToComponentSchema, convertBoardToComponentSchema, createBooleanSchema, ungroupShapeSchema, modifyBoardSchema, modifyComponentSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
 import { z } from 'zod';
 
 export const drawingTools = [
@@ -331,6 +331,113 @@ export const drawingTools = [
           ...ToolResponse,
           success: false,
           message: `Failed to convert group to board: ${error.message}`,
+          payload: { error: error.message },
+        };
+      }
+    },
+  },
+  {
+    id: 'convert-group-to-component',
+    name: 'ConvertGroupToComponentTool',
+    description: `
+      Use this tool to convert an existing group into a library component while preserving its children.
+      The group is replaced by a component instance at the same position.
+      
+      You must provide the groupId of the group you want to convert.
+      You can optionally pass a name and component properties (fills, strokes, layout, etc.) to apply after conversion.
+      
+      TIP: Use GET_SELECTED_SHAPES or GET_CURRENT_PAGE to find the group ID.
+    `,
+    inputSchema: convertGroupToComponentSchema,
+    function: async (input) => {
+      try {
+        const response = await sendMessageToPlugin(ClientQueryType.CONVERT_GROUP_TO_COMPONENT, input);
+        return response;
+      } catch (error) {
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to convert group to component: ${error.message}`,
+          payload: { error: error.message },
+        };
+      }
+    },
+  },
+  {
+    id: 'convert-board-to-component',
+    name: 'ConvertBoardToComponentTool',
+    description: `
+      Use this tool to convert an existing board into a library component while preserving its children.
+      The board is replaced by a component instance at the same position.
+      
+      You must provide the boardId of the board you want to convert.
+      You can optionally pass a name and component properties (fills, strokes, layout, etc.) to apply after conversion.
+      
+      TIP: Use GET_SELECTED_SHAPES or GET_CURRENT_PAGE to find the board ID.
+    `,
+    inputSchema: convertBoardToComponentSchema,
+    function: async (input) => {
+      try {
+        const response = await sendMessageToPlugin(ClientQueryType.CONVERT_BOARD_TO_COMPONENT, input);
+        return response;
+      } catch (error) {
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to convert board to component: ${error.message}`,
+          payload: { error: error.message },
+        };
+      }
+    },
+  },
+  {
+    id: 'create-boolean',
+    name: 'CreateBooleanTool',
+    description: `
+      Use this tool to create a boolean shape from two or more existing shapes.
+      Boolean operations combine shapes: union (merge), difference (cut out), exclude (xor), intersection (keep overlap).
+      
+      You must provide the boolType and at least 2 shape IDs.
+      Use GET_CURRENT_PAGE or GET_SELECTED_SHAPES to get shape IDs.
+      
+      Operations: union (combine into one), difference (first minus others), exclude (xor), intersection (only overlapping area).
+    `,
+    inputSchema: createBooleanSchema,
+    function: async (input) => {
+      try {
+        const response = await sendMessageToPlugin(ClientQueryType.CREATE_BOOLEAN, input);
+        return response;
+      } catch (error) {
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to create boolean shape: ${error.message}`,
+          payload: { error: error.message },
+        };
+      }
+    },
+  },
+  {
+    id: 'ungroup-shape',
+    name: 'UngroupShapeTool',
+    description: `
+      Use this tool to ungroup a group. The children shapes will be moved to the parent of the group.
+      
+      You must provide the groupId of the group to ungroup.
+      Only works on groups, not on boards or components.
+      
+      TIP: Use GET_CURRENT_PAGE or GET_SELECTED_SHAPES to find the group ID.
+    `,
+    inputSchema: ungroupShapeSchema,
+    function: async (input) => {
+      try {
+        const response = await sendMessageToPlugin(ClientQueryType.UNGROUP_SHAPE, input);
+        return response;
+      } catch (error) {
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to ungroup: ${error.message}`,
           payload: { error: error.message },
         };
       }

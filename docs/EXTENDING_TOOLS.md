@@ -79,6 +79,10 @@ Drawing tools create and modify shapes in Penpot. Schemas are defined in `src/ty
 - `create-group` – Group shapes
 - `create-board` – Create boards with optional shapes
 - `convert-group-to-board` – Convert group to board
+- `convert-group-to-component` – Convert group to component
+- `convert-board-to-component` – Convert board to component
+- `create-boolean` – Boolean ops (union, difference, exclude, intersection)
+- `ungroup-shape` – Ungroup a group
 - `modify-board`, `modify-component`, `modify-shape` – Edit properties
 - `modify-text-range` – Edit text styling ranges
 - `rotate-shape`, `clone-shape` – Transform shapes

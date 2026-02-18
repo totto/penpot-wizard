@@ -47,7 +47,6 @@ Your goal is to intelligently select and use the most appropriate tools to compl
 </best_practices>
     `,
     toolIds: [
-      'get-available-fonts',
       'get-current-page',
       'get-selected-shapes',
       'get-device-size-presets',
@@ -56,10 +55,12 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'icons-rag',
       'create-shapes',
       'create-component',
-      'convert-to-component',
-      'create-group',
-      'create-board',
+      'convert-group-to-component',
+      'convert-board-to-component',
       'convert-group-to-board',
+      'create-boolean',
+      'ungroup-shape',
+      'add-image',
       'draw-icon',
       'modify-board',
       'modify-component',

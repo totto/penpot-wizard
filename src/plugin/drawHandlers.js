@@ -462,6 +462,206 @@ export function handleConvertGroupToBoard(payload) {
   }
 }
 
+function convertContainerToComponent(container, containerType) {
+  const children = container.children && Array.isArray(container.children)
+    ? [...container.children]
+    : [];
+  if (children.length === 0) {
+    throw new Error(`${containerType} has no children to convert`);
+  }
+
+  const parent = container.parent;
+  const insertIndex = container.parentIndex ?? 0;
+  const containerX = container.x;
+  const containerY = container.y;
+
+  const component = penpot.library.local.createComponent(children);
+  if (!component || !component.mainInstance()) {
+    throw new Error(`Failed to create component from ${containerType}`);
+  }
+
+  const instance = component.instance();
+  container.remove();
+
+  if (parent) {
+    if (typeof parent.insertChild === 'function') {
+      parent.insertChild(insertIndex, instance);
+    } else if (typeof parent.appendChild === 'function') {
+      parent.appendChild(instance);
+    }
+  }
+
+  instance.x = containerX;
+  instance.y = containerY;
+
+  return component;
+}
+
+export function handleConvertGroupToComponent(payload) {
+  const { groupId, name, ...properties } = payload || {};
+
+  try {
+    const group = penpot.currentPage?.getShapeById(groupId);
+    if (!group) {
+      throw new Error(`Shape with ID ${groupId} not found`);
+    }
+    if (group.type !== PenpotShapeType.GROUP) {
+      throw new Error(`Shape with ID ${groupId} is not a group`);
+    }
+
+    const component = convertContainerToComponent(group, 'group');
+
+    if (name) {
+      component.name = name;
+    }
+    if (properties && Object.keys(properties).length > 0) {
+      setParamsToBoard(component.mainInstance(), properties);
+    }
+
+    return {
+      success: true,
+      message: 'Group converted to component successfully',
+      payload: {
+        component,
+        instance: curateShapeOutput(component.instance()),
+      },
+    };
+  } catch (error) {
+    console.error('error converting group to component:', error);
+    return {
+      success: false,
+      message: `error converting group to component ${groupId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+export function handleConvertBoardToComponent(payload) {
+  const { boardId, name, ...properties } = payload || {};
+
+  try {
+    const board = penpot.currentPage?.getShapeById(boardId);
+    if (!board) {
+      throw new Error(`Shape with ID ${boardId} not found`);
+    }
+    if (board.type !== PenpotShapeType.BOARD) {
+      throw new Error(`Shape with ID ${boardId} is not a board`);
+    }
+
+    const component = convertContainerToComponent(board, 'board');
+
+    if (name) {
+      component.name = name;
+    }
+    if (properties && Object.keys(properties).length > 0) {
+      setParamsToBoard(component.mainInstance(), properties);
+    }
+
+    return {
+      success: true,
+      message: 'Board converted to component successfully',
+      payload: {
+        component,
+        instance: curateShapeOutput(component.instance()),
+      },
+    };
+  } catch (error) {
+    console.error('error converting board to component:', error);
+    return {
+      success: false,
+      message: `error converting board to component ${boardId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+const BOOLEAN_TYPES = ['union', 'difference', 'exclude', 'intersection'];
+
+export function handleCreateBoolean(payload) {
+  const { boolType, shapeIds, ...params } = payload || {};
+
+  try {
+    if (!BOOLEAN_TYPES.includes(boolType)) {
+      throw new Error(`Invalid boolType. Must be one of: ${BOOLEAN_TYPES.join(', ')}`);
+    }
+    if (!shapeIds || !Array.isArray(shapeIds) || shapeIds.length < 2) {
+      throw new Error('At least 2 shape IDs are required for boolean operation');
+    }
+
+    const shapes = shapeIds.map((id) => {
+      const shape = penpot.currentPage?.getShapeById(id);
+      if (!shape) {
+        throw new Error(`Shape with ID ${id} not found`);
+      }
+      return shape;
+    });
+
+    const booleanShape = penpot.createBoolean(boolType, shapes);
+    if (!booleanShape) {
+      throw new Error(`Failed to create boolean shape (${boolType})`);
+    }
+
+    if (params && Object.keys(params).length > 0) {
+      setParamsToShape(booleanShape, params);
+    }
+
+    return {
+      success: true,
+      message: `Boolean shape (${boolType}) created successfully`,
+      payload: {
+        shape: curateShapeOutput(booleanShape),
+      },
+    };
+  } catch (error) {
+    console.error('error creating boolean shape:', error);
+    return {
+      success: false,
+      message: `error creating boolean shape: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
+export function handleUngroupShape(payload) {
+  const { groupId } = payload || {};
+
+  try {
+    const group = penpot.currentPage?.getShapeById(groupId);
+    if (!group) {
+      throw new Error(`Shape with ID ${groupId} not found`);
+    }
+    if (group.type !== PenpotShapeType.GROUP) {
+      throw new Error(`Shape with ID ${groupId} is not a group. Use this tool only for groups.`);
+    }
+
+    penpot.ungroup(group);
+
+    return {
+      success: true,
+      message: 'Group ungrouped successfully',
+      payload: {
+        groupId,
+        ungrouped: true,
+      },
+    };
+  } catch (error) {
+    console.error('error ungrouping shape:', error);
+    return {
+      success: false,
+      message: `error ungrouping group ${groupId}: ${error}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
 export function handleModifyBoard(payload) {
   const { boardId, properties } = payload;
 

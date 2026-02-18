@@ -103,7 +103,7 @@ Specialists are focused sub-agents with input/output schemas. They can use tools
       // ...
     }),
   }),
-  toolIds: ["penpot-user-guide-rag", "get-available-fonts"],
+  toolIds: ["penpot-user-guide-rag", "design-styles-rag"],
   imageGenerationAgentIds: ["image-generator"],  // optional
 }
 ```
