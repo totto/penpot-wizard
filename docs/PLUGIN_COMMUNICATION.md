@@ -49,6 +49,8 @@ UI (React)                    Plugin (Penpot)
 | CONVERT_BOARD_TO_COMPONENT | handleConvertBoardToComponent | Convert board to component |
 | CREATE_BOOLEAN | handleCreateBoolean | Boolean ops (union, difference, etc.) |
 | UNGROUP_SHAPE | handleUngroupShape | Ungroup a group |
+| ALIGN_SHAPES | handleAlignShapes | Align shapes (horizontal/vertical) |
+| DISTRIBUTE_SHAPES | handleDistributeShapes | Distribute shapes with equal spacing |
 | MODIFY_BOARD | handleModifyBoard | Edit board properties |
 | MODIFY_COMPONENT | handleModifyComponent | Edit component properties |
 | MODIFY_SHAPE | handleModifyShape | Edit shape properties |

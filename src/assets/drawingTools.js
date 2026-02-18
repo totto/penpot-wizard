@@ -1,6 +1,6 @@
 import { sendMessageToPlugin, createShapesArray } from '@/utils/pluginUtils';
 import { ToolResponse, ClientQueryType } from '@/types/types';
-import { createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, convertGroupToBoardSchema, convertGroupToComponentSchema, convertBoardToComponentSchema, createBooleanSchema, ungroupShapeSchema, modifyBoardSchema, modifyComponentSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
+import { createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, convertGroupToBoardSchema, convertGroupToComponentSchema, convertBoardToComponentSchema, createBooleanSchema, ungroupShapeSchema, alignShapesSchema, distributeShapesSchema, modifyBoardSchema, modifyComponentSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
 import { z } from 'zod';
 
 export const drawingTools = [
@@ -438,6 +438,59 @@ export const drawingTools = [
           ...ToolResponse,
           success: false,
           message: `Failed to ungroup: ${error.message}`,
+          payload: { error: error.message },
+        };
+      }
+    },
+  },
+  {
+    id: 'align-shapes',
+    name: 'AlignShapesTool',
+    description: `
+      Use this tool to align two or more shapes along an axis.
+      
+      Provide shapeIds (at least 2), axis (horizontal or vertical), and direction:
+      - Horizontal: left, center, right
+      - Vertical: top, center, bottom
+      
+      TIP: Use GET_CURRENT_PAGE or GET_SELECTED_SHAPES to get shape IDs.
+    `,
+    inputSchema: alignShapesSchema,
+    function: async (input) => {
+      try {
+        const response = await sendMessageToPlugin(ClientQueryType.ALIGN_SHAPES, input);
+        return response;
+      } catch (error) {
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to align shapes: ${error.message}`,
+          payload: { error: error.message },
+        };
+      }
+    },
+  },
+  {
+    id: 'distribute-shapes',
+    name: 'DistributeShapesTool',
+    description: `
+      Use this tool to distribute shapes with equal spacing along an axis.
+      
+      Provide shapeIds (at least 2) and axis (horizontal or vertical).
+      Shapes will be spaced evenly between the leftmost/rightmost or top/bottom shapes.
+      
+      TIP: Use GET_CURRENT_PAGE or GET_SELECTED_SHAPES to get shape IDs.
+    `,
+    inputSchema: distributeShapesSchema,
+    function: async (input) => {
+      try {
+        const response = await sendMessageToPlugin(ClientQueryType.DISTRIBUTE_SHAPES, input);
+        return response;
+      } catch (error) {
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to distribute shapes: ${error.message}`,
           payload: { error: error.message },
         };
       }

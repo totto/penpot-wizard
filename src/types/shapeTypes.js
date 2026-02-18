@@ -322,6 +322,25 @@ export const ungroupShapeSchema = z.object({
   groupId: z.string().describe('The ID of the group to ungroup'),
 }).describe('Schema for ungrouping a group.');
 
+export const alignShapesSchema = z.object({
+  shapeIds: z.array(z.string()).min(2).describe('Array of at least 2 shape IDs to align'),
+  axis: z.enum(['horizontal', 'vertical']).describe('Axis along which to align'),
+  direction: z.enum(['left', 'center', 'right', 'top', 'bottom']).describe('Horizontal: left, center, right. Vertical: top, center, bottom'),
+}).refine(
+  (input) => {
+    if (input.axis === 'horizontal') {
+      return ['left', 'center', 'right'].includes(input.direction);
+    }
+    return ['top', 'center', 'bottom'].includes(input.direction);
+  },
+  { message: 'Horizontal axis requires left/center/right; vertical requires top/center/bottom' }
+).describe('Schema for aligning shapes.');
+
+export const distributeShapesSchema = z.object({
+  shapeIds: z.array(z.string()).min(2).describe('Array of at least 2 shape IDs to distribute'),
+  axis: z.enum(['horizontal', 'vertical']).describe('Axis along which to distribute (equal spacing)'),
+}).describe('Schema for distributing shapes with equal spacing.');
+
 export const modifyBoardSchema = z.object({
   boardId: z.string().describe('The ID of the board to modify'),
   properties: boardShapeSchema.partial().optional().describe('Board properties to modify. Provide only the fields you want to change. Use null to remove a property.'),

@@ -25,6 +25,8 @@ import {
   handleConvertBoardToComponent,
   handleCreateBoolean,
   handleUngroupShape,
+  handleAlignShapes,
+  handleDistributeShapes,
 } from './drawHandlers';
 
 import {
@@ -132,6 +134,14 @@ penpot.ui.onMessage(async (message) => {
 
     case ClientQueryType.UNGROUP_SHAPE:
       responseMessage = handleUngroupShape(payload);
+      break;
+
+    case ClientQueryType.ALIGN_SHAPES:
+      responseMessage = handleAlignShapes(payload);
+      break;
+
+    case ClientQueryType.DISTRIBUTE_SHAPES:
+      responseMessage = handleDistributeShapes(payload);
       break;
 
     case ClientQueryType.MODIFY_SHAPE:
