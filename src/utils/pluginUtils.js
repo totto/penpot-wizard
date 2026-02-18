@@ -1,11 +1,21 @@
 import { MessageSourceName, ClientQueryType } from "@/types/types";
 
 export const drawShape = async (shapeType, params) => {
-  const response = await sendMessageToPlugin(ClientQueryType.DRAW_SHAPE, {
-    shapeType,
-    params,
-  });
-  return response;
+  try {
+    const response = await sendMessageToPlugin(ClientQueryType.DRAW_SHAPE, {
+      shapeType,
+      params,
+    });
+    return response;
+  } catch (err) {
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : 'Failed to communicate with plugin',
+      payload: {
+        error: err instanceof Error ? err.message : String(err),
+      },
+    };
+  }
 }
 
 /**
@@ -36,15 +46,18 @@ export const createShapesArray = async (shapes, options = {}) => {
           id: shapeId,
           name: shape.name,
           type: shape.type,
-          response, // Response already curated by drawShape
+          response,
         });
       } else if (throwOnError) {
         throw new Error(`Failed to get shape ID for shape: ${shape.name}`);
+      } else {
+        createdShapes.push({ id: null, name: shape.name, type: shape.type, response });
       }
     } else {
       if (throwOnError) {
         throw new Error(`Failed to create shape "${shape.name}": ${response.message}`);
       }
+      createdShapes.push({ id: null, name: shape.name, type: shape.type, response });
     }
   }
   

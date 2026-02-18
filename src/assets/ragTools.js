@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { initializeOramaDb, searchOramaDb } from '@/utils/ragUtils';
 import { ToolResponse } from '@/types/types';
-import { $openrouterApiKey } from '@/stores/settingsStore';
 
 const penpotUserGuideRag = {
   id: 'penpot-user-guide-rag',
@@ -182,71 +181,4 @@ const designStylesRag = {
   },
 };
 
-const iconsRag = {
-  id: 'icons-rag',
-  name: 'IconsRagTool',
-  inputSchema: z.object({
-    libraryId: z.enum([
-      'boxicons',
-      'circum',
-      'flowbite',
-      'heroicons',
-      'iconoir',
-      'ionicons',
-      'lineicons',
-      'lucide',
-      'mingcute',
-      'phosphor',
-      'tabler',
-    ]).describe('Library to consult (required).'),
-    query: z.string().min(1).describe('What to look for: "contents", "icons", "styles", or a keyword like "calendar" to find matching icons in that library.'),
-  }),
-  description: `
-    Consult the contents of an icon library. Returns the library description, available styles, and the list of icon names.
-    Use BEFORE draw-icon when you need to discover valid iconName and styleId for a library.
-
-    Each chunk contains: library id, description, styles (e.g. outline, solid), and icon names (comma-separated).
-    The agent must use icons-rag to get this info before calling draw-icon, since draw-icon requires exact iconName and styleId.
-
-    Available libraries: boxicons, circum, flowbite, heroicons, iconoir, ionicons, lineicons, lucide, mingcute, phosphor, tabler
-
-    Examples:
-    - libraryId: "lucide", query: "lucide contents icons"
-    - libraryId: "heroicons", query: "heroicons styles and icon names"
-    - libraryId: "phosphor", query: "calendar" (finds phosphor chunk if it has calendar-related icons)
-  `,
-  function: async ({ libraryId, query }) => {
-    try {
-      const dbInstance = await initializeOramaDb('iconsRagToolContents.zip', 'openai');
-      const apiKey = $openrouterApiKey.get();
-      const searchQuery = `${libraryId} ${query}`;
-      const results = await searchOramaDb(searchQuery, {
-        dbInstance,
-        limit: 3,
-        similarity: 0.25,
-        embeddingModel: 'openai',
-        apiKey,
-        modelId: 'openai/text-embedding-3-large',
-      });
-      return {
-        ...ToolResponse,
-        success: true,
-        message: `Found ${results.length || 'no'} relevant sections in the database.`,
-        payload: { results: results || [], query, libraryId },
-      };
-    } catch (error) {
-      return {
-        ...ToolResponse,
-        success: false,
-        message: 'Sorry, I encountered an error while searching the database. Please try again.',
-        payload: {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          query,
-          libraryId,
-        },
-      };
-    }
-  },
-};
-
-export const ragTools = [penpotUserGuideRag, designStylesRag, iconsRag];
+export const ragTools = [penpotUserGuideRag, designStylesRag];

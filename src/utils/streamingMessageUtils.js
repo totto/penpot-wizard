@@ -55,9 +55,15 @@ export class StreamHandler {
             : (typeof chunk.error === 'string' ? chunk.error : 'Tool execution failed');
           
           if (chunk.toolCallId) {
-            updateToolCall(chunk.toolCallId, { 
-              state: 'error', 
-              error: `Tool execution error: ${errorMessage}` 
+            const errorOutput = {
+              success: false,
+              message: `Tool execution error: ${errorMessage}`,
+              payload: { error: errorMessage },
+            };
+            updateToolCall(chunk.toolCallId, {
+              state: 'error',
+              error: `Tool execution error: ${errorMessage}`,
+              output: errorOutput,
             });
             this.pendingToolCalls.delete(chunk.toolCallId);
           }
@@ -112,9 +118,15 @@ export class StreamHandler {
           
           // Update the specific tool call if we have an ID
           if (toolCallId) {
-            updateToolCall(toolCallId, { 
-              state: 'error', 
-              error: errorMessage 
+            const errorOutput = {
+              success: false,
+              message: errorMessage,
+              payload: { error: errorMessage },
+            };
+            updateToolCall(toolCallId, {
+              state: 'error',
+              error: errorMessage,
+              output: errorOutput,
             });
             
             const pendingInfo = this.pendingToolCalls.get(toolCallId);
@@ -169,10 +181,16 @@ export class StreamHandler {
           errorMessage += 'Received input:\n';
           errorMessage += '```json\n' + JSON.stringify(pendingInfo.input, null, 2) + '\n```\n\n';
           errorMessage += 'Please review the tool schema and ensure all required parameters are provided with correct types.';
-          
-          updateToolCall(toolCallId, { 
-            state: 'error', 
-            error: errorMessage 
+
+          const errorOutput = {
+            success: false,
+            message: errorMessage,
+            payload: { error: errorMessage },
+          };
+          updateToolCall(toolCallId, {
+            state: 'error',
+            error: errorMessage,
+            output: errorOutput,
           });
         }
         
@@ -184,20 +202,26 @@ export class StreamHandler {
       if (error instanceof Error && error.name === 'AbortError') {
         throw error;
       }
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       console.error('Stream error:', error);
       // Mark any pending tool calls as failed so UI doesn't show success
       if (this.pendingToolCalls.size > 0) {
+        const errorOutput = {
+          success: false,
+          message: errorMsg,
+          payload: { error: errorMsg },
+        };
         for (const [toolCallId] of this.pendingToolCalls) {
           updateToolCall(toolCallId, {
             state: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: errorMsg,
+            output: errorOutput,
           });
         }
         this.pendingToolCalls.clear();
       }
       // When nested (subagent), update parent tool call instead of global state
       // to avoid unblocking the chat input while Director is still waiting
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       if (this.parentToolCallId) {
         updateToolCall(this.parentToolCallId, {
           state: 'error',

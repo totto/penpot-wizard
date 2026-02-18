@@ -35,7 +35,6 @@ cp env.example .env
 |--------|-------------|-----------|--------|
 | config.penpotRAG.js | penpotRagToolContents.zip | orama | ../penpot/docs/user-guide |
 | config.stylesRAG.js | designRagToolContents.zip | orama | ../MATERIAL/stylesRAGv3 |
-| config.iconsRAG.js | iconsRagToolContents.zip | openai | ../MATERIAL/iconsRAGv3 |
 
 ### Generate Files
 
@@ -43,9 +42,8 @@ cp env.example .env
 # Single config
 npm run generate:penpot
 npm run generate:styles
-npm run generate:icons
 
-# All three
+# Both
 npm run generate:all
 
 # Or run directly
@@ -102,7 +100,7 @@ const myRagTool = {
   },
 };
 
-export const ragTools = [penpotUserGuideRag, designStylesRag, iconsRag, myRagTool];
+export const ragTools = [penpotUserGuideRag, designStylesRag, myRagTool];
 ```
 
 3. **For OpenAI embeddings** (precomputed), pass API key and model:
@@ -111,7 +109,7 @@ export const ragTools = [penpotUserGuideRag, designStylesRag, iconsRag, myRagToo
 import { $openrouterApiKey } from '@/stores/settingsStore';
 
 // In function:
-const dbInstance = await initializeOramaDb('iconsRagToolContents.zip', 'openai');
+const dbInstance = await initializeOramaDb('my-knowledge-base.zip', 'openai');
 const apiKey = $openrouterApiKey.get();
 const results = await searchOramaDb(query, {
   dbInstance,

@@ -24,8 +24,9 @@ Every tool follows this structure:
 | RAG | `src/assets/ragTools.js` | Vector search over embeddings |
 | Drawing | `src/assets/drawingTools.js` | Create/modify shapes, boards, components |
 | Icons | `src/assets/iconsTool.js` | Draw icons from external libraries |
+| Issued | `src/assets/issuedTools.js` | Tools disabled pending upstream fixes (Penpot) |
 
-The barrel file `src/assets/tools.js` exports all tools. Add your new tool array there if you create a new category.
+The barrel file `src/assets/tools.js` exports all tools. Add your new tool array there if you create a new category. Tools in `issuedTools.js` are not exported to the tools store until their upstream issues are resolved.
 
 ## Function Tools
 
@@ -85,7 +86,7 @@ Drawing tools create and modify shapes in Penpot. Schemas are defined in `src/ty
 - `ungroup-shape` – Ungroup a group
 - `align-shapes` – Align shapes (horizontal/vertical)
 - `distribute-shapes` – Distribute shapes with equal spacing
-- `add-interaction` – Add prototyping interaction (click, overlay, navigate, etc.)
+- `add-navigate-to-interaction`, ~~`add-open-overlay-interaction`~~, ~~`add-toggle-overlay-interaction`~~ (pending Penpot fix, see `issuedTools.js`), `add-close-overlay-interaction`, `add-previous-screen-interaction`, `add-open-url-interaction` – Add prototyping interactions
 - `create-flow` – Create prototype flow
 - `remove-flow` – Remove prototype flow
 - `modify-board`, `modify-component`, `modify-shape` – Edit properties
@@ -108,7 +109,7 @@ See [CREATING_RAGS.md](CREATING_RAGS.md) for generating databases and adding new
 
 ## Icons Tools
 
-The `draw-icon` tool creates icons from external libraries (heroicons, lucide, phosphor, etc.). It uses `iconsToolCatalog.json` for library metadata and `icons-rag` to discover available icons before drawing.
+The `draw-icon` tool creates icons from external libraries (heroicons, lucide, phosphor, etc.). It uses `iconsToolCatalog.json` for library metadata and `get-icon-list` to obtain the list of available icon names before drawing. Icon lists are pre-generated `.txt` files in `public/icon-lists/` (run `node scripts/generateIconLists.js` to regenerate).
 
 To add support for a new icon library, update `iconsToolCatalog.json` with the library metadata and url patterns.
 

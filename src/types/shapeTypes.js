@@ -226,8 +226,8 @@ export const boardShapeSchema = z.object(getBaseShapeProperties('board'))
     flex: flexLayoutSchema.optional().nullable().describe('Flex layout configuration applied to the board'),
     grid: gridLayoutSchema.optional().nullable().describe('Grid layout configuration applied to the board'),
     clipContent: z.boolean().optional().describe('Whether the board clips its children'),
-    horizontalSizing: z.enum(['auto', 'fix']).default('auto').describe('The horizontal sizing behavior of the board. Auto means the board will size to fit its children width, fix means the board will be fixed width.'),
-    verticalSizing: z.enum(['auto', 'fix']).default('auto').describe('The vertical sizing behavior of the board. Auto means the board will size to fit its children height, fix means the board will be fixed height.'),
+    horizontalSizing: z.enum(['auto', 'fix']).optional().describe('The horizontal sizing behavior of the board. Auto means the board will size to fit its children width, fix means the board will be fixed width.'),
+    verticalSizing: z.enum(['auto', 'fix']).optional().describe('The vertical sizing behavior of the board. Auto means the board will size to fit its children height, fix means the board will be fixed height.'),
   });
 
 export const componentSchema = boardShapeSchema.extend({
@@ -283,18 +283,26 @@ export const shapeIdsSchema = z.object({
   ).optional().describe('Array of shape references to include. Use CreateShapesTool first to create new shapes, or provide existing shape IDs. Can include shapes, groups, components, or boards.'),
 });
 
-export const createComponentSchema = shapeIdsSchema.extend(
-  componentSchema.shape
-).describe('Schema for creating a component from existing shapes. Use component properties to define the background fills, strokes, and shadows.');
+export const createComponentSchema = shapeIdsSchema.partial()
+  .extend(componentSchema.shape)
+  .extend(createShapesSchema.shape)
+  .refine(
+    (data) =>
+      (Array.isArray(data.shapeIds) && data.shapeIds.length > 0) ||
+      (Array.isArray(data.shapes) && data.shapes.length > 0),
+    { message: 'Provide at least one of shapeIds or shapes to create the component' }
+  )
+  .describe('Schema for creating a component from existing shapes, new shapes, or both. Use component properties to define the background fills, strokes, and shadows.');
 
 export const createGroupSchema = groupShapeSchema
   .extend(shapeIdsSchema.shape)
   .extend(createShapesSchema.shape)
   .describe('Schema for creating a group from existing shapes or creating new shapes inside the group.');
 
-export const createBoardSchema = shapeIdsSchema.partial().extend(
-  boardShapeSchema.shape
-).describe('Schema for creating a board and optionally moving existing shapes into it.');
+export const createBoardSchema = shapeIdsSchema.partial()
+  .extend(boardShapeSchema.shape)
+  .extend(createShapesSchema.shape)
+  .describe('Schema for creating a board with existing shapes, new shapes, or both.');
 
 export const convertGroupToBoardSchema = z.object({
   groupId: z.string().describe('The ID of the group to convert into a board'),
@@ -352,57 +360,68 @@ const animationSchema = z.object({
   offsetEffect: z.boolean().optional(),
 }).optional();
 
-export const addInteractionSchema = z.object({
+const baseInteractionRefine = (schema) =>
+  schema.refine(
+    (input) => {
+      if (input.trigger === 'after-delay') {
+        return typeof input.delay === 'number' && input.delay >= 0;
+      }
+      return true;
+    },
+    { message: 'delay (ms, >= 0) is required when trigger is after-delay' }
+  );
+
+const baseInteractionFields = {
   shapeId: z.string().describe('ID of the shape that will trigger the interaction (e.g. button)'),
   trigger: triggerSchema.describe('When the action fires: click, mouse-enter, mouse-leave, after-delay'),
   delay: z.number().int().min(0).optional().describe('Milliseconds delay for after-delay trigger'),
-  action: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('navigate-to'),
-      destinationBoardId: z.string().describe('ID of the board to navigate to'),
-      preserveScrollPosition: z.boolean().optional(),
-      animation: animationSchema,
-    }),
-    z.object({
-      type: z.literal('open-overlay'),
-      destinationBoardId: z.string().describe('ID of the board to show as overlay'),
-      relativeToShapeId: z.string().optional(),
-      position: z.enum(['manual', 'center', 'top-left', 'top-right', 'top-center', 'bottom-left', 'bottom-right', 'bottom-center']).optional(),
-      closeWhenClickOutside: z.boolean().optional(),
-      addBackgroundOverlay: z.boolean().optional(),
-      animation: animationSchema,
-    }),
-    z.object({
-      type: z.literal('toggle-overlay'),
-      destinationBoardId: z.string(),
-      relativeToShapeId: z.string().optional(),
-      position: z.enum(['manual', 'center', 'top-left', 'top-right', 'top-center', 'bottom-left', 'bottom-right', 'bottom-center']).optional(),
-      closeWhenClickOutside: z.boolean().optional(),
-      addBackgroundOverlay: z.boolean().optional(),
-      animation: animationSchema,
-    }),
-    z.object({
-      type: z.literal('close-overlay'),
-      destinationBoardId: z.string().optional(),
-      animation: animationSchema.optional().describe('Optional; defaults to dissolve 300ms if omitted'),
-    }),
-    z.object({
-      type: z.literal('previous-screen'),
-    }),
-    z.object({
-      type: z.literal('open-url'),
-      url: z.string().url().describe('URL to open in new tab'),
-    }),
-  ]).describe('Action to execute when trigger fires'),
-}).refine(
-  (input) => {
-    if (input.trigger === 'after-delay') {
-      return typeof input.delay === 'number' && input.delay >= 0;
-    }
-    return true;
-  },
-  { message: 'delay (ms, >= 0) is required when trigger is after-delay' }
+};
+
+export const addNavigateToInteractionSchema = baseInteractionRefine(
+  z.object({
+    ...baseInteractionFields,
+    destinationBoardId: z.string().describe('ID of the board to navigate to'),
+    preserveScrollPosition: z.boolean().optional(),
+    animation: animationSchema,
+  })
+).describe('Add a navigate-to interaction: when triggered, goes to another board.');
+
+export const addOverlayInteractionSchema = baseInteractionRefine(
+  z.object({
+    ...baseInteractionFields,
+    destinationBoardId: z.string().describe('ID of the board to show as overlay'),
+    relativeToShapeId: z.string().optional().describe('Position overlay relative to this shape'),
+    position: z.enum(['manual', 'center', 'top-left', 'top-right', 'top-center', 'bottom-left', 'bottom-right', 'bottom-center']).default('center'),
+    closeWhenClickOutside: z.boolean().optional(),
+    addBackgroundOverlay: z.boolean().optional(),
+    animation: animationSchema,
+    manualPositionLocation: z.object({
+      x: z.number().describe('The x-coordinate of the manual position'),
+      y: z.number().describe('The y-coordinate of the manual position'),
+    }).optional().describe('The manual position of the overlay. this parameter is mandatory when position is manual'),
+  })
 );
+
+export const addCloseOverlayInteractionSchema = baseInteractionRefine(
+  z.object({
+    ...baseInteractionFields,
+    destinationBoardId: z.string().optional().describe('Optional: close specific overlay by board ID'),
+    animation: animationSchema.optional().describe('Optional; defaults to dissolve 300ms if omitted'),
+  })
+).describe('Add a close-overlay interaction: closes the current or specified overlay.');
+
+export const addPreviousScreenInteractionSchema = baseInteractionRefine(
+  z.object({
+    ...baseInteractionFields,
+  })
+).describe('Add a previous-screen interaction: goes back to the previous screen in the flow.');
+
+export const addOpenUrlInteractionSchema = baseInteractionRefine(
+  z.object({
+    ...baseInteractionFields,
+    url: z.string().url().describe('URL to open in new tab'),
+  })
+).describe('Add an open-url interaction: opens a URL in a new browser tab.');
 
 export const createFlowSchema = z.object({
   name: z.string().min(1).describe('Name for the flow (e.g. "Onboarding")'),
@@ -415,12 +434,12 @@ export const removeFlowSchema = z.object({
 
 export const modifyBoardSchema = z.object({
   boardId: z.string().describe('The ID of the board to modify'),
-  properties: boardShapeSchema.partial().optional().describe('Board properties to modify. Provide only the fields you want to change. Use null to remove a property.'),
+  properties: boardShapeSchema.partial().describe('Board properties to modify. Provide only the fields you want to change. Use null to remove a property.'),
 }).describe('Schema for modifying an existing board.');
 
 export const modifyComponentSchema = z.object({
   componentId: z.string().describe('The ID of the component to modify (library component id or component instance id)'),
-  properties: componentSchema.partial().optional().describe('Component properties to modify. Provide only the fields you want to change. Use null to remove a property.'),
+  properties: componentSchema.partial().describe('Component properties to modify. Provide only the fields you want to change. Use null to remove a property.'),
 }).describe('Schema for modifying an existing component.');
 
 export const modifyShapePropertiesSchema = z.object({

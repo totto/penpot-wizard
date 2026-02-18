@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "generate:icon-lists": "node scripts/generateIconLists.js"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.18",

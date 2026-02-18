@@ -43,11 +43,6 @@ import {
 
 console.log('AI Agent Chat Plugin loaded successfully!')
 
-penpot.on('selectionchange', (_event) => {
-  console.log('selectionchange', penpot.selection);
-
-});
-
 // Open the plugin UI with current theme
 penpot.ui.open("AI Penpot Wizard", `?theme=${penpot.theme}`, {
   width: 500,
@@ -86,6 +81,7 @@ penpot.ui.onMessage(async (message) => {
     return;
   }
 
+  try {
   switch (type) {
     case ClientQueryType.DRAW_SHAPE:
       responseMessage = handleDrawShape(payload);
@@ -220,6 +216,15 @@ penpot.ui.onMessage(async (message) => {
         },
       };
       break;
+  }
+  } catch (err) {
+    responseMessage = {
+      success: false,
+      message: 'Plugin handler error',
+      payload: {
+        error: err instanceof Error ? err.message : String(err),
+      },
+    };
   }
   const normalizedResponse = {
     source: MessageSourceName.Plugin,

@@ -51,6 +51,7 @@ export default defineConfig([
       '**/*.config.{js,jsx}',
       '**/*.test.{js,jsx}',
       '**/__tests__/**/*.{js,jsx}',
+      'scripts/**/*.js',
       'vite.config.*',
       'vite.config.plugin.js',
     ],

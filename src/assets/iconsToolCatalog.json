@@ -135,7 +135,7 @@
         {
           "id": "regular",
           "label": "Regular",
-          "urlPattern": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/{name}-regular.svg",
+          "urlPattern": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/{name}.svg",
           "status": "unverified"
         },
         {

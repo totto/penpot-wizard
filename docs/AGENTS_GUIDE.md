@@ -11,6 +11,61 @@ This guide explains the different agent types in Penpot Wizard and how to create
 | Specialized | `specializedAgents.js` | Domain experts (UI, UX, drawing, planning) |
 | Image Generation | `imageGenerationAgents.js` | Generates images, returns imageId for shapes |
 
+## Universal Agent Network
+
+Penpot Wizard uses a unified agent network that covers any design project:
+
+```
+User <--> DesignStudioDirector
+            |
+            +-- penpot-user-guide-rag, design-styles-rag (tutorials, questions)
+            +-- PrintProjectsCoordinator   (posters, cards, brochures, flyers)
+            +-- WebProjectsCoordinator     (landing, apps, dashboards)
+            +-- MobileProjectsCoordinator  (iOS, Android, PWA)
+            +-- StyleAdvisorCoordinator    (style advice, apply styles)
+```
+
+### Directors
+
+- **DesignStudioDirector** (default): Universal entry point. Answers Penpot questions, creates step-by-step tutorials, and routes to the appropriate coordinator for print, web, mobile, or style projects. Always seeks user approval before proceeding on complex work.
+- **TestToolsDirector**: Direct tool use for simple tasks. Uses drawing tools, RAG, and image generation without coordinators.
+
+### Coordinators
+
+- **PrintProjectsCoordinator**: Posters, cards, brochures, flyers, letterheads. Uses ProjectPlanSpecialist, UIDesignSpecialist, PrintViewDesigner.
+- **WebProjectsCoordinator**: Landing pages, web apps, dashboards. Uses ProjectPlanSpecialist, UIDesignSpecialist, UXDesignSpecialist, WebViewDesigner.
+- **MobileProjectsCoordinator**: Mobile UI projects. Uses ProjectPlanSpecialist, UIDesignSpecialist, UXDesignSpecialist, MobileViewDesigner.
+- **StyleAdvisorCoordinator**: Design style advice and application. Uses UIDesignSpecialist, StyleApplicationSpecialist.
+
+### Specialists
+
+- **UIDesignSpecialist**: Design system (colors, typography, spacing, radii).
+- **UXDesignSpecialist**: Views, flows, navigation.
+- **ProjectPlanSpecialist**: Phased delivery plan.
+- **MobileViewDesigner**: Draws mobile views.
+- **PrintViewDesigner**: Draws print layouts (A4, A3, etc.).
+- **WebViewDesigner**: Draws web layouts with breakpoints.
+- **StyleApplicationSpecialist**: Applies styles to existing shapes.
+
+## Approval Protocol for Complex Projects
+
+Agents act as **tools for design professionals**, not as autonomous decision-makers. The director enforces this:
+
+1. **Brief validation**: The director elicits and structures the data required by the coordinator's input schema. It asks targeted questions to fill gaps; it does not assume or invent.
+
+2. **Plan presentation**: Before calling a coordinator, the director presents the collected brief and asks for explicit confirmation ("OK to proceed", "continue", etc.).
+
+3. **Phase-by-phase execution**: After each coordinator phase, the director presents the summary and next steps, then waits for user approval before continuing.
+
+4. **No user contact from coordinators**: Coordinators never talk to the user. They return `summary`, `nextSteps`, and `planId` to the director, which then presents them to the user.
+
+**Flow**:
+```
+User request → Director gathers brief → Director presents plan → User confirms
+→ Director calls Coordinator (phase 1) → Coordinator returns summary/nextSteps
+→ Director presents result → User confirms → Director continues or calls next phase
+```
+
 ## Director Agents
 
 Directors are the main entry point. They receive user messages and coordinate tools and sub-agents.

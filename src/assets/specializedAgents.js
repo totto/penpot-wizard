@@ -176,8 +176,155 @@ export const specializedAgents = [
       'create-board',
       'create-shapes',
       'get-current-page',
+      'get-icon-list',
+      'draw-icon',
+      'add-navigate-to-interaction',
+      'add-close-overlay-interaction',
+      'add-previous-screen-interaction',
+      'add-open-url-interaction',
+      'create-flow',
     ],
     imageGenerationAgentIds: ['image-generator'],
+  },
+  {
+    id: 'print-view-designer',
+    name: 'PrintViewDesigner',
+    description:
+      'Creates print layouts (A4, A3, posters, cards, brochures) in Penpot with correct dimensions, bleed, and safe zones.',
+    system: `
+      <role>
+        You are a drawing-only agent for print materials. Work in English and focus on executing print layouts.
+      </role>
+      <drawing>
+        Use get-device-size-presets with category "PRINT" to get correct dimensions (A4, A3, Letter, etc.).
+        Respect stacking order: foreground elements first, backgrounds last.
+        Use boards for each print artifact. Apply design system colors, typography, and spacing.
+        Consider bleed and safe zones when specified. Use available fonts from the design system.
+      </drawing>
+    `,
+    inputSchema: z.object({
+      view: z.object({
+        id: z.string(),
+        name: z.string(),
+        purpose: z.string(),
+        sections: z.array(z.string()),
+        components: z.array(z.string()),
+        format: z.enum(['A4', 'A3', 'A2', 'A5', 'Letter', 'custom']),
+      }),
+      designSystem: z.object({}).passthrough(),
+      target: z
+        .object({
+          pageId: z.string().optional(),
+          boardName: z.string().default('Print'),
+          bleed: z.number().optional(),
+          safeZone: z.number().optional(),
+        })
+        .optional(),
+    }),
+    outputSchema: z.object({
+      success: z.boolean(),
+      description: z.string(),
+      artifacts: z
+        .object({ boardIds: z.array(z.string()).nullable(), notes: z.string().nullable() })
+        .strict()
+        .nullable(),
+    }),
+    toolIds: [
+      'get-device-size-presets',
+      'create-board',
+      'create-shapes',
+      'get-current-page',
+      'design-styles-rag',
+      'add-image',
+    ],
+    imageGenerationAgentIds: ['image-generator'],
+  },
+  {
+    id: 'web-view-designer',
+    name: 'WebViewDesigner',
+    description:
+      'Creates web layouts (desktop, tablet, mobile) in Penpot with breakpoints and responsive structure.',
+    system: `
+      <role>
+        You are a drawing-only agent for web interfaces. Work in English and focus on executing web layouts.
+      </role>
+      <drawing>
+        Use get-device-size-presets with category "WEB" for breakpoint dimensions (Web 1920, Web 1366, etc.).
+        Respect stacking order: foreground elements first, backgrounds last.
+        Use boards for each viewport/breakpoint. Apply design system consistently.
+        Keep typography and spacing aligned with the received brief. Use available fonts.
+      </drawing>
+    `,
+    inputSchema: z.object({
+      view: z.object({
+        id: z.string(),
+        name: z.string(),
+        purpose: z.string(),
+        sections: z.array(z.string()),
+        components: z.array(z.string()),
+        breakpoints: z.array(z.string()).optional(),
+      }),
+      designSystem: z.object({}).passthrough(),
+      target: z
+        .object({
+          pageId: z.string().optional(),
+          boardName: z.string().default('Web'),
+          breakpoint: z.string().optional(),
+        })
+        .optional(),
+    }),
+    outputSchema: z.object({
+      success: z.boolean(),
+      description: z.string(),
+      artifacts: z
+        .object({ boardIds: z.array(z.string()).nullable(), notes: z.string().nullable() })
+        .strict()
+        .nullable(),
+    }),
+    toolIds: [
+      'get-device-size-presets',
+      'create-board',
+      'create-shapes',
+      'get-current-page',
+      'get-icon-list',
+      'draw-icon',
+      'add-navigate-to-interaction',
+      'add-close-overlay-interaction',
+      'add-previous-screen-interaction',
+      'add-open-url-interaction',
+      'create-flow',
+      'add-image',
+    ],
+    imageGenerationAgentIds: ['image-generator'],
+  },
+  {
+    id: 'style-application-specialist',
+    name: 'StyleApplicationSpecialist',
+    description:
+      'Applies design styles (colors, typography, spacing, radii) to existing shapes in the Penpot project.',
+    system: `
+      <role>
+        You apply design styles to existing shapes. Work in English. Use design-styles-rag for style references.
+        Get current page state first. Apply modifications via modify-shape and modify-text-range.
+      </role>
+      <behavior>
+        When scope is "selection", use get-selected-shapes to get shape IDs. When scope is "page", use get-current-page.
+        Apply colors to fills/strokes, typography to text shapes, and spacing/radii where applicable.
+        Report modifiedCount in the output.
+      </behavior>
+    `,
+    inputSchema: z.object({
+      designSystem: z.object({}).passthrough().describe('Target design system with colors, typography, etc.'),
+      scope: z.enum(['page', 'selection']),
+      shapeIds: z.array(z.string()).optional().describe('Optional explicit shape IDs; if omitted, use scope to determine'),
+      pageId: z.string().optional(),
+    }),
+    outputSchema: z.object({
+      success: z.boolean(),
+      description: z.string(),
+      modifiedCount: z.number(),
+    }),
+    toolIds: ['design-styles-rag', 'get-current-page', 'get-selected-shapes', 'modify-shape', 'modify-text-range'],
   },
 ];
 

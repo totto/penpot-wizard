@@ -4,9 +4,9 @@ import { sendMessageToPlugin } from '@/utils/pluginUtils';
 import { ClientQueryType, ToolResponse } from '@/types/types';
 
 const inputSchema = z.object({
-  libraryId: z.string().min(1).describe('Icon library ID to use.'),
-  iconName: z.string().min(1).describe('Icon name to draw (kebab-case).'),
-  styleId: z.string().min(1).describe('Style ID within the library.'),
+  libraryId: z.string().describe('Icon library ID to use. This parameter is mandatory.'),
+  iconName: z.string().describe('Icon name to draw (kebab-case). This parameter is mandatory.'),
+  styleId: z.string().describe('Style ID within the library. This parameter is mandatory.'),
   x: z.number().optional().describe('The absolute x position of the icon, relative to the Root Frame board. If you define parentId, you should use parentX instead of x.'),
   y: z.number().optional().describe('The absolute y position of the icon, relative to the Root Frame board. If you define parentId, you should use parentY instead of y.'),
   parentX: z.number().optional().describe('The x position of the icon relative to its parent. If you define parentId, you should use parentX instead of x.'),
@@ -85,17 +85,39 @@ const downloadSvg = async (url) => {
   return svgString;
 };
 
+const getIconListInputSchema = z.object({
+  libraryId: z
+    .enum([
+      'boxicons',
+      'circum',
+      'flowbite',
+      'heroicons',
+      'iconoir',
+      'ionicons',
+      'lineicons',
+      'lucide',
+      'mingcute',
+      'phosphor',
+      'tabler',
+    ])
+    .describe('Icon library ID.'),
+  styleId: z
+    .string()
+    .min(1)
+    .describe(
+      'Style ID within the library. E.g. outline, solid, outline-24, solid-24, thin, light, regular, bold, fill, duotone, filled, logos.'
+    ),
+});
+
 export const iconsTool = [
   {
-    id: 'draw-icon',
-    name: 'IconsTool',
+    id: 'get-icon-list',
+    name: 'GetIconList',
     description: `
-      Use this tool to draw a free icon in Penpot.
-      Provide libraryId, iconName, styleId, position, size, and optional parentId.
-      The tool resolves the icon within the library catalog, downloads its SVG, and creates a vector group in Penpot.
-      
-      IMPORTANT:
-      - available libraries and styles:
+      Returns the complete list of icon names for a given library+style combination.
+      Call this BEFORE draw-icon to get valid iconName values. Use EXACT names from the list.
+
+      Available library+style combinations:
       boxicons: regular, solid, logos
       circum: outline
       flowbite: outline, solid
@@ -107,7 +129,66 @@ export const iconsTool = [
       mingcute: line, fill
       phosphor: thin, light, regular, bold, fill, duotone
       tabler: outline, filled
-      -to get the list of available icons for each library and style, use the IconsRagTool
+    `,
+    inputSchema: getIconListInputSchema,
+    function: async ({ libraryId, styleId }) => {
+      try {
+        const filename = `${libraryId}-${styleId}.txt`;
+        const url = `/icon-lists/${filename}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+          return {
+            ...ToolResponse,
+            success: false,
+            message: `Icon list not found for ${libraryId}/${styleId}. Check libraryId and styleId.`,
+            payload: { libraryId, styleId, error: `HTTP ${response.status}` },
+          };
+        }
+        const iconsString = await response.text();
+        const icons = iconsString ? iconsString.split(',').filter(Boolean) : [];
+        return {
+          ...ToolResponse,
+          success: true,
+          message: `Loaded ${icons.length} icons for ${libraryId}/${styleId}.`,
+          payload: { libraryId, styleId, iconCount: icons.length, icons },
+        };
+      } catch (error) {
+        const errorMessage = error?.message || String(error);
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to load icon list: ${errorMessage}`,
+          payload: { libraryId, styleId, error: errorMessage },
+        };
+      }
+    },
+  },
+  {
+    id: 'draw-icon',
+    name: 'IconsTool',
+    description: `
+      Use this tool to draw a free icon in Penpot.
+      Provide libraryId, iconName, styleId, position, size, and optional parentId.
+      The tool resolves the icon within the library catalog, downloads its SVG, and creates a vector group in Penpot.
+      
+      🚨 CRITICAL - iconName MUST come from get-icon-list:
+      - ALWAYS call get-icon-list first with libraryId and styleId to get the exact list of icon names.
+      - iconName must be EXACTLY one of the names in that list. No guessing, no synonyms.
+      
+      Available libraries and styles:
+      boxicons: regular, solid, logos
+      circum: outline
+      flowbite: outline, solid
+      heroicons: outline-24, solid-24, solid-20, solid-16
+      iconoir: regular, solid
+      ionicons: filled, outline, sharp
+      lineicons: regular
+      lucide: outline
+      mingcute: line, fill
+      phosphor: thin, light, regular, bold, fill, duotone
+      tabler: outline, filled
+      
+      Use GetIconList before this tool to get valid iconName and styleId.
     `,
     inputSchema,
     function: async ({ libraryId, iconName, styleId, name, ...params }) => {

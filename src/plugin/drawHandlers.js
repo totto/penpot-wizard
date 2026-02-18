@@ -2,7 +2,7 @@ import { pathCommandsToSvgString, curateShapeOutput, convertToBoard } from './ut
 import { PenpotShapeType } from '../types/types';
 
 function setParamsToShape(shape, params) {
-  const { x, y, parentX, parentY, parentId, zIndex, width, height, layoutChild, layoutCell, ...rest } = params;
+  const { parentX, parentY, parentId, zIndex, width, height, layoutChild, layoutCell, ...rest } = params;
 
   if (width && height) {
     shape.resize(width, height);
@@ -21,21 +21,24 @@ function setParamsToShape(shape, params) {
     }
   });
 
-  let parentShape = null;
-  if (parentId) {
-    parentShape = penpot.currentPage?.getShapeById(parentId);
-  }
-  if (!parentShape) {
-    parentShape = penpot.currentPage?.root || null;
-  }
-  if (parentShape) {
-    const insertIndex = typeof zIndex === 'number'
-      ? zIndex
-      : (parentShape.children?.length ?? 0);
-    if (typeof parentShape.insertChild === 'function') {
-      parentShape.insertChild(insertIndex, shape);
-    } else if (typeof parentShape.appendChild === 'function') {
-      parentShape.appendChild(shape);
+  // Solo manipular el parent cuando se pide explícitamente (parentId en params)
+  if ('parentId' in params) {
+    let parentShape = null;
+    if (parentId) {
+      parentShape = penpot.currentPage?.getShapeById(parentId);
+    }
+    if (!parentShape) {
+      parentShape = penpot.currentPage?.root || null;
+    }
+    if (parentShape) {
+      const insertIndex = typeof zIndex === 'number'
+        ? zIndex
+        : (parentShape.children?.length ?? 0);
+      if (typeof parentShape.insertChild === 'function') {
+        parentShape.insertChild(insertIndex, shape);
+      } else if (typeof parentShape.appendChild === 'function') {
+        parentShape.appendChild(shape);
+      }
     }
   }
 
@@ -111,8 +114,8 @@ function setParamsToBoard(board, params) {
     }
   }
 
-  shape.horizontalSizing = horizontalSizing || 'auto';
-  shape.verticalSizing = verticalSizing || 'auto';
+  if (horizontalSizing !== undefined) shape.horizontalSizing = horizontalSizing;
+  if (verticalSizing !== undefined) shape.verticalSizing = verticalSizing;
 
   setParamsToShape(shape, rest);
 }
@@ -785,15 +788,25 @@ function buildAction(payload) {
 
   if (action.type === 'open-overlay' || action.type === 'toggle-overlay') {
     const destination = page?.getShapeById(action.destinationBoardId);
+    
     if (!destination || destination.type !== PenpotShapeType.BOARD) {
       throw new Error(`Board with ID ${action.destinationBoardId} not found`);
     }
-    const a = { type: action.type, destination };
+
+    const a = { 
+      type: action.type, 
+      destination,
+      position: action.position || 'center',
+      manualPositionLocation: action.position === 'manual' && action.manualPositionLocation
+      ? action.manualPositionLocation
+      : { x: 0, y: 0 }, 
+    };
+
     if (action.relativeToShapeId) {
       const rel = page?.getShapeById(action.relativeToShapeId);
       if (rel) a.relativeTo = rel;
     }
-    if (action.position) a.position = action.position;
+
     if (action.closeWhenClickOutside !== undefined) a.closeWhenClickOutside = action.closeWhenClickOutside;
     if (action.addBackgroundOverlay !== undefined) a.addBackgroundOverlay = action.addBackgroundOverlay;
     if (action.animation) a.animation = buildAnimation(action.animation);
@@ -1066,20 +1079,76 @@ export function handleModifyTextRange(payload) {
     }
 
     const rangeProps = props || {};
+    const appliedKeys = [];
     Object.keys(rangeProps).forEach((key) => {
       const value = rangeProps[key];
       if (value === null) {
         delete range[key];
+        appliedKeys.push(key);
       } else if (value !== undefined) {
         range[key] = value;
+        appliedKeys.push(key);
       }
     });
+
+    const valueMatches = (a, b) => {
+      if (a === b) return true;
+      if (a == null || b == null) return false;
+      return String(a).trim() === String(b).trim();
+    };
+
+    const rejectedProps = [];
+    for (const key of appliedKeys) {
+      if (key === 'characters') continue;
+      const proposedValue = rangeProps[key];
+      if (proposedValue == null) continue;
+      const currentValue = shape[key];
+      const ok =
+        currentValue === 'mixed' ||
+        valueMatches(currentValue, proposedValue);
+      if (!ok) {
+        rejectedProps.push({
+          key,
+          proposed: proposedValue,
+          actual: currentValue,
+        });
+      }
+    }
+
+    if (rejectedProps.length > 0) {
+      const msgs = rejectedProps.map(
+        (r) =>
+          `${r.key} '${r.proposed}' rejected (actual: ${r.actual})`,
+      );
+      return {
+        success: false,
+        message: `Text range modification failed: ${msgs.join('; ')}`,
+        payload: {
+          error: msgs.join('. '),
+          rejectedProps,
+          shape: curateShapeOutput(shape),
+        },
+      };
+    }
+
+    const curated = curateShapeOutput(shape);
+    for (const key of appliedKeys) {
+      if (key === 'characters') continue;
+      const proposedValue = rangeProps[key];
+      const currentValue = shape[key];
+      curated[key] =
+        currentValue === 'mixed'
+          ? 'mixed'
+          : proposedValue != null && valueMatches(currentValue, proposedValue)
+            ? proposedValue
+            : currentValue;
+    }
 
     return {
       success: true,
       message: 'Text range modified successfully',
       payload: {
-        shape: curateShapeOutput(shape),
+        shape: curated,
       },
     };
   } catch (error) {
@@ -1181,7 +1250,10 @@ export function handleBringToFrontShape(payload) {
       throw new Error(`Shape with ID ${shapeId} not found`);
     }
 
-    shape.bringToFront();
+    const parent = shape.parent;
+    if (parent?.children?.length > 1 && shape.parentIndex < parent.children.length - 1) {
+      shape.setParentIndex(parent.children.length - 1);
+    }
 
     return {
       success: true,
@@ -1211,7 +1283,13 @@ export function handleBringForwardShape(payload) {
       throw new Error(`Shape with ID ${shapeId} not found`);
     }
 
-    shape.bringForward();
+    const parent = shape.parent;
+    if (parent?.children?.length > 1) {
+      const nextIndex = Math.min(shape.parentIndex + 1, parent.children.length - 1);
+      if (nextIndex !== shape.parentIndex) {
+        shape.setParentIndex(nextIndex);
+      }
+    }
 
     return {
       success: true,
@@ -1241,7 +1319,9 @@ export function handleSendToBackShape(payload) {
       throw new Error(`Shape with ID ${shapeId} not found`);
     }
 
-    shape.sendToBack();
+    if (shape.parentIndex > 0) {
+      shape.setParentIndex(0);
+    }
 
     return {
       success: true,
@@ -1271,7 +1351,9 @@ export function handleSendBackwardShape(payload) {
       throw new Error(`Shape with ID ${shapeId} not found`);
     }
 
-    shape.sendBackward();
+    if (shape.parentIndex > 0) {
+      shape.setParentIndex(shape.parentIndex - 1);
+    }
 
     return {
       success: true,

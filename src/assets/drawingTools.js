@@ -1,6 +1,6 @@
 import { sendMessageToPlugin, createShapesArray } from '@/utils/pluginUtils';
 import { ToolResponse, ClientQueryType } from '@/types/types';
-import { createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, convertGroupToBoardSchema, convertGroupToComponentSchema, convertBoardToComponentSchema, createBooleanSchema, ungroupShapeSchema, alignShapesSchema, distributeShapesSchema, addInteractionSchema, createFlowSchema, removeFlowSchema, modifyBoardSchema, modifyComponentSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
+import { createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, convertGroupToBoardSchema, convertGroupToComponentSchema, convertBoardToComponentSchema, createBooleanSchema, ungroupShapeSchema, alignShapesSchema, distributeShapesSchema, addNavigateToInteractionSchema, addCloseOverlayInteractionSchema, addPreviousScreenInteractionSchema, addOpenUrlInteractionSchema, createFlowSchema, removeFlowSchema, modifyBoardSchema, modifyComponentSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
 import { z } from 'zod';
 
 export const drawingTools = [
@@ -73,31 +73,71 @@ export const drawingTools = [
     id: 'create-component',
     name: 'CreateComponentTool',
     description: `
-      Use this tool to convert existing shapes into a library component.
+      Use this tool to create a library component from existing shapes, new shapes, or both.
       
-      ⚠️ PREREQUISITE: You must first create shapes using CreateShapesTool, then pass their IDs to this tool.
+      You can provide:
+      - shapeIds: existing shapes to include (objects with shapeId and optional zIndex). Can include groups, components, boards.
+      - shapes: new shapes to create and include (rectangles, ellipses, paths, text)
       
-      This tool can group any existing shapes (rectangles, ellipses, paths, text, groups, components, or boards) into a component.
+      If both are provided, all shapes will be included in the component.
       
       🎨 KEY CONCEPT: The component itself IS a shape! You don't need to create a background shape.
       - You can apply fills, strokes, and shadows directly to the component using the component properties
       - These visual properties (fills, strokes, shadows) will be applied to the component's background
-      - The component acts as a container with its own visual styling
       
-      📋 WORKFLOW:
-      1. Create the shapes you need using CreateShapesTool (get the shape IDs from the response)
-      2. Call this tool with the shapeIds array (objects with shapeId and optional zIndex) to convert them into a component
-      
-      TIP: You can also use GET_SELECTED_SHAPES to grab existing shapes, then pass their IDs here.
+      TIP: Use GET_SELECTED_SHAPES to grab existing shapes, then pass their IDs here.
     `,
     inputSchema: createComponentSchema,
     function: async (input) => {
       try {
-        const { shapeIds, ...componentProperties } = input;
+        const { shapes, shapeIds, ...componentProperties } = input;
+        const createdShapes = shapes?.length
+          ? await createShapesArray(shapes, { throwOnError: false })
+          : [];
+
+        const createdEntries = createdShapes
+          .map((shape, index) => ({
+            shapeId: shape.id,
+            zIndex: shapes?.[index]?.zIndex,
+          }))
+          .filter(entry => Boolean(entry.shapeId));
+
+        const providedEntries = Array.isArray(shapeIds)
+          ? shapeIds.map((shapeRef) => (
+            typeof shapeRef === 'string'
+              ? { shapeId: shapeRef, zIndex: undefined }
+              : { shapeId: shapeRef.shapeId, zIndex: shapeRef.zIndex }
+          ))
+          : [];
+
+        const combinedEntries = [...createdEntries, ...providedEntries]
+          .filter(entry => Boolean(entry.shapeId))
+          .sort((a, b) => {
+            if (typeof a.zIndex === 'number' && typeof b.zIndex === 'number') {
+              return (a.zIndex ?? 0) - (b.zIndex ?? 0);
+            }
+            if (typeof a.zIndex === 'number') return -1;
+            if (typeof b.zIndex === 'number') return 1;
+            return 0;
+          });
+
         const componentResponse = await sendMessageToPlugin(ClientQueryType.CREATE_COMPONENT, {
-          shapes: shapeIds,
+          shapes: combinedEntries,
           ...componentProperties,
         });
+
+        if (!componentResponse?.success && createdShapes.length > 0) {
+          const failedCount = shapes?.length ? shapes.length - createdShapes.filter(s => s.id).length : 0;
+          if (failedCount > 0) {
+            return {
+              ...ToolResponse,
+              success: false,
+              message: `Partially failed: ${createdShapes.filter(s => s.id).length} shape(s) created, ${failedCount} failed. ${componentResponse?.message || ''}`,
+              payload: { ...componentResponse?.payload, createdShapes, failedCount },
+            };
+          }
+        }
+
         return componentResponse;
       } catch (error) {
         if (error.response && error.response.source) {
@@ -262,36 +302,73 @@ export const drawingTools = [
     id: 'create-board',
     name: 'CreateBoardTool',
     description: `
-      Use this tool to create a board and optionally move existing shapes inside it.
+      Use this tool to create a board with existing shapes, new shapes, or both.
       
-      ⚠️ PREREQUISITE: If you want to move shapes into the board, first create them using CreateShapesTool, then pass their IDs to this tool.
+      You can provide:
+      - shapeIds: existing shapes to move into the board (objects with shapeId and optional zIndex). Can include groups, components, other boards.
+      - shapes: new shapes to create and include (rectangles, ellipses, paths, text)
       
-      This tool creates a board and moves the specified shapes inside it. The shapes can be rectangles, ellipses, paths, text, groups, components, or other boards.
+      If both are provided, all shapes will be placed inside the board. You can create a complete board with content in a single call.
       
       ✅ PRIORITIZE LAYOUTS (FLEX / GRID)
       - Prefer configuring the board with "flex" or "grid" to control structure and spacing.
       - For flex layouts, define child positioning with "layoutChild" (alignSelf, sizing, margins).
-      - For grid layouts, define child placement with "layoutCell" (row/column/rowSpan/columnSpan/areaName/position) and sizing/alignment with "layoutChild".
+      - For grid layouts, define child placement with "layoutCell" (row/column/rowSpan/columnSpan) and sizing/alignment with "layoutChild".
       - Use x/y only when you explicitly set layoutChild.absolute = true for absolute positioning.
-      - Layout-driven boards keep spacing consistent and make responsive adjustments easier.
       
-      📋 WORKFLOW:
-      1. Create the shapes you need using CreateShapesTool (get the shape IDs from the response)
-      2. Call this tool with the shapeIds array (objects with shapeId and optional zIndex) to create a board containing them
-      
-      TIP: You can also use GET_SELECTED_SHAPES to grab existing shapes, then pass their IDs here.
-      This allows creating a board from existing shapes without creating new ones first.
+      TIP: Use GET_SELECTED_SHAPES to grab existing shapes, then pass their IDs here.
     `,
     inputSchema: createBoardSchema,
     function: async (input) => {
       try {
-        const { shapeIds, ...boardProperties } = input;
-        
+        const { shapes, shapeIds, ...boardProperties } = input;
+        const createdShapes = shapes?.length
+          ? await createShapesArray(shapes, { throwOnError: false })
+          : [];
+
+        const createdEntries = createdShapes
+          .map((shape, index) => ({
+            shapeId: shape.id,
+            zIndex: shapes?.[index]?.zIndex,
+          }))
+          .filter(entry => Boolean(entry.shapeId));
+
+        const providedEntries = Array.isArray(shapeIds)
+          ? shapeIds.map((shapeRef) => (
+            typeof shapeRef === 'string'
+              ? { shapeId: shapeRef, zIndex: undefined }
+              : { shapeId: shapeRef.shapeId, zIndex: shapeRef.zIndex }
+          ))
+          : [];
+
+        const combinedEntries = [...createdEntries, ...providedEntries]
+          .filter(entry => Boolean(entry.shapeId))
+          .sort((a, b) => {
+            if (typeof a.zIndex === 'number' && typeof b.zIndex === 'number') {
+              return (a.zIndex ?? 0) - (b.zIndex ?? 0);
+            }
+            if (typeof a.zIndex === 'number') return -1;
+            if (typeof b.zIndex === 'number') return 1;
+            return 0;
+          });
+
         const boardResponse = await sendMessageToPlugin(ClientQueryType.CREATE_BOARD, {
-          shapes: shapeIds,
+          shapes: combinedEntries,
           ...boardProperties,
         });
-        
+
+        if (!boardResponse?.success && createdShapes.length > 0) {
+          const failedCount = shapes?.length ? shapes.length - createdShapes.filter(s => s.id).length : 0;
+          if (failedCount > 0) {
+            return {
+              ...ToolResponse,
+              success: false,
+              message: `Partially failed: ${createdShapes.filter(s => s.id).length} shape(s) created, ${failedCount} failed. ${boardResponse?.message || ''}`,
+              payload: { ...boardResponse?.payload, createdShapes, failedCount },
+            };
+          }
+        }
+
         return boardResponse;
       } catch (error) {
         if (error.response && error.response.source) {
@@ -497,30 +574,75 @@ export const drawingTools = [
     },
   },
   {
-    id: 'add-interaction',
-    name: 'AddInteractionTool',
+    id: 'add-navigate-to-interaction',
+    name: 'AddNavigateToInteractionTool',
     description: `
-      Use this tool to add a prototyping interaction to a shape (e.g. button, card).
-      The shape triggers an action when the user clicks, hovers, or after a delay.
-      
-      Triggers: click, mouse-enter, mouse-leave, after-delay (requires delay in ms)
-      Actions: navigate-to (go to board), open-overlay, toggle-overlay, close-overlay, previous-screen, open-url
-      
-      For navigate-to and overlays, provide destinationBoardId. For open-url, provide url.
+      Add a navigate-to interaction to a shape (e.g. button). When triggered, goes to another board.
+      Triggers: click, mouse-enter, mouse-leave, after-delay (requires delay in ms).
       Use GET_CURRENT_PAGE to get board IDs.
     `,
-    inputSchema: addInteractionSchema,
+    inputSchema: addNavigateToInteractionSchema,
     function: async (input) => {
       try {
-        const response = await sendMessageToPlugin(ClientQueryType.ADD_INTERACTION, input);
-        return response;
+        const { shapeId, trigger, delay, destinationBoardId, preserveScrollPosition, animation } = input;
+        const payload = { shapeId, trigger, delay, action: { type: 'navigate-to', destinationBoardId, preserveScrollPosition, animation } };
+        return await sendMessageToPlugin(ClientQueryType.ADD_INTERACTION, payload);
       } catch (error) {
-        return {
-          ...ToolResponse,
-          success: false,
-          message: `Failed to add interaction: ${error.message}`,
-          payload: { error: error.message },
-        };
+        return { ...ToolResponse, success: false, message: `Failed to add interaction: ${error.message}`, payload: { error: error.message } };
+      }
+    },
+  },
+  {
+    id: 'add-close-overlay-interaction',
+    name: 'AddCloseOverlayInteractionTool',
+    description: `
+      Add a close-overlay interaction to a shape. Closes the current or specified overlay.
+      Triggers: click, mouse-enter, mouse-leave, after-delay (requires delay in ms).
+    `,
+    inputSchema: addCloseOverlayInteractionSchema,
+    function: async (input) => {
+      try {
+        const { shapeId, trigger, delay, destinationBoardId, animation } = input;
+        const payload = { shapeId, trigger, delay, action: { type: 'close-overlay', destinationBoardId, animation } };
+        return await sendMessageToPlugin(ClientQueryType.ADD_INTERACTION, payload);
+      } catch (error) {
+        return { ...ToolResponse, success: false, message: `Failed to add interaction: ${error.message}`, payload: { error: error.message } };
+      }
+    },
+  },
+  {
+    id: 'add-previous-screen-interaction',
+    name: 'AddPreviousScreenInteractionTool',
+    description: `
+      Add a previous-screen interaction to a shape. Goes back to the previous screen in the flow.
+      Triggers: click, mouse-enter, mouse-leave, after-delay (requires delay in ms).
+    `,
+    inputSchema: addPreviousScreenInteractionSchema,
+    function: async (input) => {
+      try {
+        const { shapeId, trigger, delay } = input;
+        const payload = { shapeId, trigger, delay, action: { type: 'previous-screen' } };
+        return await sendMessageToPlugin(ClientQueryType.ADD_INTERACTION, payload);
+      } catch (error) {
+        return { ...ToolResponse, success: false, message: `Failed to add interaction: ${error.message}`, payload: { error: error.message } };
+      }
+    },
+  },
+  {
+    id: 'add-open-url-interaction',
+    name: 'AddOpenUrlInteractionTool',
+    description: `
+      Add an open-url interaction to a shape. Opens a URL in a new browser tab.
+      Triggers: click, mouse-enter, mouse-leave, after-delay (requires delay in ms).
+    `,
+    inputSchema: addOpenUrlInteractionSchema,
+    function: async (input) => {
+      try {
+        const { shapeId, trigger, delay, url } = input;
+        const payload = { shapeId, trigger, delay, action: { type: 'open-url', url } };
+        return await sendMessageToPlugin(ClientQueryType.ADD_INTERACTION, payload);
+      } catch (error) {
+        return { ...ToolResponse, success: false, message: `Failed to add interaction: ${error.message}`, payload: { error: error.message } };
       }
     },
   },
@@ -579,6 +701,11 @@ export const drawingTools = [
       
       IMPORTANT: You must provide the boardId of the board you want to modify.
       Only provide the properties you want to modify. Use null to remove a property.
+      
+      SENSITIVE PROPERTIES: horizontalSizing and verticalSizing affect board dimensions.
+      - "auto": board resizes to fit its children (width/height may change unexpectedly).
+      - "fix": board keeps fixed width/height.
+      Only include these if you intend to change sizing behavior; omitting them preserves the current values.
     `,
     inputSchema: modifyBoardSchema,
     function: async (input) => {
