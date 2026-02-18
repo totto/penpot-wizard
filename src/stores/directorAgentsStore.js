@@ -1,6 +1,6 @@
 import { atom, computed } from 'nanostores';
 import { persistentAtom } from '@nanostores/persistent';
-import { Experimental_Agent as Agent, stepCountIs } from 'ai';
+import { ToolLoopAgent } from 'ai';
 import { directorAgents } from '@/assets/directorAgents';
 import { $selectedLanguageModel, $isConnected } from '@/stores/settingsStore';
 import { createModelInstance } from '@/utils/modelUtils';
@@ -91,14 +91,13 @@ export const initializeDirectorAgents = () => {
         // Combine all tools
         const allTools = [...agentTools, ...specializedAgentTools, ...imageGenerationAgentTools];
         
-        const agentInstance = new Agent({
+        const agentInstance = new ToolLoopAgent({
           model: modelInstance,
           instructions: director.system,
           tools: allTools.reduce((acc, tool) => {
             acc[tool.id] = tool.instance;
             return acc;
           }, {}),
-          stopWhen: stepCountIs(20)
         });
         
         return {

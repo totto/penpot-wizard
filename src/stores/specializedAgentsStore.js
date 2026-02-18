@@ -1,5 +1,5 @@
 import { atom } from 'nanostores';
-import { tool, Experimental_Agent as Agent, Output, stepCountIs, jsonSchema } from 'ai';
+import { tool, ToolLoopAgent, Output, stepCountIs, jsonSchema } from 'ai';
 import { specializedAgents as specializedAgentsAssets } from '@/assets/specializedAgents';
 import { coordinatorAgents as coordinatorAgentsAssets } from '@/assets/coordinatorAgents';
 import { getToolsByIds } from '@/stores/toolsStore';
@@ -104,7 +104,7 @@ const initializeSpecializedAgent = async (specializedAgentId) => {
     : null;
 
   // Create the Agent instance
-  const agentInstance = new Agent({
+  const agentInstance = new ToolLoopAgent({
     model: modelInstance,
     instructions: specializedAgentDef.system,
     tools: allTools.reduce((acc, tool) => {
