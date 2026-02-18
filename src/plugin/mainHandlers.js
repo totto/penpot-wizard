@@ -101,6 +101,12 @@ export function getCurrentPage() {
     index === self.findIndex((c) => c.id === component.id)
   );
 
+  const flows = penpot.currentPage?.flows || [];
+  const flowsData = flows.map((f) => ({
+    name: f.name,
+    startingBoardId: f.startingBoard?.id,
+  }));
+
   return {
     success: true,
     message: 'Current page successfully retrieved',
@@ -109,6 +115,7 @@ export function getCurrentPage() {
       id: penpot.currentPage?.id || '',
       shapes: serializedShapes,
       components: uniqueComponents,
+      flows: flowsData,
     },
   };
 }

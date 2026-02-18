@@ -85,6 +85,9 @@ Drawing tools create and modify shapes in Penpot. Schemas are defined in `src/ty
 - `ungroup-shape` – Ungroup a group
 - `align-shapes` – Align shapes (horizontal/vertical)
 - `distribute-shapes` – Distribute shapes with equal spacing
+- `add-interaction` – Add prototyping interaction (click, overlay, navigate, etc.)
+- `create-flow` – Create prototype flow
+- `remove-flow` – Remove prototype flow
 - `modify-board`, `modify-component`, `modify-shape` – Edit properties
 - `modify-text-range` – Edit text styling ranges
 - `rotate-shape`, `clone-shape` – Transform shapes

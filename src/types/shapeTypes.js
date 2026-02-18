@@ -341,6 +341,78 @@ export const distributeShapesSchema = z.object({
   axis: z.enum(['horizontal', 'vertical']).describe('Axis along which to distribute (equal spacing)'),
 }).describe('Schema for distributing shapes with equal spacing.');
 
+const triggerSchema = z.enum(['click', 'mouse-enter', 'mouse-leave', 'after-delay']);
+
+const animationSchema = z.object({
+  type: z.enum(['dissolve', 'slide', 'push']),
+  duration: z.number().describe('Duration in milliseconds'),
+  easing: z.enum(['linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out']).optional(),
+  way: z.enum(['in', 'out']).optional().describe('For slide/push: in (out-to-in) or out (in-to-out)'),
+  direction: z.enum(['right', 'left', 'up', 'down']).optional().describe('For slide/push'),
+  offsetEffect: z.boolean().optional(),
+}).optional();
+
+export const addInteractionSchema = z.object({
+  shapeId: z.string().describe('ID of the shape that will trigger the interaction (e.g. button)'),
+  trigger: triggerSchema.describe('When the action fires: click, mouse-enter, mouse-leave, after-delay'),
+  delay: z.number().int().min(0).optional().describe('Milliseconds delay for after-delay trigger'),
+  action: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('navigate-to'),
+      destinationBoardId: z.string().describe('ID of the board to navigate to'),
+      preserveScrollPosition: z.boolean().optional(),
+      animation: animationSchema,
+    }),
+    z.object({
+      type: z.literal('open-overlay'),
+      destinationBoardId: z.string().describe('ID of the board to show as overlay'),
+      relativeToShapeId: z.string().optional(),
+      position: z.enum(['manual', 'center', 'top-left', 'top-right', 'top-center', 'bottom-left', 'bottom-right', 'bottom-center']).optional(),
+      closeWhenClickOutside: z.boolean().optional(),
+      addBackgroundOverlay: z.boolean().optional(),
+      animation: animationSchema,
+    }),
+    z.object({
+      type: z.literal('toggle-overlay'),
+      destinationBoardId: z.string(),
+      relativeToShapeId: z.string().optional(),
+      position: z.enum(['manual', 'center', 'top-left', 'top-right', 'top-center', 'bottom-left', 'bottom-right', 'bottom-center']).optional(),
+      closeWhenClickOutside: z.boolean().optional(),
+      addBackgroundOverlay: z.boolean().optional(),
+      animation: animationSchema,
+    }),
+    z.object({
+      type: z.literal('close-overlay'),
+      destinationBoardId: z.string().optional(),
+      animation: animationSchema.optional().describe('Optional; defaults to dissolve 300ms if omitted'),
+    }),
+    z.object({
+      type: z.literal('previous-screen'),
+    }),
+    z.object({
+      type: z.literal('open-url'),
+      url: z.string().url().describe('URL to open in new tab'),
+    }),
+  ]).describe('Action to execute when trigger fires'),
+}).refine(
+  (input) => {
+    if (input.trigger === 'after-delay') {
+      return typeof input.delay === 'number' && input.delay >= 0;
+    }
+    return true;
+  },
+  { message: 'delay (ms, >= 0) is required when trigger is after-delay' }
+);
+
+export const createFlowSchema = z.object({
+  name: z.string().min(1).describe('Name for the flow (e.g. "Onboarding")'),
+  boardId: z.string().describe('ID of the starting board for this flow'),
+});
+
+export const removeFlowSchema = z.object({
+  flowName: z.string().min(1).describe('Name of the flow to remove'),
+});
+
 export const modifyBoardSchema = z.object({
   boardId: z.string().describe('The ID of the board to modify'),
   properties: boardShapeSchema.partial().optional().describe('Board properties to modify. Provide only the fields you want to change. Use null to remove a property.'),

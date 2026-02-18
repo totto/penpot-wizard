@@ -27,6 +27,9 @@ import {
   handleUngroupShape,
   handleAlignShapes,
   handleDistributeShapes,
+  handleAddInteraction,
+  handleCreateFlow,
+  handleRemoveFlow,
 } from './drawHandlers';
 
 import {
@@ -142,6 +145,18 @@ penpot.ui.onMessage(async (message) => {
 
     case ClientQueryType.DISTRIBUTE_SHAPES:
       responseMessage = handleDistributeShapes(payload);
+      break;
+
+    case ClientQueryType.ADD_INTERACTION:
+      responseMessage = handleAddInteraction(payload);
+      break;
+
+    case ClientQueryType.CREATE_FLOW:
+      responseMessage = handleCreateFlow(payload);
+      break;
+
+    case ClientQueryType.REMOVE_FLOW:
+      responseMessage = handleRemoveFlow(payload);
       break;
 
     case ClientQueryType.MODIFY_SHAPE:

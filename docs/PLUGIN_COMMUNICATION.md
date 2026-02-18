@@ -51,6 +51,9 @@ UI (React)                    Plugin (Penpot)
 | UNGROUP_SHAPE | handleUngroupShape | Ungroup a group |
 | ALIGN_SHAPES | handleAlignShapes | Align shapes (horizontal/vertical) |
 | DISTRIBUTE_SHAPES | handleDistributeShapes | Distribute shapes with equal spacing |
+| ADD_INTERACTION | handleAddInteraction | Add prototyping interaction to shape |
+| CREATE_FLOW | handleCreateFlow | Create prototype flow |
+| REMOVE_FLOW | handleRemoveFlow | Remove prototype flow |
 | MODIFY_BOARD | handleModifyBoard | Edit board properties |
 | MODIFY_COMPONENT | handleModifyComponent | Edit component properties |
 | MODIFY_SHAPE | handleModifyShape | Edit shape properties |

@@ -1,6 +1,6 @@
 import { sendMessageToPlugin, createShapesArray } from '@/utils/pluginUtils';
 import { ToolResponse, ClientQueryType } from '@/types/types';
-import { createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, convertGroupToBoardSchema, convertGroupToComponentSchema, convertBoardToComponentSchema, createBooleanSchema, ungroupShapeSchema, alignShapesSchema, distributeShapesSchema, modifyBoardSchema, modifyComponentSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
+import { createShapesSchema, createComponentSchema, createGroupSchema, createBoardSchema, convertGroupToBoardSchema, convertGroupToComponentSchema, convertBoardToComponentSchema, createBooleanSchema, ungroupShapeSchema, alignShapesSchema, distributeShapesSchema, addInteractionSchema, createFlowSchema, removeFlowSchema, modifyBoardSchema, modifyComponentSchema, modifyShapePropertiesSchema, modifyTextRangeSchema, rotateShapeSchema, cloneShapeSchema, reorderShapeSchema } from '@/types/shapeTypes';
 import { z } from 'zod';
 
 export const drawingTools = [
@@ -491,6 +491,81 @@ export const drawingTools = [
           ...ToolResponse,
           success: false,
           message: `Failed to distribute shapes: ${error.message}`,
+          payload: { error: error.message },
+        };
+      }
+    },
+  },
+  {
+    id: 'add-interaction',
+    name: 'AddInteractionTool',
+    description: `
+      Use this tool to add a prototyping interaction to a shape (e.g. button, card).
+      The shape triggers an action when the user clicks, hovers, or after a delay.
+      
+      Triggers: click, mouse-enter, mouse-leave, after-delay (requires delay in ms)
+      Actions: navigate-to (go to board), open-overlay, toggle-overlay, close-overlay, previous-screen, open-url
+      
+      For navigate-to and overlays, provide destinationBoardId. For open-url, provide url.
+      Use GET_CURRENT_PAGE to get board IDs.
+    `,
+    inputSchema: addInteractionSchema,
+    function: async (input) => {
+      try {
+        const response = await sendMessageToPlugin(ClientQueryType.ADD_INTERACTION, input);
+        return response;
+      } catch (error) {
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to add interaction: ${error.message}`,
+          payload: { error: error.message },
+        };
+      }
+    },
+  },
+  {
+    id: 'create-flow',
+    name: 'CreateFlowTool',
+    description: `
+      Use this tool to create a prototype flow. A flow defines a starting point for user journeys.
+      
+      Provide a name (e.g. "Onboarding") and the boardId of the starting board.
+      Use GET_CURRENT_PAGE to get board IDs. Flows are listed in the page payload.
+    `,
+    inputSchema: createFlowSchema,
+    function: async (input) => {
+      try {
+        const response = await sendMessageToPlugin(ClientQueryType.CREATE_FLOW, input);
+        return response;
+      } catch (error) {
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to create flow: ${error.message}`,
+          payload: { error: error.message },
+        };
+      }
+    },
+  },
+  {
+    id: 'remove-flow',
+    name: 'RemoveFlowTool',
+    description: `
+      Use this tool to remove a prototype flow from the current page.
+      
+      Provide the flowName (from GET_CURRENT_PAGE payload.flows or from a previous create-flow).
+    `,
+    inputSchema: removeFlowSchema,
+    function: async (input) => {
+      try {
+        const response = await sendMessageToPlugin(ClientQueryType.REMOVE_FLOW, input);
+        return response;
+      } catch (error) {
+        return {
+          ...ToolResponse,
+          success: false,
+          message: `Failed to remove flow: ${error.message}`,
           payload: { error: error.message },
         };
       }
