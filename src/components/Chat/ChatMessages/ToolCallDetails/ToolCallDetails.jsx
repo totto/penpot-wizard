@@ -102,10 +102,6 @@ function ToolCallDetails({ toolCall, isNested = false }) {
     filteredOutput.success === false
   const effectiveState =
     toolCall.state === 'success' && isOutputFailure ? 'error' : toolCall.state
-  const outputError =
-    typeof filteredOutput === 'object' && filteredOutput !== null
-      ? filteredOutput.error || filteredOutput.payload?.error || filteredOutput.payload?.message
-      : null
 
   const stateDisplay = getStateDisplay(effectiveState)
   const formattedInput = formatData(toolCall.input)
@@ -140,20 +136,12 @@ function ToolCallDetails({ toolCall, isNested = false }) {
             </div>
           )}
           
-          {/* Output Section */}
+          {/* Output Section - colored red when error (no separate Error section to avoid duplication) */}
           {effectiveState !== 'started' && formattedOutput && (
             <div className={styles.toolCallSection}>
               <div className={styles.toolCallSectionTitle}>Output</div>
-              <div className={styles.toolCallData}>{formattedOutput}</div>
-            </div>
-          )}
-          
-          {/* Error Section */}
-          {effectiveState === 'error' && (toolCall.error || outputError) && (
-            <div className={styles.toolCallSection}>
-              <div className={styles.toolCallSectionTitle}>Error</div>
-              <div className={styles.toolCallData} style={{ color: '#ff6b6b' }}>
-                {toolCall.error || outputError}
+              <div className={`${styles.toolCallData} ${effectiveState === 'error' ? styles.toolCallDataError : ''}`}>
+                {formattedOutput}
               </div>
             </div>
           )}

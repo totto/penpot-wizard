@@ -313,6 +313,10 @@
   border-radius: 2px;
 }
 
+.toolCallData.toolCallDataError {
+  color: #ff6b6b;
+}
+
 .nestedToolCallsContainer {
   margin-top: 8px;
 }

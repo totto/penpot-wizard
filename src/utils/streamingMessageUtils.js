@@ -130,7 +130,17 @@ export class StreamHandler {
             }
           } else {
             // General stream error (not tool-specific)
-            setStreamingError(`Error: ${errorMessage}`);
+            // When nested (subagent), update parent tool call instead of global state
+            // to avoid unblocking the chat input while Director is still waiting
+            if (this.parentToolCallId) {
+              updateToolCall(this.parentToolCallId, {
+                state: 'error',
+                error: `Error: ${errorMessage}`,
+                output: { success: false, error: errorMessage }
+              });
+            } else {
+              setStreamingError(`Error: ${errorMessage}`);
+            }
           }
         }
       }
@@ -185,7 +195,18 @@ export class StreamHandler {
         }
         this.pendingToolCalls.clear();
       }
-      setStreamingError(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // When nested (subagent), update parent tool call instead of global state
+      // to avoid unblocking the chat input while Director is still waiting
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      if (this.parentToolCallId) {
+        updateToolCall(this.parentToolCallId, {
+          state: 'error',
+          error: errorMsg,
+          output: { success: false, error: errorMsg }
+        });
+      } else {
+        setStreamingError(`Error: ${errorMsg}`);
+      }
       throw error;
     }
   }
