@@ -175,7 +175,6 @@ function getBaseShapeProperties(
 function getChildShapeProperties(type, customDesc) {
   return {
     parentId: z.string().optional().describe(customDesc?.parentId || `The id of the parent board, group or component for the ${type}`),
-    zIndex: z.number().min(0).describe(customDesc?.zIndex || `The z-index (index) inside the parent. Higher values appear on top of lower values.`),
   };
 }
 
@@ -237,6 +236,10 @@ export const componentSchema = boardShapeSchema.extend({
 export const groupShapeSchema = z.object(getBaseShapeProperties('group'))
   .extend(getChildShapeProperties('group'))
 
+const shapeZIndexSchema = z.object({
+  zIndex: z.number().min(0).optional().describe('The z-index (index) inside the parent. Higher values appear on top of lower values.'),
+});
+
 const rectangleShapeSchema = z.object(getBaseShapeProperties('rectangle'))
   .extend(getChildShapeProperties('rectangle'))
   .extend({
@@ -266,12 +269,12 @@ export const textShapeSchema = z.object(getBaseShapeProperties('text'))
 export const createShapesSchema = z.object({
   shapes: z.array(
     z.discriminatedUnion('type', [
-      rectangleShapeSchema,
-      ellipseShapeSchema,
-      pathShapeSchema,
-      textShapeSchema,
+      rectangleShapeSchema.merge(shapeZIndexSchema),
+      ellipseShapeSchema.merge(shapeZIndexSchema),
+      pathShapeSchema.merge(shapeZIndexSchema),
+      textShapeSchema.merge(shapeZIndexSchema),
     ])
-  ).optional().describe('Array of shape objects to create. Each object must define the properties of one shape. Provide each shape as a proper object (not a string), following the expected type (always lowercase).'),
+  ).optional().describe('Array of objects defining the shapes to create. Important !! type property is mandatory in all shape (always lowercase).'),
 });
 
 export const shapeIdsSchema = z.object({
@@ -280,7 +283,7 @@ export const shapeIdsSchema = z.object({
       shapeId: z.string().describe('The ID of the shape to include'),
       zIndex: z.number().optional().describe('Optional zIndex for ordering; lower values appear first'),
     })
-  ).optional().describe('Array of shape references to include. Use CreateShapesTool first to create new shapes, or provide existing shape IDs. Can include shapes, groups, components, or boards.'),
+  ).optional().describe('IDs of EXISTING shapes to include (from get-current-page, get-selected-shapes, or previous create responses). For new shapes, use the shapes parameter instead.'),
 });
 
 export const createComponentSchema = shapeIdsSchema.partial()
@@ -297,7 +300,7 @@ export const createComponentSchema = shapeIdsSchema.partial()
 export const createGroupSchema = groupShapeSchema
   .extend(shapeIdsSchema.shape)
   .extend(createShapesSchema.shape)
-  .describe('Schema for creating a group from existing shapes or creating new shapes inside the group.');
+  .describe('shapeIds: existing shape IDs to group. shapes: new shapes to create inside the group. Use one or both.');
 
 export const createBoardSchema = shapeIdsSchema.partial()
   .extend(boardShapeSchema.shape)

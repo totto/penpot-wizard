@@ -87,6 +87,30 @@ export const functionTools = [
     },
   },
   {
+    id: "get-fonts",
+    name: "getFonts",
+    description: `
+      Search for fonts available in the current Penpot session by name.
+      Call this BEFORE creating text shapes when you need to verify a font exists or find alternatives.
+      
+      Returns matching fonts with name, fontId, and fontFamily. Use fontFamily (or name) as fontFamily when creating text shapes.
+      
+      Common Penpot fonts (often available without searching): Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Source Sans 3, Nunito, Work Sans, DM Sans.
+      For other fonts, use this tool with a search query (e.g. "Playfair" for Playfair Display).
+    `,
+    inputSchema: z.object({
+      query: z.string().min(1).describe('Search query: font name or partial name (e.g. "Inter", "Roboto", "Playfair")'),
+      limit: z.number().min(1).max(20).optional().describe('Max results to return (default 20)'),
+    }),
+    function: async ({ query, limit }) => {
+      const response = await sendMessageToPlugin(ClientQueryType.GET_FONTS, {
+        query: query.trim(),
+        limit: limit ?? 20,
+      });
+      return response;
+    },
+  },
+  {
     id: "get-selected-shapes",
     name: "getSelectedShapes",
     description: `

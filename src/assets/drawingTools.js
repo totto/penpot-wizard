@@ -9,17 +9,10 @@ export const drawingTools = [
     name: 'CreateShapesTool',
     description: `
       Use this tool to create one or multiple shapes in a single request. This tool can create rectangles, ellipses, paths, and text shapes.
-      
-      IMPORTANT: This tool does NOT create boards. Use CreateBoardTool for boards.
-      
-      REQUIRED STEP: If creating text shapes, use design-styles-rag to decide fonts, colors, and other design tokens.
-      
-      🚨 CRITICAL STACKING ORDER: New shapes appear BELOW existing shapes!
-      - Text and foreground elements should be created FIRST (at the beginning of the shapes array)
-      - Backgrounds and containers should be created LAST (at the end of the shapes array)
-      
-      You can create multiple shapes efficiently in one call. The shapes will be created in the order specified in the array.
+      Fonts: Common Penpot fonts (Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Source Sans 3, Nunito, Work Sans, DM Sans) work without checking. For others, call get-fonts first to verify availability.
       Use the optional parent property to place shapes inside a board, group, or component.
+      zIndex: use this property to control the stacking order of the shapes. Higher values appear on top of lower values.
+      Important!!! the shapes parameter is an array of objects. Each object must define the properties of one shape. Provide each shape as a proper object (not a string), following the expected type (always lowercase).
     `,
     inputSchema: createShapesSchema,
     function: async (input) => {
@@ -77,7 +70,7 @@ export const drawingTools = [
       
       You can provide:
       - shapeIds: existing shapes to include (objects with shapeId and optional zIndex). Can include groups, components, boards.
-      - shapes: new shapes to create and include (rectangles, ellipses, paths, text)
+      - shapes: new shapes to create and include (rectangles, ellipses, paths, text) Important !! shapes parameter is an array of objects. Each object must define the properties of one shape. Provide each shape as a proper object (not a string), following the expected type (always lowercase).
       
       If both are provided, all shapes will be included in the component.
       
@@ -156,17 +149,17 @@ export const drawingTools = [
     id: 'create-group',
     name: 'CreateGroupTool',
     description: `
-      Use this tool to create a group from existing shapes, new shapes, or both.
+      Creates a group. Two parameters - use one or both:
       
-      Groups support all ShapeBase properties (fills, strokes, shadows, blur, etc).
+      shapeIds — EXISTING shapes to include in the group.
+        IDs of shapes already on the page. Get them from get-current-page, get-selected-shapes, or from previous create-shapes/create-group responses.
+        Array of { shapeId: string, zIndex?: number }.
       
-      You can provide:
-      - shapeIds: existing shapes to group (objects with shapeId and optional zIndex)
-      - shapes: new shapes to create and include in the group
+      shapes — NEW shapes to CREATE inside the group.
+        Define rectangles, ellipses, paths, text. This tool creates them and adds them to the group in one call.
+        No need to use CreateShapesTool first. Array of shape objects with type (lowercase) and properties - never pass strings.
       
-      If both are provided, all shapes will be grouped together.
-      To add content later, create new items with CreateShapesTool, CreateGroupTool, CreateComponentTool, or CreateBoardTool
-      and pass the group's id as the parentId of those new items.
+      Both parameters can be used together: existing shapes from shapeIds + new shapes from shapes = one group.
     `,
     inputSchema: createGroupSchema,
     function: async (input) => {

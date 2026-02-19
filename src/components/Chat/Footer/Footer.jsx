@@ -61,6 +61,21 @@ function Footer() {
     }
   }, [message])
 
+  // Focus textarea when agent finishes talking (streaming ends)
+  const prevIsStreamingRef = useRef(null)
+  useEffect(() => {
+    const wasStreaming = prevIsStreamingRef.current
+    prevIsStreamingRef.current = isStreaming
+
+    if (wasStreaming === true && !isStreaming && textareaRef.current) {
+      // Use requestAnimationFrame to ensure the textarea is enabled before focusing
+      const id = requestAnimationFrame(() => {
+        textareaRef.current?.focus()
+      })
+      return () => cancelAnimationFrame(id)
+    }
+  }, [isStreaming])
+
   // Don't render if no active conversation
   if (!activeConversation) {
     return null

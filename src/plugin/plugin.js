@@ -35,6 +35,7 @@ import {
 import {
   handleGetProjectData,
   handleGetUserData,
+  handleGetFonts,
   handleAddImage,
   handleCreateShapeFromSvg,
   getCurrentPage,
@@ -205,6 +206,10 @@ penpot.ui.onMessage(async (message) => {
 
     case ClientQueryType.GET_SELECTED_SHAPES:
       responseMessage = getSelectedShapes();
+      break;
+
+    case ClientQueryType.GET_FONTS:
+      responseMessage = handleGetFonts(payload);
       break;
 
     default:

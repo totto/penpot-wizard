@@ -214,6 +214,59 @@ export function handleCreateShapeFromSvg(payload) {
   }
 }
 
+export function handleGetFonts(payload) {
+  const { query, limit = 20 } = payload || {};
+
+  try {
+    if (!query || typeof query !== 'string') {
+      return {
+        success: false,
+        message: 'query (string) is required',
+        payload: { error: 'Missing or invalid query' },
+      };
+    }
+
+    const fontsContext = penpot.fonts;
+    if (!fontsContext || typeof fontsContext.findAllByName !== 'function') {
+      return {
+        success: false,
+        message: 'Fonts API not available in this Penpot version',
+        payload: { error: 'penpot.fonts.findAllByName is not available' },
+      };
+    }
+
+    const matches = fontsContext.findAllByName(query.trim()) || [];
+    const capped = Array.isArray(matches)
+      ? matches.slice(0, Math.min(limit, 20))
+      : [];
+
+    const fonts = capped.map((f) => ({
+      name: f?.name ?? f?.fontFamily ?? '',
+      fontId: f?.fontId ?? '',
+      fontFamily: f?.fontFamily ?? f?.name ?? '',
+    }));
+
+    return {
+      success: true,
+      message: `Found ${fonts.length} font(s) matching "${query}"`,
+      payload: {
+        query: query.trim(),
+        fonts,
+        totalMatches: Array.isArray(matches) ? matches.length : 0,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Error searching fonts: ${error?.message || String(error)}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+        query: query || '',
+      },
+    };
+  }
+}
+
 export async function handleAddImage(payload) {
   const { name, data, mimeType, url } = payload;
 

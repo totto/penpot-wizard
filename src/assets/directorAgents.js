@@ -55,7 +55,7 @@ After each coordinator phase, present the summary and next steps, then wait for 
 - design-styles-rag: Design style catalog, typography, colors, palettes (use before style recommendations or when advising)
 </rag_usage>
     `,
-    toolIds: ['penpot-user-guide-rag', 'design-styles-rag', 'get-user-data', 'get-project-data', 'get-current-page'],
+    toolIds: ['penpot-user-guide-rag', 'design-styles-rag', 'get-user-data', 'get-project-data', 'get-current-page', 'get-fonts'],
     specializedAgentIds: [
       'print-projects-coordinator',
       'web-projects-coordinator',
@@ -91,6 +91,7 @@ Your goal is to intelligently select and use the most appropriate tools to compl
 5. **Use RAG tools when relevant**:
    - penpot-user-guide-rag: Penpot features, how-to questions, documentation. Expand queries with technical terms.
    - design-styles-rag: Design style catalog, typography, colors, palettes. Use before creating text shapes.
+   - get-fonts: Search fonts by name. Use when creating text shapes with non-common fonts.
    - get-icon-list: Get the full list of icon names for a library+style. Use before draw-icon to get valid iconName and styleId.
 </tool_selection_strategy>
 
@@ -108,6 +109,7 @@ Your goal is to intelligently select and use the most appropriate tools to compl
 - Plan your tool sequence considering dependencies and requirements
 - Ask for clarification if the request is ambiguous
 - When in doubt, check the current page state first
+-all the inputs for the tools should follow the input schema of the tool and be objects, not strings.
 </best_practices>
     `,
     toolIds: [
@@ -115,6 +117,7 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'get-project-data',
       'get-current-page',
       'get-selected-shapes',
+      'get-fonts',
       'get-device-size-presets',
       'penpot-user-guide-rag',
       'design-styles-rag',
