@@ -34,3 +34,12 @@ export {
   handleSendToBackShape,
   handleSendBackwardShape,
 } from './reorderHandlers';
+
+export {
+  handleCreateTokensSet,
+  handleGetTokensSets,
+  handleRemoveTokensSet,
+  handleModifyTokensSet,
+  handleActivateTokensSet,
+  handleApplyTokens,
+} from './tokenHandlers';

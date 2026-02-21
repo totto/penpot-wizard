@@ -6,6 +6,7 @@ import { toolsLayoutShapes } from './toolsLayoutShapes';
 import { toolsInteractions } from './toolsInteractions';
 import { toolsFlows } from './toolsFlows';
 import { toolsReorderShapes } from './toolsReorderShapes';
+import { toolsTokens } from './toolsTokens';
 import { ragTools } from './ragTools';
 import { iconsTool } from './iconsTool';
 
@@ -18,6 +19,7 @@ export const tools = [
   ...toolsInteractions,
   ...toolsFlows,
   ...toolsReorderShapes,
+  ...toolsTokens,
   ...ragTools,
   ...iconsTool,
 ];

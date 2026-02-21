@@ -26,6 +26,12 @@ import {
   handleAddInteraction,
   handleCreateFlow,
   handleRemoveFlow,
+  handleCreateTokensSet,
+  handleActivateTokensSet,
+  handleApplyTokens,
+  handleGetTokensSets,
+  handleRemoveTokensSet,
+  handleModifyTokensSet,
 } from './drawHandlers';
 
 import {
@@ -140,6 +146,18 @@ penpot.ui.onMessage(async (message) => {
       responseMessage = handleRemoveFlow(payload);
       break;
 
+    case ClientQueryType.CREATE_TOKENS_SET:
+      responseMessage = handleCreateTokensSet(payload);
+      break;
+
+    case ClientQueryType.ACTIVATE_TOKENS_SET:
+      responseMessage = handleActivateTokensSet(payload);
+      break;
+
+    case ClientQueryType.APPLY_TOKENS:
+      responseMessage = handleApplyTokens(payload);
+      break;
+
     case ClientQueryType.MODIFY_SHAPE:
       responseMessage = handleModifyShape(payload);
       break;
@@ -182,6 +200,18 @@ penpot.ui.onMessage(async (message) => {
 
     case ClientQueryType.GET_PROJECT_DATA:
       responseMessage = handleGetProjectData();
+      break;
+
+    case ClientQueryType.GET_TOKENS_SETS:
+      responseMessage = handleGetTokensSets();
+      break;
+
+    case ClientQueryType.REMOVE_TOKENS_SET:
+      responseMessage = handleRemoveTokensSet(payload);
+      break;
+
+    case ClientQueryType.MODIFY_TOKENS_SET:
+      responseMessage = handleModifyTokensSet(payload);
       break;
 
     case ClientQueryType.GET_CURRENT_PAGE:
