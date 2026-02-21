@@ -36,8 +36,6 @@ export const functionTools = [
       This includes: name, id, shapes, and available components from the local library.
       
       IMPORTANT: Use this tool to get shape IDs when you need to:
-      - Modify existing shapes (use ModifyShapeTool with the shape ID)
-      - Delete shapes (use DeleteShapeTool with the shape ID)
       - Understand the current state of the page before creating new elements
       - Check what shapes already exist on the page
     `,
@@ -90,13 +88,17 @@ export const functionTools = [
     id: "get-fonts",
     name: "getFonts",
     description: `
-      Search for fonts available in the current Penpot session by name.
-      Call this BEFORE creating text shapes when you need to verify a font exists or find alternatives.
+      Search for fonts AVAILABLE in the Penpot catalog (Google Fonts, etc.) by name or partial search.
+      Use this tool when you need to discover or verify which fonts can be used before creating text shapes.
       
       Returns matching fonts with name, fontId, and fontFamily. Use fontFamily (or name) as fontFamily when creating text shapes.
       
-      Common Penpot fonts (often available without searching): Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Source Sans 3, Nunito, Work Sans, DM Sans.
-      For other fonts, use this tool with a search query (e.g. "Playfair" for Playfair Display).
+      IMPORTANT distinction:
+      - get-fonts = fonts AVAILABLE in the catalog (what you CAN use).
+      - To know which fonts are IN USE in the current project/page, use get-current-page and inspect shapes of type "text" for their fontFamily property.
+      
+      Common Penpot fonts (often available): Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Source Sans 3, Nunito, Work Sans, DM Sans.
+      For other fonts, use a search query (e.g. "Playfair" for Playfair Display).
     `,
     inputSchema: z.object({
       query: z.string().min(1).describe('Search query: font name or partial name (e.g. "Inter", "Roboto", "Playfair")'),

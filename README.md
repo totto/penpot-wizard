@@ -92,7 +92,7 @@ See [docs/AGENTS_GUIDE.md](docs/AGENTS_GUIDE.md) for how to create custom agents
 
 ### Tools
 
-Tools are defined in `src/assets/` (functionTools, drawingTools, ragTools, iconsTool). All tools share the structure: `id`, `name`, `description`, `inputSchema`, `function`. Drawing tools include create-shapes, create-board, create-component, modify-shape, draw-icon, and more.
+Tools are defined in `src/assets/` (functionTools, toolsCreateShapes, toolsModifyShapes, toolsCompoundShapes, toolsLayoutShapes, toolsInteractions, toolsFlows, toolsReorderShapes, ragTools, iconsTool). All tools share the structure: `id`, `name`, `description`, `inputSchema`, `function`. Shape tools include create-rectangle, create-ellipse, create-text, create-path, create-board, modify-*, create-boolean, group-shapes, align-shapes, interactions, flows, draw-icon, and more.
 
 See [docs/EXTENDING_TOOLS.md](docs/EXTENDING_TOOLS.md) for how to add new tools.
 

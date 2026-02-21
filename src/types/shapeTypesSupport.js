@@ -8,13 +8,23 @@ const gradientStopSchema = z.object({
 
 const gradientSchema = z.object({
   type: z.enum(['linear', 'radial']),
-  startX: z.number(),
-  startY: z.number(),
-  endX: z.number(),
-  endY: z.number(),
+  startX: z.number().min(0).max(1),
+  startY: z.number().min(0).max(1),
+  endX: z.number().min(0).max(1),
+  endY: z.number().min(0).max(1),
   width: z.number(),
   stops: z.array(gradientStopSchema),
-});
+}).describe(`
+  Use startX, startY to define the coordinates of the starting point of the gradient
+  Use endX, endY to define the coordinates of the ending point of the gradient
+  examples:
+  -type linear: 
+    --(0.5,0) -> (0.5,1) starts at top center and goes to bottom center
+    --(0,0.5) -> (1,0.5) starts at left center and goes to right center
+  -type radial: 
+    --(0.5,0.5) -> (1,1) starts at center and goes to the bottom right corner
+    --(0.5,0.5) -> (0,0) starts at center and goes to the top left corner
+`);
 
 const imageDataSchema = z.object({
   name: z.string().optional(),
@@ -57,7 +67,7 @@ const colorSchema = z.object({
   fileId: z.string().optional(),
   name: z.string().optional(),
   path: z.string().optional(),
-  color: z.string().optional(),
+  color: z.string().optional().describe('The color in RGB format. IMPORTANT!! DO NOT USE RGBA FORMAT, use opacity property instead.'),
   opacity: z.number().min(0).max(1).optional(),
   refId: z.string().optional(),
   refFile: z.string().optional(),
@@ -66,10 +76,9 @@ const colorSchema = z.object({
 });
 
 export const Shadow = z.object({
-  id: z.string().optional(),
   style: z.enum(['drop-shadow', 'inner-shadow']).optional(),
-  offsetX: z.number().optional(),
-  offsetY: z.number().optional(),
+  'offset-x': z.number().optional(),
+  'offset-y': z.number().optional(),
   blur: z.number().optional(),
   spread: z.number().optional(),
   hidden: z.boolean().optional(),
@@ -92,22 +101,37 @@ export const LayoutCellProperties = z.object({
   position: z.enum(['area', 'auto', 'manual']).optional(),
 });
 
-export const TextProperties = z.object({
-  characters: z.string().optional(),
-  growType: z.enum(['fixed', 'auto-width', 'auto-height']).optional(),
-  fontId: z.string().optional(),
-  fontFamily: z.string().optional(),
-  fontVariantId: z.string().optional(),
-  fontSize: z.string().optional(),
-  fontWeight: z.string().optional(),
-  fontStyle: z.enum(['normal', 'italic', 'mixed']).nullable().optional(),
-  lineHeight: z.string().optional(),
-  letterSpacing: z.string().optional(),
-  textTransform: z.enum(['uppercase', 'capitalize', 'lowercase', 'mixed']).nullable().optional(),
-  textDecoration: z.enum(['underline', 'line-through', 'mixed']).nullable().optional(),
-  direction: z.enum(['ltr', 'rtl', 'mixed']).nullable().optional(),
-  align: z.enum(['left', 'center', 'right', 'justify', 'mixed']).nullable().optional(),
-  verticalAlign: z.enum(['top', 'center', 'bottom']).nullable().optional(),
+const CommonLayoutProperties = z.object({
+  alignItems: z.enum(['start', 'end', 'center', 'stretch']).optional(),
+  alignContent: z.enum(['start', 'end', 'center', 'space-between', 'space-around', 'space-evenly', 'stretch']).optional(),
+  justifyItems: z.enum(['start', 'end', 'center', 'stretch']).optional(),
+  justifyContent: z.enum(['start', 'center', 'end', 'space-between', 'space-around', 'space-evenly', 'stretch']).optional(),
+  rowGap: z.number().optional(),
+  columnGap: z.number().optional(),
+  verticalPadding: z.number().optional(),
+  horizontalPadding: z.number().optional(),
+  topPadding: z.number().optional(),
+  rightPadding: z.number().optional(),
+  bottomPadding: z.number().optional(),
+  leftPadding: z.number().optional(),
+  layoutHorizontalSizing: z.enum(['fit-content', 'fill', 'auto']).optional(),
+  layoutVerticalSizing: z.enum(['fit-content', 'fill', 'auto']).optional(),
+});
+
+const Track = z.object({
+  type: z.enum(['flex', 'fixed', 'percent', 'auto']),
+  value: z.number().nullable(),
+});
+
+export const FlexLayoutProperties = CommonLayoutProperties.extend({
+  dir: z.enum(['row', 'row-reverse', 'column', 'column-reverse']),
+  wrap: z.enum(['wrap', 'nowrap']).optional(),
+});
+
+export const GridLayoutProperties = CommonLayoutProperties.extend({
+  dir: z.enum(['column', 'row']),
+  rows: z.array(Track).optional(),
+  columns: z.array(Track).optional(),
 });
 
 export const LayoutChildProperties = z.object({
@@ -126,7 +150,11 @@ export const LayoutChildProperties = z.object({
   maxHeight: z.number().nullable().optional(),
   minWidth: z.number().nullable().optional(),
   minHeight: z.number().nullable().optional(),
-});
+}).describe(`
+  IMPORTANT!! use zIndex to define the position of the element into a flex layout
+  if the flex layout dir is row, the element with higher zIndex appears on the left
+  if the flex dir is column, the element with higher zIndex appears on the top.
+`);
 
 const pathCommandParamsSchema = z.object({
   x: z.number().optional(),
@@ -157,3 +185,14 @@ export const blendModeValues = [
   'color-dodge', 'overlay', 'soft-light', 'hard-light', 'exclusion',
   'hue', 'saturation', 'color', 'luminosity',
 ];
+
+export const removableProperties = [
+  'fills',
+  'strokes',
+  'shadows',
+  'blur',
+  'grid',
+  'flex',
+  'interactions',
+];
+

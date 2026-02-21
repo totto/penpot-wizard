@@ -22,7 +22,13 @@ Every tool follows this structure:
 |------|------|---------|
 | Function | `src/assets/functionTools.js` | Data retrieval, API calls, non-visual operations |
 | RAG | `src/assets/ragTools.js` | Vector search over embeddings |
-| Drawing | `src/assets/drawingTools.js` | Create/modify shapes, boards, components |
+| Create shapes | `src/assets/toolsCreateShapes.js` | Create rectangle, ellipse, text, path, board |
+| Modify shapes | `src/assets/toolsModifyShapes.js` | Modify existing shapes by type |
+| Compound | `src/assets/toolsCompoundShapes.js` | Group, ungroup, convert to board/component, boolean |
+| Layout | `src/assets/toolsLayoutShapes.js` | Align, distribute shapes |
+| Interactions | `src/assets/toolsInteractions.js` | Prototyping interactions (navigate, close overlay, etc.) |
+| Flows | `src/assets/toolsFlows.js` | Create, remove prototype flows |
+| Reorder | `src/assets/toolsReorderShapes.js` | Bring/send shapes (z-order) |
 | Icons | `src/assets/iconsTool.js` | Draw icons from external libraries |
 | Issued | `src/assets/issuedTools.js` | Tools disabled pending upstream fixes (Penpot) |
 
@@ -72,28 +78,35 @@ import { ToolResponse } from '@/types/types';
 
 ## Drawing Tools
 
-Drawing tools create and modify shapes in Penpot. Schemas are defined in `src/types/shapeTypes.js`.
+Drawing tools create and modify shapes in Penpot. Schemas are defined in `src/types/shapeTypesNew.js`.
 
-**Existing tools:**
-- `create-shapes` – Rectangles, ellipses, paths, text (see [SHAPE_REFERENCE.md](SHAPE_REFERENCE.md))
-- `create-component` – Convert shapes into components
-- `create-group` – Group shapes
-- `create-board` – Create boards with optional shapes
-- `convert-group-to-board` – Convert group to board
-- `convert-group-to-component` – Convert group to component
-- `convert-board-to-component` – Convert board to component
+**Create shapes (toolsCreateShapes):**
+- `create-rectangle`, `create-ellipse`, `create-text`, `create-path`, `create-board` – Create shapes one at a time
+
+**Compound shapes (toolsCompoundShapes):**
+- `group-shapes` – Group shapes by IDs
+- `ungroup` – Ungroup a group
+- `convert-to-board` – Convert shapes to board
+- `convert-to-component` – Convert shapes to component
 - `create-boolean` – Boolean ops (union, difference, exclude, intersection)
-- `ungroup-shape` – Ungroup a group
+
+**Layout (toolsLayoutShapes):**
 - `align-shapes` – Align shapes (horizontal/vertical)
 - `distribute-shapes` – Distribute shapes with equal spacing
-- `add-navigate-to-interaction`, ~~`add-open-overlay-interaction`~~, ~~`add-toggle-overlay-interaction`~~ (pending Penpot fix, see `issuedTools.js`), `add-close-overlay-interaction`, `add-previous-screen-interaction`, `add-open-url-interaction` – Add prototyping interactions
-- `create-flow` – Create prototype flow
-- `remove-flow` – Remove prototype flow
-- `modify-board`, `modify-component`, `modify-shape` – Edit properties
+
+**Interactions (toolsInteractions):**
+- `add-navigate-to-interaction`, `add-close-overlay-interaction`, `add-previous-screen-interaction`, `add-open-url-interaction` – Prototyping interactions
+
+**Flows (toolsFlows):**
+- `create-flow`, `remove-flow` – Prototype flows
+
+**Modify shapes (toolsModifyShapes):**
+- `modify-rectangle`, `modify-ellipse`, `modify-text`, `modify-path`, `modify-board`, `modify-boolean` – Edit properties by shape type
 - `modify-text-range` – Edit text styling ranges
-- `rotate-shape`, `clone-shape` – Transform shapes
+- `rotate-shape`, `clone-shape`, `delete-shape` – Transform and delete
+
+**Reorder (toolsReorderShapes):**
 - `bring-to-front-shape`, `bring-forward-shape`, `send-to-back-shape`, `send-backward-shape` – Z-order
-- `delete-shape` – Remove shapes
 
 **Important:** Respect stacking order. Foreground elements should be created first, backgrounds last.
 

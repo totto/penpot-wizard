@@ -1,16 +1,11 @@
 import { atom } from 'nanostores';
 import { tool } from 'ai';
-import { functionTools, ragTools, drawingTools, iconsTool } from '@/assets/tools';
+import { tools } from '@/assets/tools';
 
 let toolsInitialized = false;
 
 // Base atom for tools data
-export const $toolsData = atom([
-  ...functionTools,
-  ...ragTools,
-  ...drawingTools,
-  ...iconsTool,
-]);
+export const $toolsData = atom(tools);
 
 // Derived functions for getters
 export const getToolById = (toolId) => {
@@ -47,15 +42,8 @@ export const initializeTools = async () => {
   }
 
   try {
-    const allToolDefs = [
-      ...functionTools,
-      ...ragTools,
-      ...drawingTools,
-      ...iconsTool,
-    ];
-
     const allTools = await Promise.all(
-      allToolDefs.map(async (toolDef) => {
+      tools.map(async (toolDef) => {
         try {
           return await initializeTool(toolDef);
         } catch (error) {

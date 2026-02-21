@@ -17,12 +17,7 @@
  * // Returns: "M50,50 L150,50 Z"
  * ```
  */
-import { 
-  baseShapeProperties,
-  boardShapeSchema,
-  pathShapeSchema,
-  textShapeSchema,
-} from '../types/shapeTypes';
+import { ShapeBase, Path, Text, Board } from '../types/shapeTypesNew';
 
 export function pathCommandsToSvgString(commands) {
   return commands.map(cmd => {
@@ -176,7 +171,7 @@ export function convertToBoard(shape) {
 
 /**
  * Curates a shape object by keeping only configurable properties
- * based on the shape type schemas from shapeTypes.js.
+ * based on the shape type schemas from shapeTypesNew.js.
  */
 export function curateShapeOutput(shape) {
   if (!shape || typeof shape !== 'object') {
@@ -186,27 +181,47 @@ export function curateShapeOutput(shape) {
   const shapeRecord = shape;
   const shapeType = shapeRecord.type;
   const shapeId = shapeRecord.id;
-  
+
+  // Fallback for component instances or shapes without type (e.g. frame/board from component.instance())
+  const minimalOutput = () => {
+    const out = {};
+    if (shapeId != null) out.id = shapeId;
+    if (shapeType != null) out.type = shapeType;
+    const safeKeys = ['name', 'x', 'y', 'width', 'height', 'parentId', 'parentIndex'];
+    for (const key of safeKeys) {
+      if (key in shapeRecord && shapeRecord[key] !== undefined) {
+        out[key] = shapeRecord[key];
+      }
+    }
+    const parent = shapeRecord.parent;
+    if (parent != null) {
+      const pid = parent?.id ?? parent;
+      if (pid != null) out.parentId = typeof pid === 'object' ? String(pid) : pid;
+    }
+    return Object.keys(out).length ? out : { id: shapeId ?? 'unknown' };
+  };
+
   if (!shapeType) {
-    return shapeId ? { id: shapeId } : {};
+    return minimalOutput();
   }
 
   let validSchema;
   
   switch (shapeType) {
     case 'path':
-      validSchema = pathShapeSchema;
+      validSchema = Path;
       break;
     case 'text':
-      validSchema = textShapeSchema;
+      validSchema = Text;
       break;
     case 'rectangle':
     case 'ellipse':
     default:
-      validSchema = baseShapeProperties;
+      validSchema = ShapeBase;
       break;
     case 'board':
-      validSchema = boardShapeSchema;
+    case 'frame': // Penpot uses 'frame' for boards and component instances
+      validSchema = Board;
       break;
   }
 
@@ -215,6 +230,7 @@ export function curateShapeOutput(shape) {
   
   validKeys.add('id');
   validKeys.add('type');
+  validKeys.add('interactions');
 
   let parentId;
   const parent = shapeRecord.parent;

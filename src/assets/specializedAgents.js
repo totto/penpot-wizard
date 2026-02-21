@@ -158,10 +158,17 @@ export const specializedAgents = [
         Use boards as screens and place items within their parents appropriately.
         Keep typography and spacing consistent with the received brief. Use available fonts.
       </drawing>
+      <tool_input_format>
+        When designSystem comes as a JSON string, parse it and use it for colors, typography, and spacing. Do not invent or search in RAG if designSystem is already provided.
+      </tool_input_format>
     `,
     inputSchema: z.object({
       view: z.object({ id: z.string(), name: z.string(), sections: z.array(z.string()), components: z.array(z.string()) }),
-      designSystem: z.object({}).passthrough(),
+      designSystem: z
+        .string()
+        .describe(
+          'Design system as JSON string. The coordinator must pass it serialized (JSON.stringify from UIDesignSpecialist output). Include colorPalette, typography, spacing, radii, etc. Parse it and use for colors, typography, and spacing. Do not invent or use RAG if designSystem is provided.'
+        ),
       target: z.object({ pageId: z.string().optional(), boardName: z.string().default('Screen') }).optional(),
     }),
     outputSchema: z.object({
@@ -174,7 +181,10 @@ export const specializedAgents = [
     }),
     toolIds: [
       'create-board',
-      'create-shapes',
+      'create-rectangle',
+      'create-ellipse',
+      'create-text',
+      'create-path',
       'get-current-page',
       'get-icon-list',
       'draw-icon',
@@ -201,6 +211,10 @@ export const specializedAgents = [
         Use boards for each print artifact. Apply design system colors, typography, and spacing.
         Consider bleed and safe zones when specified. Use available fonts from the design system.
       </drawing>
+      <tool_input_format>
+        Use create-board to create an empty board with properties (name, width, height, etc.). Use create-rectangle, create-ellipse, create-text, create-path for shapes. To place shapes inside a board, set parentId to the board ID. Create one shape per tool call. Pass objects directly, never JSON strings.
+        When designSystem comes as a JSON string, parse it and use it for colors, typography, and spacing. Do not invent or search in RAG if designSystem is already provided.
+      </tool_input_format>
     `,
     inputSchema: z.object({
       view: z.object({
@@ -211,7 +225,11 @@ export const specializedAgents = [
         components: z.array(z.string()),
         format: z.enum(['A4', 'A3', 'A2', 'A5', 'Letter', 'custom']),
       }),
-      designSystem: z.object({}).passthrough(),
+      designSystem: z
+        .string()
+        .describe(
+          'Design system as JSON string. The coordinator must pass it serialized (JSON.stringify from UIDesignSpecialist output). Include colorPalette, typography, spacing, radii, etc. Parse it and use for colors, typography, and spacing. Do not invent or use RAG if designSystem is provided.'
+        ),
       target: z
         .object({
           pageId: z.string().optional(),
@@ -232,7 +250,10 @@ export const specializedAgents = [
     toolIds: [
       'get-device-size-presets',
       'create-board',
-      'create-shapes',
+      'create-rectangle',
+      'create-ellipse',
+      'create-text',
+      'create-path',
       'get-current-page',
       'design-styles-rag',
       'add-image',
@@ -254,6 +275,10 @@ export const specializedAgents = [
         Use boards for each viewport/breakpoint. Apply design system consistently.
         Keep typography and spacing aligned with the received brief. Use available fonts.
       </drawing>
+      <tool_input_format>
+        Use create-board to create an empty board with properties (name, width, height, etc.). Use create-rectangle, create-ellipse, create-text, create-path for shapes. To place shapes inside a board, set parentId to the board ID. Create one shape per tool call. Pass objects directly, never JSON strings.
+        When designSystem comes as a JSON string, parse it and use it for colors, typography, and spacing. Do not invent or search in RAG if designSystem is already provided.
+      </tool_input_format>
     `,
     inputSchema: z.object({
       view: z.object({
@@ -264,7 +289,11 @@ export const specializedAgents = [
         components: z.array(z.string()),
         breakpoints: z.array(z.string()).optional(),
       }),
-      designSystem: z.object({}).passthrough(),
+      designSystem: z
+        .string()
+        .describe(
+          'Design system as JSON string. The coordinator must pass it serialized (JSON.stringify from UIDesignSpecialist output). Include colorPalette, typography, spacing, radii, etc. Parse it and use for colors, typography, and spacing. Do not invent or use RAG if designSystem is provided.'
+        ),
       target: z
         .object({
           pageId: z.string().optional(),
@@ -284,7 +313,10 @@ export const specializedAgents = [
     toolIds: [
       'get-device-size-presets',
       'create-board',
-      'create-shapes',
+      'create-rectangle',
+      'create-ellipse',
+      'create-text',
+      'create-path',
       'get-current-page',
       'get-icon-list',
       'draw-icon',
@@ -301,11 +333,14 @@ export const specializedAgents = [
     id: 'style-application-specialist',
     name: 'StyleApplicationSpecialist',
     description:
-      'Applies design styles (colors, typography, spacing, radii) to existing shapes in the Penpot project.',
+      'Applies design styles (colors, typography, spacing, radii) to existing shapes. Crucial: the coordinator must pass designSystem as a JSON string approved by the user. Example: {"colors":{"background":"#F5F5F5","accent":"#00D1FF"},"typography":{"fontFamily":"Inter"}}. If designSystem is missing or empty string, the specialist cannot apply correctly and may choose arbitrarily from RAG.',
     system: `
       <role>
         You apply design styles to existing shapes. Work in English. Use design-styles-rag for style references.
-        Get current page state first. Apply modifications via modify-shape and modify-text-range.
+        Get current page state first. Apply modifications via modify-rectangle, modify-ellipse, modify-text, modify-path, modify-board, or modify-text-range.
+        When designSystem is provided as a JSON string, parse it and apply the specified colors and typography to the shapes.
+        Do not use design-styles-rag to choose a different style—apply exactly what is in the designSystem.
+        Use design-styles-rag only when designSystem is missing (fallback, not preferred).
       </role>
       <behavior>
         When scope is "selection", use get-selected-shapes to get shape IDs. When scope is "page", use get-current-page.
@@ -314,7 +349,11 @@ export const specializedAgents = [
       </behavior>
     `,
     inputSchema: z.object({
-      designSystem: z.object({}).passthrough().describe('Target design system with colors, typography, etc.'),
+      designSystem: z
+        .string()
+        .describe(
+          'Design system as JSON string. Include colors (hex) and typography (fontFamily). Example: {"colors":{"background":"#F5F5F5","accent":"#00D1FF","text":"#111111"},"typography":{"fontFamily":"Inter"}}'
+        ),
       scope: z.enum(['page', 'selection']),
       shapeIds: z.array(z.string()).optional().describe('Optional explicit shape IDs; if omitted, use scope to determine'),
       pageId: z.string().optional(),
@@ -324,7 +363,7 @@ export const specializedAgents = [
       description: z.string(),
       modifiedCount: z.number(),
     }),
-    toolIds: ['design-styles-rag', 'get-current-page', 'get-selected-shapes', 'modify-shape', 'modify-text-range'],
+    toolIds: ['design-styles-rag', 'get-current-page', 'get-selected-shapes', 'modify-rectangle', 'modify-ellipse', 'modify-text', 'modify-path', 'modify-board', 'modify-text-range'],
   },
 ];
 

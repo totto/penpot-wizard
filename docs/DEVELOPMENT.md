@@ -54,7 +54,13 @@ penpot-wizard/
 │   │   ├── imageGenerationAgents.js
 │   │   ├── functionTools.js
 │   │   ├── ragTools.js
-│   │   ├── drawingTools.js
+│   │   ├── toolsCreateShapes.js
+│   │   ├── toolsModifyShapes.js
+│   │   ├── toolsCompoundShapes.js
+│   │   ├── toolsLayoutShapes.js
+│   │   ├── toolsInteractions.js
+│   │   ├── toolsFlows.js
+│   │   ├── toolsReorderShapes.js
 │   │   ├── iconsTool.js
 │   │   └── tools.js      # Barrel export
 │   ├── components/       # React UI

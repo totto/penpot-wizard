@@ -6,12 +6,9 @@ import {
 
 import {
   handleDrawShape,
-  handleCreateComponent,
   handleCreateGroup,
-  handleCreateBoard,
   handleModifyShape,
   handleModifyBoard,
-  handleModifyComponent,
   handleModifyTextRange,
   handleRotateShape,
   handleCloneShape,
@@ -20,9 +17,8 @@ import {
   handleBringForwardShape,
   handleSendToBackShape,
   handleSendBackwardShape,
-  handleConvertGroupToBoard,
-  handleConvertGroupToComponent,
-  handleConvertBoardToComponent,
+  handleConvertShapesToBoard,
+  handleConvertShapesToComponent,
   handleCreateBoolean,
   handleUngroupShape,
   handleAlignShapes,
@@ -56,6 +52,10 @@ penpot.on('themechange', (newTheme) => {
     type: PluginMessageType.THEME_CHANGE,
     payload: { theme: newTheme },
   });
+});
+
+penpot.on('selectionchange', () => {
+console.log('selectionchange', penpot.selection);
 });
 
 penpot.ui.onMessage(async (message) => {
@@ -96,36 +96,20 @@ penpot.ui.onMessage(async (message) => {
       responseMessage = handleCreateShapeFromSvg(payload);
       break;
 
-    case ClientQueryType.CREATE_COMPONENT:
-      responseMessage = handleCreateComponent(payload);
-      break;
-
     case ClientQueryType.CREATE_GROUP:
       responseMessage = handleCreateGroup(payload);
-      break;
-
-    case ClientQueryType.CREATE_BOARD:
-      responseMessage = handleCreateBoard(payload);
       break;
 
     case ClientQueryType.MODIFY_BOARD:
       responseMessage = handleModifyBoard(payload);
       break;
 
-    case ClientQueryType.MODIFY_COMPONENT:
-      responseMessage = handleModifyComponent(payload);
+    case ClientQueryType.CONVERT_SHAPES_TO_BOARD:
+      responseMessage = handleConvertShapesToBoard(payload);
       break;
 
-    case ClientQueryType.CONVERT_GROUP_TO_BOARD:
-      responseMessage = handleConvertGroupToBoard(payload);
-      break;
-
-    case ClientQueryType.CONVERT_GROUP_TO_COMPONENT:
-      responseMessage = handleConvertGroupToComponent(payload);
-      break;
-
-    case ClientQueryType.CONVERT_BOARD_TO_COMPONENT:
-      responseMessage = handleConvertBoardToComponent(payload);
+    case ClientQueryType.CONVERT_SHAPES_TO_COMPONENT:
+      responseMessage = handleConvertShapesToComponent(payload);
       break;
 
     case ClientQueryType.CREATE_BOOLEAN:

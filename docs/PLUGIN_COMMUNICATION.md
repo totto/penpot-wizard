@@ -45,8 +45,10 @@ UI (React)                    Plugin (Penpot)
 | CREATE_GROUP | handleCreateGroup | Group shapes |
 | CREATE_BOARD | handleCreateBoard | Create board with shapes |
 | CONVERT_GROUP_TO_BOARD | handleConvertGroupToBoard | Convert group to board |
+| CONVERT_SHAPES_TO_BOARD | handleConvertShapesToBoard | Convert shape(s) to board (groups if multiple, ungroups if group) |
 | CONVERT_GROUP_TO_COMPONENT | handleConvertGroupToComponent | Convert group to component |
 | CONVERT_BOARD_TO_COMPONENT | handleConvertBoardToComponent | Convert board to component |
+| CONVERT_SHAPES_TO_COMPONENT | handleConvertShapesToComponent | Convert shape(s) to component (groups if multiple) |
 | CREATE_BOOLEAN | handleCreateBoolean | Boolean ops (union, difference, etc.) |
 | UNGROUP_SHAPE | handleUngroupShape | Ungroup a group |
 | ALIGN_SHAPES | handleAlignShapes | Align shapes (horizontal/vertical) |
@@ -54,9 +56,9 @@ UI (React)                    Plugin (Penpot)
 | ADD_INTERACTION | handleAddInteraction | Add prototyping interaction to shape |
 | CREATE_FLOW | handleCreateFlow | Create prototype flow |
 | REMOVE_FLOW | handleRemoveFlow | Remove prototype flow |
-| MODIFY_BOARD | handleModifyBoard | Edit board properties |
-| MODIFY_COMPONENT | handleModifyComponent | Edit component properties |
-| MODIFY_SHAPE | handleModifyShape | Edit shape properties |
+| MODIFY_BOARD | handleModifyBoard | Edit board properties (payload: boardId, propertiesToModify, propertiesToRemove) |
+| MODIFY_COMPONENT | handleModifyComponent | Edit component properties (payload: componentId, propertiesToModify, propertiesToRemove) |
+| MODIFY_SHAPE | handleModifyShape | Edit shape properties (payload: shapeId, propertiesToModify, propertiesToRemove) |
 | MODIFY_TEXT_RANGE | handleModifyTextRange | Edit text range styling |
 | ROTATE_SHAPE | handleRotateShape | Rotate shape |
 | CLONE_SHAPE | handleCloneShape | Clone shape or component |

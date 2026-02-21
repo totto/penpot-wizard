@@ -48,6 +48,7 @@ If the request does not match any type, answer directly with tools (RAG, get-cur
 Before calling a coordinator, present the collected brief to the user and ask for explicit confirmation ("OK to proceed", "continue", etc.).
 Proceed only when the brief satisfies the coordinator's input schema and the user confirms.
 After each coordinator phase, present the summary and next steps, then wait for user approval before continuing.
+When calling StyleAdvisorCoordinator with scope apply, pass designSystem as a JSON string. Serialize the approved palette and typography, e.g. {"colors":{"background":"#F5F5F5","accent":"#00D1FF","text":"#111111"},"typography":{"fontFamily":"Inter"}}. Do not pass nested objects.
 </handoff_protocol>
 
 <rag_usage>
@@ -109,7 +110,7 @@ Your goal is to intelligently select and use the most appropriate tools to compl
 - Plan your tool sequence considering dependencies and requirements
 - Ask for clarification if the request is ambiguous
 - When in doubt, check the current page state first
--all the inputs for the tools should follow the input schema of the tool and be objects, not strings.
+- All inputs for tools must follow the input schema: use objects, never strings. create-board creates an empty board with properties (name, width, height, etc.); to add shapes inside, use create-rectangle, create-ellipse, create-text, create-path with parentId set to the board ID. Pass schema parameters directly, never JSON strings or null. If the tool returns "expected object, received string" or "expected object, received null", fix the input format.
 </best_practices>
     `,
     toolIds: [
@@ -122,15 +123,16 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'penpot-user-guide-rag',
       'design-styles-rag',
       'get-icon-list',
-      'create-shapes',
-      'create-group',
-      'create-component',
+      'create-rectangle',
+      'create-ellipse',
+      'create-text',
+      'create-path',
       'create-board',
-      'convert-group-to-component',
-      'convert-board-to-component',
-      'convert-group-to-board',
+      'group-shapes',
+      'ungroup',
+      'convert-to-board',
+      'convert-to-component',
       'create-boolean',
-      'ungroup-shape',
       'align-shapes',
       'distribute-shapes',
       'add-image',
@@ -141,9 +143,11 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'add-open-url-interaction',
       'create-flow',
       'remove-flow',
+      'modify-rectangle',
+      'modify-ellipse',
+      'modify-text',
+      'modify-path',
       'modify-board',
-      'modify-component',
-      'modify-shape',
       'modify-text-range',
       'rotate-shape',
       'clone-shape',
@@ -154,6 +158,48 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'delete-shape',
     ],
     imageGenerationAgentIds: ['image-generator'],
+  },
+  {
+    id: 'testnewtools',
+    name: 'TestNewToolsDirector',
+    description:
+      'Test director for the new API-style tools (createRectangle, etc.). Uses create-rectangle which mirrors penpot.createRectangle().',
+    system: `
+      <who_you_are>
+        You are TestNewToolsDirector, a testing agent for the new Penpot API-style tools.
+        you receive simple petitions from the user and resolve them using the tools you have access to.
+      </who_you_are>
+
+      <language_policy>
+        - Always reply in the user's language for the conversation.
+        - Internally (tools, data structures), use English.
+      </language_policy>
+
+      <workflow>
+        1. Use get-current-page to get the current page state if you need get shapes IDs.
+        2. Analyze the user's request and determine the best tool to use.
+        4. Use the appropriate tool to create or modify the shape.
+        5. Confirm completion and show results.
+      </workflow>
+
+      <best_practices>
+        - If you are adding items to a board, create first the items with lower layoutChild.zIndex.
+        - when asigning positions, use x, y when the parent is the root frame and parentX, parentY when the parent is another shape.
+      </best_practices>
+    `,
+    toolIds: [
+      'get-current-page', 'get-fonts',
+      'create-rectangle', 'create-ellipse', 'create-text', 'create-board', 'create-path',
+      'modify-rectangle', 'modify-ellipse', 'modify-text', 'modify-board', 'modify-path', 'modify-boolean',
+      'group-shapes', 'ungroup', 'convert-to-board', 'convert-to-component',
+      'create-boolean',
+      'align-shapes', 'distribute-shapes',
+      'add-navigate-to-interaction', 'add-close-overlay-interaction',
+      'add-previous-screen-interaction', 'add-open-url-interaction',
+      'create-flow', 'remove-flow',
+      'modify-text-range', 'rotate-shape', 'clone-shape', 'delete-shape',
+      'bring-to-front-shape', 'bring-forward-shape', 'send-to-back-shape', 'send-backward-shape',
+    ],
   },
 ];
 

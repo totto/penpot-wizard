@@ -15,11 +15,13 @@ export const coordinatorAgents = [
         Receive a structured brief (see input schema). Validate completeness, then sequence internal calls:
         planning → design system → UX views/flows → drawing per view.
         Maintain state and report what is done and what comes next. Keep outputs actionable.
+        When calling MobileViewDesigner, pass the designSystem received from UIDesignSpecialist as a JSON string: use JSON.stringify(designSystem) on the output. Never omit or pass an empty designSystem when calling MobileViewDesigner.
       </behavior>
       <rules>
         - Never ask the user questions directly.
         - Prefer small, verifiable increments. Surface blockers early.
         - Respect constraints: target sizes, accessibility, branding, and platform.
+        - Pass designSystem to MobileViewDesigner as JSON string (JSON.stringify). Never omit it when UIDesignSpecialist has produced it.
       </rules>
     `,
     inputSchema: z.object({
@@ -105,12 +107,14 @@ export const coordinatorAgents = [
         Receive a structured brief (see input schema). Validate completeness, then sequence internal calls:
         planning → design system → print layout per artifact.
         Maintain state and report what is done and what comes next. Keep outputs actionable.
+        When calling PrintViewDesigner, pass the designSystem received from UIDesignSpecialist as a JSON string: use JSON.stringify(designSystem) on the output. Never omit or pass an empty designSystem when calling PrintViewDesigner.
       </behavior>
       <rules>
         - Never ask the user questions directly.
         - Prefer small, verifiable increments. Surface blockers early.
         - Use PRINT category in get-device-size-presets for formats (A4, A3, etc.).
         - Respect print constraints: bleed, safe zone, color mode (RGB for screen preview).
+        - Pass designSystem to PrintViewDesigner as JSON string (JSON.stringify). Never omit it when UIDesignSpecialist has produced it.
       </rules>
     `,
     inputSchema: z.object({
@@ -159,12 +163,14 @@ export const coordinatorAgents = [
         Receive a structured brief (see input schema). Validate completeness, then sequence internal calls:
         planning → design system → UX views/flows → drawing per view/breakpoint.
         Maintain state and report what is done and what comes next. Keep outputs actionable.
+        When calling WebViewDesigner, pass the designSystem received from UIDesignSpecialist as a JSON string: use JSON.stringify(designSystem) on the output. Never omit or pass an empty designSystem when calling WebViewDesigner.
       </behavior>
       <rules>
         - Never ask the user questions directly.
         - Prefer small, verifiable increments. Surface blockers early.
         - Use WEB category in get-device-size-presets for breakpoints (Web 1920, Web 1366, etc.).
         - Respect breakpoints: desktop, tablet, mobile as specified.
+        - Pass designSystem to WebViewDesigner as JSON string (JSON.stringify). Never omit it when UIDesignSpecialist has produced it.
       </rules>
     `,
     inputSchema: z.object({
@@ -221,16 +227,21 @@ export const coordinatorAgents = [
       <role>
         You coordinate internal specialists to advise on or apply design styles in Penpot.
         You do not talk to the end user. Work in English and return concise recommendations or application results.
+        Your main role is to receive the brief from the director (which comes from the user) and pass it to the specialist.
+        You coordinate; you do not design. The director defines the design with user approval; you transmit it to the specialist.
       </role>
       <behavior>
         Receive a structured brief (see input schema). When scope is "advise", use UIDesignSpecialist and design-styles-rag
         to produce recommendations. When scope is "apply", use StyleApplicationSpecialist to modify shapes.
+        designSystem arrives as a JSON string; pass it to StyleApplicationSpecialist exactly as received (do not modify or parse it).
+        Pass shapeIds, pageId, and scope as well. Only expand or infer when strictly necessary and deducible without asking the user.
         Return structured output with recommendations or modifiedCount.
       </behavior>
       <rules>
         - Never ask the user questions directly.
         - For advise: return palette, typography, spacing, radii recommendations.
-        - For apply: get current page/shapes first, then apply design system via StyleApplicationSpecialist.
+        - For apply: get current page/shapes first, then pass designSystem (JSON string) to StyleApplicationSpecialist—never invent or omit it.
+        - designSystem is a JSON string that must be passed unchanged; the specialist needs the user-approved design to apply correctly.
       </rules>
     `,
     inputSchema: z.object({
@@ -245,7 +256,12 @@ export const coordinatorAgents = [
           preferredFonts: z.array(z.string()).optional(),
         })
         .optional(),
-      designSystem: z.object({}).passthrough().optional().describe('For apply: the design system to apply'),
+      designSystem: z
+        .string()
+        .optional()
+        .describe(
+          'Required when scope is apply. The design system as a JSON string. The director must serialize the approved palette and typography. Example: {"colors":{"background":"#F5F5F5","accent":"#00D1FF","text":"#111111"},"typography":{"fontFamily":"Inter"}}'
+        ),
     }),
     outputSchema: z.object({
       success: z.boolean().describe('overall success'),
