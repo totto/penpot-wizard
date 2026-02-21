@@ -11,7 +11,7 @@ import {
   rotateShapeSchema,
   cloneShapeSchema,
   deleteShapeSchema,
-} from '@/types/shapeTypesNew';
+} from '@/types/shapeTypes';
 
 export const toolsModifyShapes = [
   {

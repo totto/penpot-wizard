@@ -13,10 +13,10 @@ New shapes appear **below** existing shapes. When creating multiple shapes in on
 
 | Type | Schema | Description |
 |------|--------|-------------|
-| rectangle | rectangleShapeSchema | Rectangles with optional border radius |
-| ellipse | ellipseShapeSchema | Ellipses / circles |
-| path | pathShapeSchema | Vector paths with bezier curves (see [PATH_COMMANDS_GUIDE.md](PATH_COMMANDS_GUIDE.md)) |
-| text | textShapeSchema | Text layers |
+| rectangle | createRectangleSchema (ShapeBase.partial) | Rectangles with optional border radius |
+| ellipse | createEllipseSchema (ShapeBase.partial) | Ellipses / circles |
+| path | createPathSchema (Path.partial) | Vector paths with bezier curves (see [PATH_COMMANDS_GUIDE.md](PATH_COMMANDS_GUIDE.md)) |
+| text | createTextSchema (Text.partial) | Text layers |
 
 ## Base Shape Properties
 
@@ -28,7 +28,7 @@ Shared by all shapes:
 | x, y | number | Absolute position (relative to Root Frame) |
 | parentX, parentY | number | Position relative to parent |
 | parentId | string | Parent board, group, or component |
-| zIndex | number | Stacking order inside parent |
+| parentIndex | number | Stacking order inside parent |
 | width, height | number | Dimensions |
 | rotation | number | 0–359 degrees |
 | flipX, flipY | boolean | Flip flags |

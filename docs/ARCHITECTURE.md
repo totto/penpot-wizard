@@ -13,7 +13,7 @@ Penpot Wizard runs across three layers:
 │  │                   Plugin (plugin.js)                       │  │
 │  │  - Runs in Penpot context                                  │  │
 │  │  - Access to Penpot API (create shapes, get data)          │  │
-│  │  - Handlers: mainHandlers.js, drawHandlers.js               │  │
+│  │  - Handlers: mainHandlers.js, drawHandlers/                 │  │
 │  └──────────────────────┬────────────────────────────────────┘  │
 │                         │ postMessage (bidirectional)            │
 │  ┌──────────────────────▼────────────────────────────────────┐  │
@@ -31,7 +31,7 @@ Penpot Wizard runs across three layers:
 │  │  │ Specialized      │ Tools        │ Image         │        │  │
 │  │  │ Agents           │ (function,   │ Generation    │        │  │
 │  │  │                  │ RAG, drawing,│ Agents        │        │  │
-│  │  │                  │ icons)       │               │        │  │
+│  │  │                  │ tokens, icons)│               │        │  │
 │  │  └──────────────────┴──────────────┴──────────────┘        │  │
 │  └─────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
@@ -41,7 +41,7 @@ State Management (nanostores):
 ├── specializedAgentsStore (specialized agents wrapped as tools)
 ├── coordinatorAgentsStore (coordinator agents)
 ├── imageGenerationAgentsStore (image generation agents)
-├── toolsStore            (function, RAG, drawing, icons tools)
+├── toolsStore            (function, RAG, drawing, tokens, icons tools)
 ├── settingsStore         (API keys, models)
 ├── conversationsStore    (metadata, messages)
 └── streamingMessageStore (real-time streaming state)
@@ -115,6 +115,6 @@ flowchart TB
 ## Key Design Decisions
 
 - **postMessage**: Plugin and UI run in separate contexts; all communication is via postMessage
-- **Unified tools**: All tools (function, RAG, drawing, icons) share the same structure: `{ id, name, description, inputSchema, function }`
+- **Unified tools**: All tools (function, RAG, drawing, tokens, icons) share the same structure: `{ id, name, description, inputSchema, function }`
 - **User-created agents**: Directors can be created by users and persisted via `userAgentsStore`
 - **Lazy initialization**: Tools and agents initialize when API keys are validated ($isConnected)

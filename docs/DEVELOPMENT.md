@@ -61,6 +61,7 @@ penpot-wizard/
 │   │   ├── toolsInteractions.js
 │   │   ├── toolsFlows.js
 │   │   ├── toolsReorderShapes.js
+│   │   ├── toolsTokens.js
 │   │   ├── iconsTool.js
 │   │   └── tools.js      # Barrel export
 │   ├── components/       # React UI
@@ -70,7 +71,11 @@ penpot-wizard/
 │   ├── plugin/           # Penpot plugin code
 │   │   ├── plugin.js
 │   │   ├── mainHandlers.js
-│   │   ├── drawHandlers.js
+│   │   ├── drawHandlers/ # Shape, token, layout, interaction handlers
+│   │   │   ├── index.js
+│   │   │   ├── shapeHandlers.js
+│   │   │   ├── tokenHandlers.js
+│   │   │   └── ...
 │   │   └── utils.js
 │   ├── stores/           # Nanostores state
 │   │   ├── directorAgentsStore.js
@@ -80,7 +85,9 @@ penpot-wizard/
 │   │   └── ...
 │   ├── types/             # TypeScript-like types
 │   │   ├── types.js
-│   │   └── shapeTypes.js
+│   │   ├── shapeTypes.js
+│   │   ├── shapeTypesSupport.js
+│   │   └── tokensTypes.js
 │   └── utils/
 │       ├── pluginUtils.js
 │       ├── ragUtils.js

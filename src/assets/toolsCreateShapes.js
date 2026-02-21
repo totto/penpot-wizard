@@ -6,7 +6,7 @@ import {
   createTextSchema,
   createBoardSchema,
   createPathSchema,
-} from '@/types/shapeTypesNew';
+} from '@/types/shapeTypes';
 
 export const toolsCreateShapes = [
   {

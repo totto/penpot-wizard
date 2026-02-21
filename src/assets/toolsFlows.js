@@ -1,6 +1,6 @@
 import { ClientQueryType } from '@/types/types';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
-import { createFlowSchema, removeFlowSchema } from '@/types/shapeTypesNew';
+import { createFlowSchema, removeFlowSchema } from '@/types/shapeTypes';
 
 export const toolsFlows = [
   {

@@ -5,7 +5,7 @@ import {
   ungroupSchema,
   convertShapesToBoardSchema,
   createBooleanSchema,
-} from '@/types/shapeTypesNew';
+} from '@/types/shapeTypes';
 
 export const toolsCompoundShapes = [
   {

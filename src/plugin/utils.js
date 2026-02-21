@@ -17,7 +17,7 @@
  * // Returns: "M50,50 L150,50 Z"
  * ```
  */
-import { ShapeBase, Path, Text, Board } from '../types/shapeTypesNew';
+import { ShapeBase, Path, Text, Board } from '../types/shapeTypes';
 
 export function pathCommandsToSvgString(commands) {
   return commands.map(cmd => {
@@ -171,7 +171,7 @@ export function convertToBoard(shape) {
 
 /**
  * Curates a shape object by keeping only configurable properties
- * based on the shape type schemas from shapeTypesNew.js.
+ * based on the shape type schemas from shapeTypes.js.
  */
 export function curateShapeOutput(shape) {
   if (!shape || typeof shape !== 'object') {

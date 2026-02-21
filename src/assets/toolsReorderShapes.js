@@ -1,6 +1,6 @@
 import { ClientQueryType } from '@/types/types';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
-import { reorderShapeSchema } from '@/types/shapeTypesNew';
+import { reorderShapeSchema } from '@/types/shapeTypes';
 
 export const toolsReorderShapes = [
   {

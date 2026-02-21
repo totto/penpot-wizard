@@ -13,7 +13,7 @@ UI (React)                    Plugin (Penpot)
     |------------------------------>|
     |                               |
     |                         2. Handler processes
-    |                            (mainHandlers, drawHandlers)
+    |                            (mainHandlers, drawHandlers/)
     |                               |
     |  3. postMessage(response)    |
     |  source: penpotWizardPlugin   |
@@ -38,16 +38,12 @@ UI (React)                    Plugin (Penpot)
 | GET_PROJECT_DATA | handleGetProjectData | Project structure, pages |
 | GET_CURRENT_PAGE | getCurrentPage | Page, shapes, components |
 | GET_SELECTED_SHAPES | getSelectedShapes | Selected shape IDs |
+| GET_FONTS | handleGetFonts | Search fonts by name |
 | DRAW_SHAPE | handleDrawShape | Create rectangle, ellipse, path, text |
 | ADD_IMAGE | handleAddImage | Add image to project |
 | CREATE_SHAPE_FROM_SVG | handleCreateShapeFromSvg | Create shape from SVG string |
-| CREATE_COMPONENT | handleCreateComponent | Create component from shapes |
 | CREATE_GROUP | handleCreateGroup | Group shapes |
-| CREATE_BOARD | handleCreateBoard | Create board with shapes |
-| CONVERT_GROUP_TO_BOARD | handleConvertGroupToBoard | Convert group to board |
 | CONVERT_SHAPES_TO_BOARD | handleConvertShapesToBoard | Convert shape(s) to board (groups if multiple, ungroups if group) |
-| CONVERT_GROUP_TO_COMPONENT | handleConvertGroupToComponent | Convert group to component |
-| CONVERT_BOARD_TO_COMPONENT | handleConvertBoardToComponent | Convert board to component |
 | CONVERT_SHAPES_TO_COMPONENT | handleConvertShapesToComponent | Convert shape(s) to component (groups if multiple) |
 | CREATE_BOOLEAN | handleCreateBoolean | Boolean ops (union, difference, etc.) |
 | UNGROUP_SHAPE | handleUngroupShape | Ungroup a group |
@@ -57,13 +53,18 @@ UI (React)                    Plugin (Penpot)
 | CREATE_FLOW | handleCreateFlow | Create prototype flow |
 | REMOVE_FLOW | handleRemoveFlow | Remove prototype flow |
 | MODIFY_BOARD | handleModifyBoard | Edit board properties (payload: boardId, propertiesToModify, propertiesToRemove) |
-| MODIFY_COMPONENT | handleModifyComponent | Edit component properties (payload: componentId, propertiesToModify, propertiesToRemove) |
 | MODIFY_SHAPE | handleModifyShape | Edit shape properties (payload: shapeId, propertiesToModify, propertiesToRemove) |
 | MODIFY_TEXT_RANGE | handleModifyTextRange | Edit text range styling |
 | ROTATE_SHAPE | handleRotateShape | Rotate shape |
 | CLONE_SHAPE | handleCloneShape | Clone shape or component |
 | DELETE_SHAPE | handleDeleteShape | Remove shape |
 | BRING_TO_FRONT_SHAPE, etc. | handleBringToFrontShape, etc. | Change z-order |
+| GET_TOKENS_SETS | handleGetTokensSets | List design token sets |
+| CREATE_TOKENS_SET | handleCreateTokensSet | Create token set with tokens |
+| ACTIVATE_TOKENS_SET | handleActivateTokensSet | Activate a token set |
+| REMOVE_TOKENS_SET | handleRemoveTokensSet | Remove a token set |
+| MODIFY_TOKENS_SET | handleModifyTokensSet | Modify tokens in a set |
+| APPLY_TOKENS | handleApplyTokens | Apply tokens to shapes |
 
 ## Adding a New Operation
 
@@ -76,7 +77,7 @@ export const ClientQueryType = {
 };
 ```
 
-2. **Implement handler** in `src/plugin/mainHandlers.js` or `drawHandlers.js`:
+2. **Implement handler** in `src/plugin/mainHandlers.js` or `src/plugin/drawHandlers/`:
 
 ```javascript
 export function handleMyNewQuery(payload) {

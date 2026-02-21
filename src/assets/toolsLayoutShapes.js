@@ -1,6 +1,6 @@
 import { ClientQueryType } from '@/types/types';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
-import { alignShapesSchema, distributeShapesSchema } from '@/types/shapeTypesNew';
+import { alignShapesSchema, distributeShapesSchema } from '@/types/shapeTypes';
 
 export const toolsLayoutShapes = [
   {

@@ -7,7 +7,7 @@
 
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 import { ToolResponse, ClientQueryType } from '@/types/types';
-import { addOverlayInteractionSchema } from '@/types/shapeTypesNew';
+import { addOverlayInteractionSchema } from '@/types/shapeTypes';
 
 /** Pending: Penpot addInteraction overlay actions fail validation (overlay-position map vs Point). */
 export const issuedTools = [

@@ -1,6 +1,6 @@
 # Extending Tools
 
-This guide explains how to create and add new tools to Penpot Wizard. All tools (function, RAG, drawing, icons) share the same structure and are registered via the tools store.
+This guide explains how to create and add new tools to Penpot Wizard. All tools (function, RAG, drawing, tokens, icons) share the same structure and are registered via the tools store.
 
 ## Tool Structure
 
@@ -29,6 +29,7 @@ Every tool follows this structure:
 | Interactions | `src/assets/toolsInteractions.js` | Prototyping interactions (navigate, close overlay, etc.) |
 | Flows | `src/assets/toolsFlows.js` | Create, remove prototype flows |
 | Reorder | `src/assets/toolsReorderShapes.js` | Bring/send shapes (z-order) |
+| Tokens | `src/assets/toolsTokens.js` | Design tokens (get, create, activate, remove, modify, apply) |
 | Icons | `src/assets/iconsTool.js` | Draw icons from external libraries |
 | Issued | `src/assets/issuedTools.js` | Tools disabled pending upstream fixes (Penpot) |
 
@@ -78,7 +79,7 @@ import { ToolResponse } from '@/types/types';
 
 ## Drawing Tools
 
-Drawing tools create and modify shapes in Penpot. Schemas are defined in `src/types/shapeTypesNew.js`.
+Drawing tools create and modify shapes in Penpot. Schemas are defined in `src/types/shapeTypes.js`.
 
 **Create shapes (toolsCreateShapes):**
 - `create-rectangle`, `create-ellipse`, `create-text`, `create-path`, `create-board` – Create shapes one at a time
@@ -107,6 +108,14 @@ Drawing tools create and modify shapes in Penpot. Schemas are defined in `src/ty
 
 **Reorder (toolsReorderShapes):**
 - `bring-to-front-shape`, `bring-forward-shape`, `send-to-back-shape`, `send-backward-shape` – Z-order
+
+**Tokens (toolsTokens):**
+- `get-tokens-sets` – List all design token sets
+- `create-tokens-set` – Create a token set with tokens
+- `activate-tokens-set` – Activate a set (optionally exclusive)
+- `remove-tokens-set` – Remove a token set
+- `modify-tokens-set` – Update, add, or remove tokens in a set
+- `apply-tokens` – Apply token values to shapes (fill, stroke, font-size, etc.)
 
 **Important:** Respect stacking order. Foreground elements should be created first, backgrounds last.
 

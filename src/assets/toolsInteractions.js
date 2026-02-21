@@ -5,7 +5,7 @@ import {
   addCloseOverlayInteractionSchema,
   addPreviousScreenInteractionSchema,
   addOpenUrlInteractionSchema,
-} from '@/types/shapeTypesNew';
+} from '@/types/shapeTypes';
 
 export const toolsInteractions = [
   {
