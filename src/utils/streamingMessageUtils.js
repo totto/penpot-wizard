@@ -5,6 +5,7 @@ import {
   updateToolCall,
 } from '@/stores/streamingMessageStore';
 import { InvalidToolInputError, NoSuchToolError } from 'ai';
+import { formatValidationErrorToPayload, formatToolOutputError } from '@/utils/validationErrorFormatter';
 
 export class StreamHandler {
   constructor(stream, parentToolCallId) {
@@ -40,7 +41,10 @@ export class StreamHandler {
             startedAt: Date.now()
           });
         } else if (chunk.type === 'tool-result') {
-          const output = chunk.result !== undefined ? chunk.result : chunk.output;
+          let output = chunk.result !== undefined ? chunk.result : chunk.output;
+          if (output?.success === false && (output?.payload?.error || output?.error)) {
+            output = formatToolOutputError(output);
+          }
 
           updateToolCall(chunk.toolCallId, { 
             state: 'success', 
@@ -50,19 +54,18 @@ export class StreamHandler {
           this.pendingToolCalls.delete(chunk.toolCallId);
 
         } else if (chunk.type === 'tool-error') {
-          const errorMessage = chunk.error instanceof Error 
+          const rawError = chunk.error instanceof Error 
             ? chunk.error.message 
             : (typeof chunk.error === 'string' ? chunk.error : 'Tool execution failed');
+          const payload = formatValidationErrorToPayload(rawError);
+          const errorOutput = payload
+            ? { success: false, payload }
+            : { success: false, message: rawError };
           
           if (chunk.toolCallId) {
-            const errorOutput = {
-              success: false,
-              message: `Tool execution error: ${errorMessage}`,
-              payload: { error: errorMessage },
-            };
             updateToolCall(chunk.toolCallId, {
               state: 'error',
-              error: `Tool execution error: ${errorMessage}`,
+              error: rawError,
               output: errorOutput,
             });
             this.pendingToolCalls.delete(chunk.toolCallId);
@@ -75,23 +78,14 @@ export class StreamHandler {
           let toolCallId = chunk.toolCallId;
           let toolName = null;
           
-          // Check for InvalidToolInputError (schema validation failure)
+          let validationPayload = null;
           if (InvalidToolInputError.isInstance(error)) {
             toolName = error.toolName;
-            
-            // Log the full error structure to understand what the SDK provides
-            console.error('InvalidToolInputError detected - Full error object:', {
-              toolName: error.toolName,
-              message: error.message,
-              cause: error.cause,
-              // Log Zod issues if available
-              zodIssues: error.cause?.issues,
-              // Full error for inspection
-              fullError: error,
-            });
-            
-            // For now, use the raw error message from the SDK
-            errorMessage = error.message;
+            validationPayload = formatValidationErrorToPayload(
+              error.message,
+              error.cause?.issues
+            );
+            if (!validationPayload) errorMessage = error.message;
             
             // Try to find the associated tool call if not provided in chunk
             if (!toolCallId && toolName) {
@@ -118,11 +112,9 @@ export class StreamHandler {
           
           // Update the specific tool call if we have an ID
           if (toolCallId) {
-            const errorOutput = {
-              success: false,
-              message: errorMessage,
-              payload: { error: errorMessage },
-            };
+            const errorOutput = validationPayload
+              ? { success: false, payload: validationPayload }
+              : { success: false, message: errorMessage };
             updateToolCall(toolCallId, {
               state: 'error',
               error: errorMessage,
@@ -185,7 +177,6 @@ export class StreamHandler {
           const errorOutput = {
             success: false,
             message: errorMessage,
-            payload: { error: errorMessage },
           };
           updateToolCall(toolCallId, {
             state: 'error',
@@ -209,7 +200,6 @@ export class StreamHandler {
         const errorOutput = {
           success: false,
           message: errorMsg,
-          payload: { error: errorMsg },
         };
         for (const [toolCallId] of this.pendingToolCalls) {
           updateToolCall(toolCallId, {

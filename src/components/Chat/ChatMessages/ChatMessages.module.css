@@ -285,6 +285,18 @@
   letter-spacing: 0.5px;
 }
 
+.toolCallSectionTitleError {
+  color: #ff6b6b;
+}
+
+.toolCallOutputErrorIcon {
+  margin-right: 6px;
+}
+
+.toolCallSectionTitleMessage {
+  text-transform: none;
+}
+
 .toolCallData {
   background-color: var(--background-tertiary);
   padding: 8px;

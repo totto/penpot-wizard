@@ -22,10 +22,11 @@ function filterOutputFields(data) {
       }
     }
     
-    // If it's an object, filter to only include success, payload, and error
+    // If it's an object, filter to only include success, message, payload, and error
     if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
       const filtered = {}
       if ('success' in parsed) filtered.success = parsed.success
+      if ('message' in parsed) filtered.message = parsed.message
       if ('payload' in parsed) filtered.payload = parsed.payload
       if ('error' in parsed) filtered.error = parsed.error
       return filtered
@@ -39,14 +40,14 @@ function filterOutputFields(data) {
 }
 
 /**
- * Formats data (input/output) for display
- * Tries to JSON stringify with pretty print, falls back to string representation
+ * Formats data (input/output) for display.
+ * Always shows as JSON for consistency (success, message format for tool outputs).
  */
 function formatData(data) {
   if (data === undefined || data === null) {
     return null
   }
-  
+
   try {
     // If it's already a string, try to parse and re-stringify for pretty print
     if (typeof data === 'string') {
@@ -105,7 +106,10 @@ function ToolCallDetails({ toolCall, isNested = false }) {
 
   const stateDisplay = getStateDisplay(effectiveState)
   const formattedInput = formatData(toolCall.input)
-  const formattedOutput = formatData(filteredOutput)
+  const outputPayload = filteredOutput?.payload
+  const formattedPayload = outputPayload != null ? formatData(outputPayload) : null
+  const outputMessage = filteredOutput?.message ?? filteredOutput?.error
+  const hasOutput = outputPayload != null || outputMessage != null
   const hasNestedToolCalls = toolCall.toolCalls && toolCall.toolCalls.length > 0
   
   const toggleExpanded = () => {
@@ -136,13 +140,16 @@ function ToolCallDetails({ toolCall, isNested = false }) {
             </div>
           )}
           
-          {/* Output Section - colored red when error (no separate Error section to avoid duplication) */}
-          {effectiveState !== 'started' && formattedOutput && (
+          {/* Output Section - title with message when present, content = payload only */}
+          {effectiveState !== 'started' && hasOutput && (
             <div className={styles.toolCallSection}>
-              <div className={styles.toolCallSectionTitle}>Output</div>
-              <div className={`${styles.toolCallData} ${effectiveState === 'error' ? styles.toolCallDataError : ''}`}>
-                {formattedOutput}
+              <div className={`${styles.toolCallSectionTitle} ${isOutputFailure ? styles.toolCallSectionTitleError : ''}`}>
+                {isOutputFailure && <span className={styles.toolCallOutputErrorIcon}>✗</span>}
+                Output{outputMessage && <span className={styles.toolCallSectionTitleMessage}>: {outputMessage}</span>}
               </div>
+              {formattedPayload && (
+                <div className={styles.toolCallData}>{formattedPayload}</div>
+              )}
             </div>
           )}
           
