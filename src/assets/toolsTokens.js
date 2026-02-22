@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { ClientQueryType } from '@/types/types';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
 import {
@@ -19,7 +20,7 @@ export const toolsTokens = [
 
       Each set includes: setId, name, active status, and its list of tokens (name, type, value).
     `,
-    inputSchema: null,
+    inputSchema: z.object({}),
     function: async () => {
       try {
         const response = await sendMessageToPlugin(ClientQueryType.GET_TOKENS_SETS, {});

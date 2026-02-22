@@ -16,6 +16,7 @@ export const coordinatorAgents = [
         planning → design system → UX views/flows → drawing per view.
         Maintain state and report what is done and what comes next. Keep outputs actionable.
         When calling MobileViewDesigner, pass the designSystem received from UIDesignSpecialist as a JSON string: use JSON.stringify(designSystem) on the output. Never omit or pass an empty designSystem when calling MobileViewDesigner.
+        When calling ProjectPlanSpecialist, pass the full designSystem object from UIDesignSpecialist output. Never pass an empty object.
       </behavior>
       <rules>
         - Never ask the user questions directly.
@@ -23,6 +24,13 @@ export const coordinatorAgents = [
         - Respect constraints: target sizes, accessibility, branding, and platform.
         - Pass designSystem to MobileViewDesigner as JSON string (JSON.stringify). Never omit it when UIDesignSpecialist has produced it.
       </rules>
+      <error_handling>
+        - If a specialist or designer returns success: false, an empty payload, or an error message, do NOT retry the same call more than once.
+        - Do NOT call get-project-data or get-current-page repeatedly if you already have the data from a previous call. Use the results you already obtained.
+        - On failure, report partial progress: clearly state which specialists succeeded (and their outputs) and which failed (and the error).
+        - Return a structured output with success: false, a summary explaining what worked and what did not, and nextSteps suggesting the user retry the failed step.
+        - Never enter a loop of information-gathering calls after a failure. Summarize and return immediately.
+      </error_handling>
     `,
     inputSchema: z.object({
       project: z.object({
@@ -79,13 +87,7 @@ export const coordinatorAgents = [
           .default(['prototype']),
       }),
     }),
-    outputSchema: z.object({
-      success: z.boolean().describe('overall success'),
-      summary: z.string().describe('what was done and current status'),
-      nextSteps: z.array(z.string()).describe('ordered next actions'),
-      planId: z.string().nullable().describe('internal reference to a plan, if any'),
-    }),
-    toolIds: ['get-project-data', 'get-current-page'],
+    toolIds: ['get-project-data', 'get-current-page', 'get-device-size-presets'],
     specializedAgentIds: [
       'project-plan-specialist',
       'ui-design-specialist',
@@ -108,6 +110,7 @@ export const coordinatorAgents = [
         planning → design system → print layout per artifact.
         Maintain state and report what is done and what comes next. Keep outputs actionable.
         When calling PrintViewDesigner, pass the designSystem received from UIDesignSpecialist as a JSON string: use JSON.stringify(designSystem) on the output. Never omit or pass an empty designSystem when calling PrintViewDesigner.
+        When calling ProjectPlanSpecialist, pass the full designSystem object from UIDesignSpecialist output. Never pass an empty object.
       </behavior>
       <rules>
         - Never ask the user questions directly.
@@ -116,6 +119,13 @@ export const coordinatorAgents = [
         - Respect print constraints: bleed, safe zone, color mode (RGB for screen preview).
         - Pass designSystem to PrintViewDesigner as JSON string (JSON.stringify). Never omit it when UIDesignSpecialist has produced it.
       </rules>
+      <error_handling>
+        - If a specialist or designer returns success: false, an empty payload, or an error message, do NOT retry the same call more than once.
+        - Do NOT call get-project-data or get-current-page repeatedly if you already have the data from a previous call. Use the results you already obtained.
+        - On failure, report partial progress: clearly state which specialists succeeded (and their outputs) and which failed (and the error).
+        - Return a structured output with success: false, a summary explaining what worked and what did not, and nextSteps suggesting the user retry the failed step.
+        - Never enter a loop of information-gathering calls after a failure. Summarize and return immediately.
+      </error_handling>
     `,
     inputSchema: z.object({
       project: z.object({
@@ -140,12 +150,6 @@ export const coordinatorAgents = [
         deliverables: z.array(z.string()).default(['layout']),
       }),
     }),
-    outputSchema: z.object({
-      success: z.boolean().describe('overall success'),
-      summary: z.string().describe('what was done and current status'),
-      nextSteps: z.array(z.string()).describe('ordered next actions'),
-      planId: z.string().nullable().describe('internal reference to a plan, if any'),
-    }),
     toolIds: ['get-project-data', 'get-current-page', 'get-device-size-presets'],
     specializedAgentIds: ['project-plan-specialist', 'ui-design-specialist', 'print-view-designer'],
   },
@@ -164,6 +168,7 @@ export const coordinatorAgents = [
         planning → design system → UX views/flows → drawing per view/breakpoint.
         Maintain state and report what is done and what comes next. Keep outputs actionable.
         When calling WebViewDesigner, pass the designSystem received from UIDesignSpecialist as a JSON string: use JSON.stringify(designSystem) on the output. Never omit or pass an empty designSystem when calling WebViewDesigner.
+        When calling ProjectPlanSpecialist, pass the full designSystem object from UIDesignSpecialist output. Never pass an empty object.
       </behavior>
       <rules>
         - Never ask the user questions directly.
@@ -172,6 +177,13 @@ export const coordinatorAgents = [
         - Respect breakpoints: desktop, tablet, mobile as specified.
         - Pass designSystem to WebViewDesigner as JSON string (JSON.stringify). Never omit it when UIDesignSpecialist has produced it.
       </rules>
+      <error_handling>
+        - If a specialist or designer returns success: false, an empty payload, or an error message, do NOT retry the same call more than once.
+        - Do NOT call get-project-data or get-current-page repeatedly if you already have the data from a previous call. Use the results you already obtained.
+        - On failure, report partial progress: clearly state which specialists succeeded (and their outputs) and which failed (and the error).
+        - Return a structured output with success: false, a summary explaining what worked and what did not, and nextSteps suggesting the user retry the failed step.
+        - Never enter a loop of information-gathering calls after a failure. Summarize and return immediately.
+      </error_handling>
     `,
     inputSchema: z.object({
       project: z.object({
@@ -203,12 +215,6 @@ export const coordinatorAgents = [
           .optional(),
         deliverables: z.array(z.string()).default(['prototype']),
       }),
-    }),
-    outputSchema: z.object({
-      success: z.boolean().describe('overall success'),
-      summary: z.string().describe('what was done and current status'),
-      nextSteps: z.array(z.string()).describe('ordered next actions'),
-      planId: z.string().nullable().describe('internal reference to a plan, if any'),
     }),
     toolIds: ['get-project-data', 'get-current-page', 'get-device-size-presets'],
     specializedAgentIds: [
@@ -243,6 +249,13 @@ export const coordinatorAgents = [
         - For apply: get current page/shapes first, then pass designSystem (JSON string) to StyleApplicationSpecialist—never invent or omit it.
         - designSystem is a JSON string that must be passed unchanged; the specialist needs the user-approved design to apply correctly.
       </rules>
+      <error_handling>
+        - If a specialist or designer returns success: false, an empty payload, or an error message, do NOT retry the same call more than once.
+        - Do NOT call get-project-data or get-current-page repeatedly if you already have the data from a previous call. Use the results you already obtained.
+        - On failure, report partial progress: clearly state which specialists succeeded (and their outputs) and which failed (and the error).
+        - Return a structured output with success: false, a summary explaining what worked and what did not, and nextSteps suggesting the user retry the failed step.
+        - Never enter a loop of information-gathering calls after a failure. Summarize and return immediately.
+      </error_handling>
     `,
     inputSchema: z.object({
       scope: z.enum(['advise', 'apply']),
@@ -263,23 +276,8 @@ export const coordinatorAgents = [
           'Required when scope is apply. The design system as a JSON string. The director must serialize the approved palette and typography. Example: {"colors":{"background":"#F5F5F5","accent":"#00D1FF","text":"#111111"},"typography":{"fontFamily":"Inter"}}'
         ),
     }),
-    outputSchema: z.object({
-      success: z.boolean().describe('overall success'),
-      summary: z.string().describe('recommendations or application result'),
-      nextSteps: z.array(z.string()).describe('ordered next actions'),
-      planId: z.string().nullable().optional(),
-      recommendations: z
-        .object({
-          colorPalette: z.array(z.any()).optional(),
-          typography: z.any().optional(),
-          spacing: z.any().optional(),
-          radii: z.any().optional(),
-        })
-        .optional(),
-      modifiedCount: z.number().optional(),
-    }),
     toolIds: ['get-project-data', 'get-current-page', 'get-selected-shapes'],
-    specializedAgentIds: ['ui-design-specialist', 'style-application-specialist'],
+    specializedAgentIds: ['ui-design-specialist', 'style-application-specialist', 'tokens-specialist'],
   },
 ];
 

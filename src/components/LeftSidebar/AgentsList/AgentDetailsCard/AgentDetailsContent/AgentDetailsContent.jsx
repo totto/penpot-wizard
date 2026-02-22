@@ -31,29 +31,21 @@ function AgentDetailsContent({ agent }) {
 
   // State for schema conversions
   const [inputJsonSchema, setInputJsonSchema] = useState(null);
-  const [outputJsonSchema, setOutputJsonSchema] = useState(null);
 
   // Convert schemas when component mounts or agent changes
   useEffect(() => {
     const convertSchemas = () => {
       if (agent.type === 'specialized') {
         try {
-          // User-created agents already have JSON Schema format
           if (agent.isUserCreated) {
             setInputJsonSchema(agent.inputSchema || null);
-            setOutputJsonSchema(agent.outputSchema || null);
           } else {
-            // System agents use Zod schemas, need to convert
             const inputParsed = agent.inputSchema ? parseZodSchema(agent.inputSchema) : null;
-            const outputParsed = agent.outputSchema ? parseZodSchema(agent.outputSchema) : null;
-            
             setInputJsonSchema(inputParsed);
-            setOutputJsonSchema(outputParsed);
           }
         } catch (error) {
           console.error('Error parsing schemas:', error);
           setInputJsonSchema(null);
-          setOutputJsonSchema(null);
         }
       }
     };
@@ -87,12 +79,6 @@ function AgentDetailsContent({ agent }) {
             </div>
           )}
           
-          {agent.outputSchema && (
-            <div className={styles.fieldSection}>
-              <strong className={styles.fieldTitle}>Output Schema:</strong>
-              <SchemaVisor schema={outputJsonSchema} />
-            </div>
-          )}
         </>
       )}
       

@@ -122,12 +122,6 @@ Coordinators orchestrate specialists for end-to-end projects. They receive struc
       // ...
     }),
   }),
-  outputSchema: z.object({
-    success: z.boolean(),
-    summary: z.string(),
-    nextSteps: z.array(z.string()),
-    planId: z.string().nullable(),
-  }),
   toolIds: ["get-project-data", "get-current-page"],
   specializedAgentIds: ["project-plan-specialist", "ui-design-specialist", "ux-design-specialist", "mobile-view-designer"],
 }
@@ -137,7 +131,7 @@ Coordinators orchestrate specialists for end-to-end projects. They receive struc
 
 ## Specialized Agents
 
-Specialists are focused sub-agents with input/output schemas. They can use tools and image generation agents.
+Specialists are focused sub-agents with input schemas. They can use tools and image generation agents.
 
 **File**: `src/assets/specializedAgents.js`
 
@@ -149,15 +143,6 @@ Specialists are focused sub-agents with input/output schemas. They can use tools
   description: "When the director/coordinator should call this specialist",
   system: `...`,
   inputSchema: z.object({...}),
-  outputSchema: z.object({
-    designSystem: z.object({
-      colorPalette: z.array(z.object({...})),
-      typography: z.object({...}),
-      spacing: z.array(z.number()),
-      radii: z.array(z.number()),
-      // ...
-    }),
-  }),
   toolIds: ["penpot-user-guide-rag", "design-styles-rag"],
   imageGenerationAgentIds: ["image-generator"],  // optional
 }
@@ -165,7 +150,7 @@ Specialists are focused sub-agents with input/output schemas. They can use tools
 
 **Creating a Specialized Agent**:
 1. Add to `specializedAgents` array
-2. Define `inputSchema` and `outputSchema` (Zod)
+2. Define `inputSchema` (Zod)
 3. Set `toolIds` and optionally `imageGenerationAgentIds`
 4. Avoid circular dependencies between specialists
 
@@ -198,4 +183,4 @@ Users can create custom directors and specialists via `userAgentsStore`. These a
 - **Avoid circular dependencies**: Specialist A → Specialist B → Specialist A
 - **Structured prompts**: Use XML tags (`<role>`, `<behavior>`, `<rules>`)
 - **Clear descriptions**: The AI uses `description` to decide when to call an agent
-- **Consistent output schemas**: Use Zod with `.describe()` for clarity
+- **Clear input schemas**: Use Zod with `.describe()` for clarity

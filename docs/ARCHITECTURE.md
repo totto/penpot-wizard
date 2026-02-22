@@ -67,7 +67,7 @@ State Management (nanostores):
 
 - **Purpose**: Focused sub-agents for specific domains (UI design, UX, drawing)
 - **Location**: `src/assets/specializedAgents.js`
-- **Capabilities**: Have inputSchema, outputSchema; can use tools and image generation agents
+- **Capabilities**: Have inputSchema; can use tools and image generation agents
 - **Example**: ui-design-specialist, ux-design-specialist, mobile-view-designer
 
 ### Image Generation Agents

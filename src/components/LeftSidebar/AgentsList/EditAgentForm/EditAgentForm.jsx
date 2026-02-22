@@ -26,7 +26,6 @@ function EditAgentForm({ agentToEdit, onClose }) {
     prompt: "",
     agent_type: "director", // "director" or "specialized"
     input_schema: null,
-    output_schema: null,
     linked_tools: [],
     linked_agents: [],
   });
@@ -42,7 +41,6 @@ function EditAgentForm({ agentToEdit, onClose }) {
         prompt: agentToEdit.system || "",
         agent_type: agentToEdit.type || "director",
         input_schema: agentToEdit.inputSchema || null,
-        output_schema: agentToEdit.outputSchema || null,
         linked_tools: agentToEdit.toolIds || [],
         linked_agents: agentToEdit.specializedAgentIds || [],
       });
@@ -54,7 +52,6 @@ function EditAgentForm({ agentToEdit, onClose }) {
         prompt: "",
         agent_type: "director",
         input_schema: null,
-        output_schema: null,
         linked_tools: [],
         linked_agents: [],
       });
@@ -121,7 +118,6 @@ function EditAgentForm({ agentToEdit, onClose }) {
           specializedAgentIds: formData.linked_agents,
           // Schemas are already in JSON Schema format
           inputSchema: formData.input_schema || undefined,
-          outputSchema: formData.output_schema || undefined,
         };
         
         if (formData.agent_type === "director") {
@@ -281,16 +277,6 @@ function EditAgentForm({ agentToEdit, onClose }) {
                 </small>
               </div>
 
-              <div className={styles.formGroup}>
-                <SchemaEditor
-                  schema={formData.output_schema}
-                  onChange={(schema) => handleInputChange("output_schema", schema)}
-                  label="Output Schema (Optional)"
-                />
-                <small className={styles.helpText}>
-                  Define the expected output structure for this specialized agent
-                </small>
-              </div>
             </>
           )}
 

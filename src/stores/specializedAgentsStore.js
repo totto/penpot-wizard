@@ -1,5 +1,5 @@
 import { atom } from 'nanostores';
-import { tool, ToolLoopAgent, Output, stepCountIs, jsonSchema } from 'ai';
+import { tool, ToolLoopAgent, stepCountIs, jsonSchema } from 'ai';
 import { specializedAgents as specializedAgentsAssets } from '@/assets/specializedAgents';
 import { coordinatorAgents as coordinatorAgentsAssets } from '@/assets/coordinatorAgents';
 import { getToolsByIds } from '@/stores/toolsStore';
@@ -99,10 +99,6 @@ const initializeSpecializedAgent = async (specializedAgentId) => {
   // Combine all tools
   const allTools = [...mainTools, ...specializedAgentTools, ...imageGenerationAgentTools];
 
-  const agentOutputSchema = specializedAgentDef.outputSchema ?
-    specializedAgentDef.isUserCreated ? jsonSchema(specializedAgentDef.outputSchema) : specializedAgentDef.outputSchema
-    : null;
-
   // Create the Agent instance
   const agentInstance = new ToolLoopAgent({
     model: modelInstance,
@@ -111,9 +107,6 @@ const initializeSpecializedAgent = async (specializedAgentId) => {
       acc[tool.id] = tool.instance;
       return acc;
     }, {}),
-    output: agentOutputSchema ? Output.object({
-      schema: agentOutputSchema,
-    }) : undefined,
     stopWhen: stepCountIs(20),
   });
   

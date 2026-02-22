@@ -30,31 +30,6 @@ export const specializedAgents = [
         .optional(),
       availableFonts: z.array(z.string()).optional(),
     }),
-    outputSchema: z.object({
-      designSystem: z.object({
-        colorPalette: z.array(
-          z.object({ name: z.string(), value: z.string(), usage: z.string().nullable() })
-        ),
-        typography: z.object({
-          families: z.array(z.string()),
-          scales: z.array(
-            z.object({ name: z.string(), size: z.number(), lineHeight: z.number(), weight: z.string() })
-          ),
-        }),
-        spacing: z.array(z.number()).describe('spacing scale in px'),
-        radii: z.array(z.number()).describe('border radius scale in px'),
-        elevation: z.array(z.number()).describe('shadow/elevation scale'),
-        iconography: z
-          .object({ style: z.string().nullable(), source: z.string().nullable() })
-          .strict()
-          .nullable(),
-        imageStyles: z
-          .object({ treatment: z.string().nullable(), borders: z.string().nullable() })
-          .strict()
-          .nullable(),
-        guidelines: z.object({ layout: z.string(), states: z.string(), accessibility: z.string() }),
-      }),
-    }),
     toolIds: ['penpot-user-guide-rag', 'design-styles-rag'],
   },
   {
@@ -76,28 +51,6 @@ export const specializedAgents = [
       features: z.array(z.string()),
       targetAudience: z.string(),
       preferredNavigation: z.string().optional(),
-    }),
-    outputSchema: z.object({
-      views: z.array(
-        z.object({
-          id: z.string(),
-          name: z.string(),
-          purpose: z.string(),
-          sections: z.array(z.string()),
-          components: z.array(z.string()),
-          states: z.array(z.enum(['empty', 'loading', 'error', 'success'])).nullable(),
-          requiredData: z.array(z.string()).nullable(),
-          priority: z.enum(['high', 'medium', 'low']).nullable(),
-          breakpoints: z.array(z.string()).nullable(),
-        })
-      ),
-      flows: z
-        .array(
-          z
-            .object({ name: z.string(), fromViewId: z.string(), toViewId: z.string(), action: z.string() })
-            .strict()
-        )
-        .nullable(),
     }),
     toolIds: ['penpot-user-guide-rag'],
   },
@@ -125,23 +78,6 @@ export const specializedAgents = [
         })
       ),
       designSystem: z.object({}).passthrough(),
-    }),
-    outputSchema: z.object({
-      phases: z.array(
-        z.object({
-          id: z.string(),
-          name: z.string(),
-          goal: z.string(),
-          tasks: z.array(z.string()),
-          deliverables: z.array(z.string()),
-          acceptanceCriteria: z.array(z.string()),
-          dependencies: z.array(z.string()).nullable(),
-          risks: z.array(z.string()).nullable(),
-          estimatedDays: z.number().nullable(),
-          order: z.number(),
-        })
-      ),
-      nextSteps: z.array(z.string()),
     }),
   },
   {
@@ -171,14 +107,6 @@ export const specializedAgents = [
         ),
       target: z.object({ pageId: z.string().optional(), boardName: z.string().default('Screen') }).optional(),
     }),
-    outputSchema: z.object({
-      success: z.boolean(),
-      description: z.string(),
-      artifacts: z
-        .object({ boardIds: z.array(z.string()).nullable(), notes: z.string().nullable() })
-        .strict()
-        .nullable(),
-    }),
     toolIds: [
       'create-board',
       'create-rectangle',
@@ -186,13 +114,31 @@ export const specializedAgents = [
       'create-text',
       'create-path',
       'get-current-page',
+      'get-fonts',
+      'add-image',
       'get-icon-list',
       'draw-icon',
+      'group-shapes',
+      'align-shapes',
+      'distribute-shapes',
+      'modify-rectangle',
+      'modify-ellipse',
+      'modify-text',
+      'modify-path',
+      'modify-board',
+      'modify-text-range',
+      'bring-to-front-shape',
+      'send-to-back-shape',
+      'clone-shape',
+      'delete-shape',
+      'convert-to-component',
+      'convert-to-board',
       'add-navigate-to-interaction',
       'add-close-overlay-interaction',
       'add-previous-screen-interaction',
       'add-open-url-interaction',
       'create-flow',
+      'remove-flow',
     ],
     imageGenerationAgentIds: ['image-generator'],
   },
@@ -239,14 +185,6 @@ export const specializedAgents = [
         })
         .optional(),
     }),
-    outputSchema: z.object({
-      success: z.boolean(),
-      description: z.string(),
-      artifacts: z
-        .object({ boardIds: z.array(z.string()).nullable(), notes: z.string().nullable() })
-        .strict()
-        .nullable(),
-    }),
     toolIds: [
       'get-device-size-presets',
       'create-board',
@@ -255,8 +193,26 @@ export const specializedAgents = [
       'create-text',
       'create-path',
       'get-current-page',
+      'get-fonts',
       'design-styles-rag',
       'add-image',
+      'get-icon-list',
+      'draw-icon',
+      'group-shapes',
+      'align-shapes',
+      'distribute-shapes',
+      'modify-rectangle',
+      'modify-ellipse',
+      'modify-text',
+      'modify-path',
+      'modify-board',
+      'modify-text-range',
+      'bring-to-front-shape',
+      'send-to-back-shape',
+      'clone-shape',
+      'delete-shape',
+      'convert-to-component',
+      'convert-to-board',
     ],
     imageGenerationAgentIds: ['image-generator'],
   },
@@ -302,14 +258,6 @@ export const specializedAgents = [
         })
         .optional(),
     }),
-    outputSchema: z.object({
-      success: z.boolean(),
-      description: z.string(),
-      artifacts: z
-        .object({ boardIds: z.array(z.string()).nullable(), notes: z.string().nullable() })
-        .strict()
-        .nullable(),
-    }),
     toolIds: [
       'get-device-size-presets',
       'create-board',
@@ -318,14 +266,31 @@ export const specializedAgents = [
       'create-text',
       'create-path',
       'get-current-page',
+      'get-fonts',
+      'add-image',
       'get-icon-list',
       'draw-icon',
+      'group-shapes',
+      'align-shapes',
+      'distribute-shapes',
+      'modify-rectangle',
+      'modify-ellipse',
+      'modify-text',
+      'modify-path',
+      'modify-board',
+      'modify-text-range',
+      'bring-to-front-shape',
+      'send-to-back-shape',
+      'clone-shape',
+      'delete-shape',
+      'convert-to-component',
+      'convert-to-board',
       'add-navigate-to-interaction',
       'add-close-overlay-interaction',
       'add-previous-screen-interaction',
       'add-open-url-interaction',
       'create-flow',
-      'add-image',
+      'remove-flow',
     ],
     imageGenerationAgentIds: ['image-generator'],
   },
@@ -358,12 +323,53 @@ export const specializedAgents = [
       shapeIds: z.array(z.string()).optional().describe('Optional explicit shape IDs; if omitted, use scope to determine'),
       pageId: z.string().optional(),
     }),
-    outputSchema: z.object({
-      success: z.boolean(),
-      description: z.string(),
-      modifiedCount: z.number(),
+    toolIds: ['design-styles-rag', 'get-current-page', 'get-selected-shapes', 'modify-rectangle', 'modify-ellipse', 'modify-text', 'modify-path', 'modify-board', 'modify-boolean', 'modify-text-range', 'rotate-shape'],
+  },
+  {
+    id: 'tokens-specialist',
+    name: 'TokensSpecialist',
+    description:
+      'Manages design tokens: creates token sets from design systems, applies tokens to shapes, and maintains token lifecycle (activate, modify, remove).',
+    system: `
+      <role>
+        You manage design tokens in Penpot projects. Work in English.
+        You can create token sets from a design system, apply tokens to shapes, activate/deactivate sets, and modify or remove existing sets.
+      </role>
+      <behavior>
+        When scope is "create": use design-styles-rag if needed for reference, then create-tokens-set with the provided design system values (colors, spacing, radii, typography sizes). Activate the set after creation.
+        When scope is "apply": use get-current-page to identify target shapes, then apply-tokens to map tokens to shape attributes.
+        When scope is "manage": use get-tokens-sets to list existing sets, then modify-tokens-set or remove-tokens-set as needed.
+        Always return structured output with what was done.
+      </behavior>
+      <rules>
+        - When a designSystem JSON string is provided, parse it and translate its values into tokens.
+        - Use design-styles-rag only when no designSystem is provided or when the user asks for style suggestions.
+        - Token names should follow a consistent naming convention: category/name (e.g. color/primary, spacing/md, radius/lg).
+        - After creating a token set, activate it unless explicitly told not to.
+      </rules>
+    `,
+    inputSchema: z.object({
+      scope: z.enum(['create', 'apply', 'manage']),
+      designSystem: z
+        .string()
+        .optional()
+        .describe(
+          'Design system as JSON string. Used when scope is "create" to generate tokens from colors, typography, spacing, radii. Example: {"colorPalette":[{"name":"primary","value":"#00D1FF"}],"typography":{"families":["Inter"],"scales":[{"name":"h1","size":32}]},"spacing":[4,8,16,24,32],"radii":[0,4,8,16]}'
+        ),
+      shapeIds: z.array(z.string()).optional().describe('Shape IDs to apply tokens to (when scope is "apply")'),
+      tokenSetId: z.string().optional().describe('Token set ID for manage operations'),
+      action: z.enum(['activate', 'deactivate', 'modify', 'remove', 'list']).optional().describe('Action for manage scope'),
     }),
-    toolIds: ['design-styles-rag', 'get-current-page', 'get-selected-shapes', 'modify-rectangle', 'modify-ellipse', 'modify-text', 'modify-path', 'modify-board', 'modify-text-range'],
+    toolIds: [
+      'design-styles-rag',
+      'get-current-page',
+      'get-tokens-sets',
+      'create-tokens-set',
+      'apply-tokens',
+      'activate-tokens-set',
+      'remove-tokens-set',
+      'modify-tokens-set',
+    ],
   },
 ];
 
