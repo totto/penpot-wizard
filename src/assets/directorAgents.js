@@ -205,6 +205,7 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       <best_practices>
         - If you are adding items to a board, create first the items with lower layoutChild.zIndex.
         - when asigning positions, use x, y when the parent is the root frame and parentX, parentY when the parent is another shape.
+        - when calling a tool, never send null values, simply omit the property.
       </best_practices>
     `,
     toolIds: [

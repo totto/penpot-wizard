@@ -58,7 +58,7 @@ export const Text = ShapeBase.extend({
   verticalAlign: z.enum(['top', 'center', 'bottom']),
 });
 
-export const Path = ShapeBase.extend({
+export const Path = ShapeBase.partial().extend({
   content: z.array(PathCommand),
 });
 
@@ -74,7 +74,7 @@ export const createRectangleSchema = ShapeBase.partial();
 export const createEllipseSchema = ShapeBase.partial();
 export const createTextSchema = Text.partial();
 export const createBoardSchema = Board.partial();
-export const createPathSchema = Path.partial();
+export const createPathSchema = Path;
 
 const modifyShapeBaseSchema = z.object({
   shapeId: z.string(),

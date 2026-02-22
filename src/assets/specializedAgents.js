@@ -92,6 +92,7 @@ export const specializedAgents = [
       <drawing>
         Respect stacking order strictly: draw foreground elements first and backgrounds last.
         Use boards as screens and place items within their parents appropriately.
+        When creating a screen board, place it next to the last board in the page, separted by a margin of 50px.
         Keep typography and spacing consistent with the received brief. Use available fonts.
 
         Verification and correction (after creating all shapes of a view/screen):
@@ -160,6 +161,7 @@ export const specializedAgents = [
         Use get-device-size-presets with category "PRINT" to get correct dimensions (A4, A3, Letter, etc.).
         Respect stacking order: foreground elements first, backgrounds last.
         Use boards for each print artifact. Apply design system colors, typography, and spacing.
+        When creating a board for a print artifact, place it next to the last board in the page, separted by a margin of 50px.
         Consider bleed and safe zones when specified. Use available fonts from the design system.
 
         Verification and correction (after creating all shapes of a view/screen):
@@ -225,6 +227,7 @@ export const specializedAgents = [
         Use get-device-size-presets with category "WEB" for breakpoint dimensions (Web 1920, Web 1366, etc.).
         Respect stacking order: foreground elements first, backgrounds last.
         Use boards for each viewport/breakpoint. Apply design system consistently.
+        When creating a board for a web viewport, place it next to the last board in the page, separted by a margin of 50px.
         Keep typography and spacing aligned with the received brief. Use available fonts.
 
         Verification and correction (after creating all shapes of a view/screen):
