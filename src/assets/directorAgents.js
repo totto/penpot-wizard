@@ -40,23 +40,41 @@ Identify the project type and select the appropriate coordinator:
 - Print (poster, card, brochure, flyer, letterhead) → PrintProjectsCoordinator
 - Web (landing, app, dashboard, marketing) → WebProjectsCoordinator
 - Mobile (iOS, Android, PWA) → MobileProjectsCoordinator
-- Style advice or applying styles to existing shapes → StyleAdvisorCoordinator
+- Style advice (recommendations, palettes, typography, visual direction) → You resolve DIRECTLY using design-styles-rag. Do NOT delegate. Call the tool first, then answer from the catalog results.
+- Apply styles to existing shapes (apply tokens, modify shapes already on canvas) → StyleAdvisorCoordinator
 If the request does not match any type, answer directly with tools (RAG, get-current-page) or state scope limits.
 </routing>
 
 <handoff_protocol>
-Before calling a coordinator, present the collected brief to the user and ask for explicit confirmation ("OK to proceed", "continue", etc.).
-Proceed only when the brief satisfies the coordinator's input schema and the user confirms.
+In ALL cases: consult design-styles-rag when relevant and build the complete brief (name, description, goals, features, audience, platform, branding preferences, accessibility targets, etc.). When style preferences are involved: ALWAYS call design-styles-rag FIRST and include the actual style name and its real attributes in the brief—never invent or extrapolate styles.
+
+1. User has NOT given explicit permission: Present the collected brief to the user and ask for explicit confirmation ("OK to proceed", "continue", etc.) before calling the coordinator. Only after the user confirms, call the coordinator.
+
+2. User HAS given explicit permission: Phrases such as "procede", "adelante", "hazlo ya", "procede directamente", "go ahead", "proceed", "do it", "go", "run it", or equivalent in any language. In this case: present the brief briefly as a summary of what will be done, then call the coordinator immediately without asking for additional confirmation.
+
+When calling the coordinator: use a single "query" parameter containing the complete project brief in natural language. The coordinator reads the brief, extracts what it needs, and orchestrates the specialists.
+
 After each coordinator phase, present the summary and next steps, then wait for user approval before continuing.
-When calling StyleAdvisorCoordinator with scope apply, pass designSystem as a JSON string. Serialize the approved palette and typography, e.g. {"colors":{"background":"#F5F5F5","accent":"#00D1FF","text":"#111111"},"typography":{"fontFamily":"Inter"}}. Do not pass nested objects.
+
+When calling StyleAdvisorCoordinator with scope "apply", include the designSystem as a JSON string within the query.
 </handoff_protocol>
 
 <rag_usage>
 - penpot-user-guide-rag: Penpot features, how-to questions, documentation
-- design-styles-rag: Design style catalog, typography, colors, palettes (use before style recommendations or when advising)
+- design-styles-rag: MANDATORY before any style recommendation. You MUST call this tool before giving recommendations on colors, palettes, typography, fonts, or visual direction—even in initial conversational answers. NEVER recommend colors, fonts, or styles from your own knowledge. Always consult the real catalog first and base your answer exclusively on the tool results.
+
+  The tool is optimized for two query types. Follow this TWO-STEP strategy:
+
+  1. Catalog query (first): Call with "what design styles are available" to get the full list of styles with their keywords and intent. Use this to understand which styles exist in the catalog.
+
+  2. Identify 2–3 candidate styles that best match the user's request (e.g., "futuristic with neon" → match against catalog keywords and intent).
+
+  3. Style-specific queries (second): For each candidate, call the tool with focused queries: "<style-name> palettes", "<style-name> typography" (e.g., "pure-steel palettes", "pure-steel typography"). Do NOT mix multiple sections in one query (e.g., avoid "futuristic design palettes typography rules imagery"). One section per query yields precise results.
+
+  4. Present the 2–3 best-matching styles to the user with the real palette and typography data from the catalog.
 </rag_usage>
     `,
-    toolIds: ['penpot-user-guide-rag', 'design-styles-rag', 'get-user-data', 'get-project-data', 'get-current-page', 'get-fonts'],
+    toolIds: ['penpot-user-guide-rag', 'design-styles-rag', 'get-user-data', 'get-current-page', 'get-fonts'],
     specializedAgentIds: [
       'print-projects-coordinator',
       'web-projects-coordinator',
@@ -115,7 +133,6 @@ Your goal is to intelligently select and use the most appropriate tools to compl
     `,
     toolIds: [
       'get-user-data',
-      'get-project-data',
       'get-current-page',
       'get-selected-shapes',
       'get-fonts',
@@ -135,7 +152,8 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'create-boolean',
       'align-shapes',
       'distribute-shapes',
-      'add-image',
+      'generate-image',
+      'set-image-from-url',
       'draw-icon',
       'add-navigate-to-interaction',
       'add-close-overlay-interaction',
@@ -160,7 +178,6 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'apply-tokens',
       'activate-tokens-set',
     ],
-    imageGenerationAgentIds: ['image-generator'],
   },
   {
     id: 'testnewtools',
@@ -203,6 +220,7 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'modify-text-range', 'rotate-shape', 'clone-shape', 'delete-shape',
       'bring-to-front-shape', 'bring-forward-shape', 'send-to-back-shape', 'send-backward-shape',
       'create-tokens-set', 'apply-tokens', 'activate-tokens-set', 'get-tokens-sets', 'remove-tokens-set', 'modify-tokens-set',
+      'generate-image', 'set-image-from-url',
     ],
   },
 ];

@@ -13,9 +13,9 @@ export const PluginMessageType = {
 // Enum for messages sent from the Penpot app to the plugin
 export const ClientQueryType = {
   GET_USER_DATA: 'GET_USER_DATA',
-  GET_PROJECT_DATA: 'GET_PROJECT_DATA',
   GET_CURRENT_PAGE: 'GET_CURRENT_PAGE',
   GET_SELECTED_SHAPES: 'GET_SELECTED_SHAPES',
+  GET_SHAPE: 'GET_SHAPE',
   GET_FONTS: 'GET_FONTS',
   DRAW_SHAPE: 'DRAW_SHAPE',
   ADD_IMAGE: 'ADD_IMAGE',

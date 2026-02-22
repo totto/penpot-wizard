@@ -51,7 +51,7 @@ penpot-wizard/
 │   │   ├── directorAgents.js
 │   │   ├── coordinatorAgents.js
 │   │   ├── specializedAgents.js
-│   │   ├── imageGenerationAgents.js
+│   │   ├── imageTools.js
 │   │   ├── functionTools.js
 │   │   ├── ragTools.js
 │   │   ├── toolsCreateShapes.js

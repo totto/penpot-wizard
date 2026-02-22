@@ -3,7 +3,6 @@ import { tool, ToolLoopAgent, stepCountIs, jsonSchema } from 'ai';
 import { specializedAgents as specializedAgentsAssets } from '@/assets/specializedAgents';
 import { coordinatorAgents as coordinatorAgentsAssets } from '@/assets/coordinatorAgents';
 import { getToolsByIds } from '@/stores/toolsStore';
-import { getImageGenerationAgentsByIds } from '@/stores/imageGenerationAgentsStore';
 import { createModelInstance } from '@/utils/modelUtils';
 import { $isConnected } from '@/stores/settingsStore';
 import { z } from 'zod';
@@ -93,11 +92,8 @@ const initializeSpecializedAgent = async (specializedAgentId) => {
     return tempAgentDef;
   }));
 
-  // Get image generation agents this agent can use
-  const imageGenerationAgentTools = getImageGenerationAgentsByIds(specializedAgentDef.imageGenerationAgentIds || []);
-  
   // Combine all tools
-  const allTools = [...mainTools, ...specializedAgentTools, ...imageGenerationAgentTools];
+  const allTools = [...mainTools, ...specializedAgentTools];
 
   // Create the Agent instance
   const agentInstance = new ToolLoopAgent({
@@ -110,10 +106,10 @@ const initializeSpecializedAgent = async (specializedAgentId) => {
     stopWhen: stepCountIs(20),
   });
   
-  const toolInputSchema = specializedAgentDef.inputSchema ?
-    specializedAgentDef.isUserCreated ? jsonSchema(specializedAgentDef.inputSchema) : specializedAgentDef.inputSchema
+  const toolInputSchema = specializedAgentDef.inputSchema
+    ? jsonSchema(specializedAgentDef.inputSchema)
     : z.object({
-      query: z.string().describe('The query or task for the specialized agent to process')
+      query: z.string().describe('The task description for the agent. Include all relevant context, data, and instructions in natural language.')
     });
 
   // Wrap the agent in a tool

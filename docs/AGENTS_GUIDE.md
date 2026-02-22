@@ -9,7 +9,6 @@ This guide explains the different agent types in Penpot Wizard and how to create
 | Director | `directorAgents.js` | Top-level orchestrator, handles user chat |
 | Coordinator | `coordinatorAgents.js` | Orchestrates complex projects via specialists |
 | Specialized | `specializedAgents.js` | Domain experts (UI, UX, drawing, planning) |
-| Image Generation | `imageGenerationAgents.js` | Generates images, returns imageId for shapes |
 
 ## Universal Agent Network
 
@@ -47,11 +46,30 @@ User <--> DesignStudioDirector
 - **WebViewDesigner**: Draws web layouts with breakpoints.
 - **StyleApplicationSpecialist**: Applies styles to existing shapes.
 
+## Agent Input/Output Architecture
+
+Coordinators and specialists use **natural language** for input and output, not rigid JSON schemas.
+
+### How it works
+
+1. **Input via `description`**: The `description` field documents what information the caller should include (using `<required_input>` tags). The actual tool input is always a single `query` string parameter.
+
+2. **Output via `system`**: The `system` prompt tells the agent what structured output to return (using `<expected_output>` tags).
+
+3. **Function tools keep strict schemas**: Low-level tools (create-rectangle, get-fonts, etc.) that interact directly with the Penpot API still use Zod `inputSchema` for validation.
+
+### Why this design
+
+- LLMs are excellent at generating natural language but unreliable at producing complex nested JSON matching strict schemas
+- Schema validation failures were the primary source of errors in the agent chain
+- The agent (another LLM) reads the input as text anyway — forcing JSON serialization/deserialization adds no value
+- More resilient: partial or imperfect input still works instead of failing validation entirely
+
 ## Approval Protocol for Complex Projects
 
 Agents act as **tools for design professionals**, not as autonomous decision-makers. The director enforces this:
 
-1. **Brief validation**: The director elicits and structures the data required by the coordinator's input schema. It asks targeted questions to fill gaps; it does not assume or invent.
+1. **Brief validation**: The director gathers all relevant project information from the user through conversation. It asks targeted questions to fill gaps; it does not assume or invent.
 
 2. **Plan presentation**: Before calling a coordinator, the director presents the collected brief and asks for explicit confirmation ("OK to proceed", "continue", etc.).
 
@@ -62,7 +80,7 @@ Agents act as **tools for design professionals**, not as autonomous decision-mak
 **Flow**:
 ```
 User request → Director gathers brief → Director presents plan → User confirms
-→ Director calls Coordinator (phase 1) → Coordinator returns summary/nextSteps
+→ Director calls Coordinator(query: "complete brief...") → Coordinator returns summary/nextSteps
 → Director presents result → User confirms → Director continues or calls next phase
 ```
 
@@ -79,15 +97,14 @@ Directors are the main entry point. They receive user messages and coordinate to
   name: "MyDirector",
   description: "When to use this director",
   system: `...`,           // System prompt (personality, instructions)
-  toolIds: ["tool-1", "tool-2"],
+  toolIds: ["tool-1", "tool-2", "generate-image", "set-image-from-url"],
   specializedAgentIds: ["specialist-1"],
-  imageGenerationAgentIds: ["image-generator"],  // optional
 }
 ```
 
 **Creating a Director**:
 1. Add to `directorAgents` array in `directorAgents.js`
-2. Define `toolIds`, `specializedAgentIds`, `imageGenerationAgentIds` as needed
+2. Define `toolIds` and `specializedAgentIds` as needed
 3. Write a clear system prompt with XML sections: `<who_you_are>`, `<language_policy>`, `<workflow>`, etc.
 
 **System prompt tips**:
@@ -98,7 +115,7 @@ Directors are the main entry point. They receive user messages and coordinate to
 
 ## Coordinator Agents
 
-Coordinators orchestrate specialists for end-to-end projects. They receive structured briefs and return progress updates. Directors call coordinators; coordinators do not talk to the user.
+Coordinators orchestrate specialists for end-to-end projects. They receive a natural language brief via a `query` parameter and return progress updates. Directors call coordinators; coordinators do not talk to the user.
 
 **File**: `src/assets/coordinatorAgents.js`
 
@@ -107,23 +124,24 @@ Coordinators orchestrate specialists for end-to-end projects. They receive struc
 {
   id: "mobile-projects-coordinator",
   name: "MobileProjectsCoordinator",
-  description: "When to use this coordinator",
-  system: `...`,
-  inputSchema: z.object({
-    project: z.object({
-      name: z.string(),
-      description: z.string(),
-      goals: z.array(z.string()),
-      scope: z.enum(['MVP', 'Full', 'Iterative']),
-      platform: z.enum(['iOS', 'Android', 'Both', 'PWA']),
-      targetAudience: z.string(),
-      keyUseCases: z.array(z.string()),
-      keyFeatures: z.array(z.string()),
-      // ...
-    }),
-  }),
-  toolIds: ["get-project-data", "get-current-page"],
-  specializedAgentIds: ["project-plan-specialist", "ui-design-specialist", "ux-design-specialist", "mobile-view-designer"],
+  description: `
+    Orchestrates mobile UI design projects...
+
+    <required_input>
+      Send a query that includes the project brief with:
+      - name, description, goals, scope, platform...
+    </required_input>
+  `,
+  system: `
+    <role>...</role>
+    <behavior>...</behavior>
+    <expected_output>
+      Return a structured JSON with: success, summary, nextSteps...
+    </expected_output>
+    <error_handling>...</error_handling>
+  `,
+  toolIds: ["get-current-page"],
+  specializedAgentIds: ["project-plan-specialist", "ui-design-specialist", ...],
 }
 ```
 
@@ -131,7 +149,7 @@ Coordinators orchestrate specialists for end-to-end projects. They receive struc
 
 ## Specialized Agents
 
-Specialists are focused sub-agents with input schemas. They can use tools and image generation agents.
+Specialists are focused sub-agents. They receive a natural language `query` and use their tools to accomplish the task.
 
 **File**: `src/assets/specializedAgents.js`
 
@@ -140,37 +158,39 @@ Specialists are focused sub-agents with input schemas. They can use tools and im
 {
   id: "ui-design-specialist",
   name: "UIDesignSpecialist",
-  description: "When the director/coordinator should call this specialist",
-  system: `...`,
-  inputSchema: z.object({...}),
-  toolIds: ["penpot-user-guide-rag", "design-styles-rag"],
-  imageGenerationAgentIds: ["image-generator"],  // optional
+  description: `
+    Defines the design system for UI projects...
+
+    <required_input>
+      Send a query that includes:
+      - project.platform, project.language
+      - branding (optional): references, tone, preferredColors, preferredFonts
+      - accessibility (optional): target level, requirements
+    </required_input>
+  `,
+  system: `
+    <role>...</role>
+    <behavior>...</behavior>
+  `,
+  toolIds: ["penpot-user-guide-rag", "design-styles-rag", "generate-image", "set-image-from-url"],
 }
 ```
 
 **Creating a Specialized Agent**:
 1. Add to `specializedAgents` array
-2. Define `inputSchema` (Zod)
-3. Set `toolIds` and optionally `imageGenerationAgentIds`
-4. Avoid circular dependencies between specialists
+2. Document expected input in `description` using `<required_input>` tags
+3. Document expected output in `system` using `<expected_output>` tags (optional)
+4. Set `toolIds` (include `generate-image` and `set-image-from-url` for image capabilities)
+5. Avoid circular dependencies between specialists
 
-## Image Generation Agents
+## Image Tools
 
-These agents generate images from text and return an `imageId` for use as `backgroundImage` in shapes.
+Image generation and placement are handled by tools, not dedicated agents:
 
-**File**: `src/assets/imageGenerationAgents.js`
+- **generate-image**: Generates an image from a text prompt (AI) and applies it as the fill of an existing shape
+- **set-image-from-url**: Downloads an image from a URL and applies it as the fill of an existing shape
 
-**Structure**:
-```javascript
-{
-  id: "image-generator",
-  name: "imageGenerator",
-  description: "Use when you need to generate images from text descriptions...",
-  system: `...`,
-}
-```
-
-Directors and specialists add `imageGenerationAgentIds: ["image-generator"]` to enable image generation.
+Add `generate-image` and `set-image-from-url` to `toolIds` for directors or specialists that need image capabilities.
 
 ## User-Created Agents
 
@@ -178,9 +198,12 @@ Users can create custom directors and specialists via `userAgentsStore`. These a
 - Directors: `$combinedDirectorAgents` in directorAgentsStore
 - Specialists: `$userSpecializedAgents` in userAgentsStore, combined in specializedAgentsStore
 
+User-created agents can optionally provide a JSON Schema `inputSchema` for structured input. If no schema is provided, they use the same `query` string pattern as predefined agents.
+
 ## Best Practices
 
 - **Avoid circular dependencies**: Specialist A → Specialist B → Specialist A
-- **Structured prompts**: Use XML tags (`<role>`, `<behavior>`, `<rules>`)
-- **Clear descriptions**: The AI uses `description` to decide when to call an agent
-- **Clear input schemas**: Use Zod with `.describe()` for clarity
+- **Structured prompts**: Use XML tags (`<role>`, `<behavior>`, `<rules>`, `<expected_output>`)
+- **Clear descriptions**: The AI uses `description` to decide when to call an agent. Use `<required_input>` to document what the caller should include.
+- **Natural language input**: Coordinators and specialists receive a `query` string. Document expected fields in description but keep input flexible.
+- **Output in system**: Use `<expected_output>` in the system prompt to guide the agent's response format.

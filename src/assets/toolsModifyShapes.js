@@ -1,5 +1,7 @@
 import { ClientQueryType } from '@/types/types';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
+import { positionAdvice, parentAdvice, textPropertiesAdvice } from './constants';
+
 import {
   modifyRectangleSchema,
   modifyEllipseSchema,
@@ -19,8 +21,8 @@ export const toolsModifyShapes = [
     name: 'ModifyRectangleTool',
     description: `
       Modifies an existing rectangle in Penpot.
-      Use parentId to place the rectangle inside a board, group, or component.
-      Use parentIndex to define the index at which the rectangle will be inserted in the parent, higher values appear on top of lower values.
+      ${positionAdvice('rectangle')}
+      ${parentAdvice('rectangle')}
     `,
     inputSchema: modifyRectangleSchema,
     function: async (input) => {
@@ -41,8 +43,8 @@ export const toolsModifyShapes = [
     name: 'ModifyEllipseTool',
     description: `
       Modifies an existing ellipse in Penpot.
-      Use parentId to place the ellipse inside a board, group, or component.
-      Use parentIndex to define the index at which the ellipse will be inserted in the parent, higher values appear on top of lower values.
+      ${positionAdvice('ellipse')}
+      ${parentAdvice('ellipse')}
     `,
     inputSchema: modifyEllipseSchema,
     function: async (input) => {
@@ -64,8 +66,10 @@ export const toolsModifyShapes = [
     description: `
       Modifies an existing text shape in Penpot.
       To define the fontFamily, you should use the tool get-fonts to know the available fonts.
-      Use parentId to place the text inside a board, group, or component.
-      Use parentIndex to define the index at which the text will be inserted in the parent, higher values appear on top of lower values.
+
+      ${positionAdvice('text')}
+      ${parentAdvice('text')}
+      ${textPropertiesAdvice}
     `,
     inputSchema: modifyTextSchema,
     function: async (input) => {
@@ -86,8 +90,9 @@ export const toolsModifyShapes = [
     name: 'ModifyPathTool',
     description: `
       Modifies an existing path (vector shape) in Penpot.
-      Use parentId to place the path inside a board, group, or component.
-      Use parentIndex to define the index at which the path will be inserted in the parent, higher values appear on top of lower values.
+
+      ${positionAdvice('path')}
+      ${parentAdvice('path')}
     `,
     inputSchema: modifyPathSchema,
     function: async (input) => {
@@ -108,6 +113,9 @@ export const toolsModifyShapes = [
     name: 'ModifyBooleanTool',
     description: `
       Modifies an existing boolean shape in Penpot.
+
+      ${positionAdvice('boolean')}
+      ${parentAdvice('boolean')}
     `,
     inputSchema: modifyBooleanSchema,
     function: async (input) => {
@@ -170,7 +178,9 @@ export const toolsModifyShapes = [
     name: 'CloneShapeTool',
     description: `
       Creates a copy of a shape or an instance of a component.
-      Provide the shapeId. Optionally provide x, y, width, height for the clone.
+
+      ${positionAdvice('clone')}
+      ${parentAdvice('clone')}
     `,
     inputSchema: cloneShapeSchema,
     function: async (input) => {

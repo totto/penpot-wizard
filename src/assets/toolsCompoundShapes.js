@@ -1,5 +1,7 @@
 import { ClientQueryType } from '@/types/types';
 import { sendMessageToPlugin } from '@/utils/pluginUtils';
+import { positionAdvice, parentAdvice } from './constants';
+
 import {
   groupShapesSchema,
   ungroupSchema,
@@ -14,6 +16,9 @@ export const toolsCompoundShapes = [
     description: `
       Use this tool to create a boolean shape from two or more existing shapes.
       You must provide the boolType and at least 2 shape IDs.
+
+      ${positionAdvice('boolean')}
+      ${parentAdvice('boolean')}
     `,
     inputSchema: createBooleanSchema,
     function: async (input) => {
@@ -36,6 +41,9 @@ export const toolsCompoundShapes = [
       Groups existing shapes.
       Provide an array of existing shape IDs to group together.
       Order shapeIds in the array by zIndex in reverse order. Higher values first.
+
+      ${positionAdvice('group')}
+      ${parentAdvice('group')}
     `,
     inputSchema: groupShapesSchema,
     function: async (input) => {

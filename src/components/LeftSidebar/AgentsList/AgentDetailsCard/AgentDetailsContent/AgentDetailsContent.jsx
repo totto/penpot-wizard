@@ -21,10 +21,10 @@ function AgentDetailsContent({ agent }) {
   const getAgentName = (agentId) => {
     const specializedAgent = specializedAgentsData.find(a => a.id === agentId);
     if (specializedAgent) return specializedAgent.name;
-    
+
     const directorAgent = directorAgentsData.find(a => a.id === agentId);
     if (directorAgent) return directorAgent.name;
-    
+
     return agentId;
   };
 
@@ -49,7 +49,7 @@ function AgentDetailsContent({ agent }) {
         }
       }
     };
-    
+
     convertSchemas();
   }, [agent]);
 
@@ -61,7 +61,7 @@ function AgentDetailsContent({ agent }) {
           {agent.description}
         </div>
       </div>
-      
+
       <div className={styles.fieldSection}>
         <strong className={styles.fieldTitle}>System Prompt:</strong>
         <pre className={styles.codeBlock}>
@@ -78,41 +78,37 @@ function AgentDetailsContent({ agent }) {
               <SchemaVisor schema={inputJsonSchema} />
             </div>
           )}
-          
+
         </>
       )}
-      
-      { agent.type !== 'imageGeneration' && (
-        <>
-          <div className={styles.fieldSection}>
-            <strong className={styles.fieldTitle}>Linked Tools:</strong>
-            <div className={styles.linkedItems}>
-              {(agent.toolIds || []).map((toolId) => (
-                <span key={toolId} className={styles.linkedItem}>
-                  {getToolName(toolId)}
-                </span>
-              ))}
-              {(!agent.toolIds || agent.toolIds.length === 0) && (
-                <span className={styles.noItems}>None</span>
-              )}
-            </div>
-          </div>
-          
-          <div className={styles.fieldSection}>
-            <strong className={styles.fieldTitle}>Linked Agents:</strong>
-            <div className={styles.linkedItems}>
-              {(agent.specializedAgentIds || []).map((agentId) => (
-                <span key={agentId} className={styles.linkedItem}>
-                  {getAgentName(agentId)}
-                </span>
-              ))}
-              {(!agent.specializedAgentIds || agent.specializedAgentIds.length === 0) && (
-                <span className={styles.noItems}>None</span>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+
+      <div className={styles.fieldSection}>
+        <strong className={styles.fieldTitle}>Linked Tools:</strong>
+        <div className={styles.linkedItems}>
+          {(agent.toolIds || []).map((toolId) => (
+            <span key={toolId} className={styles.linkedItem}>
+              {getToolName(toolId)}
+            </span>
+          ))}
+          {(!agent.toolIds || agent.toolIds.length === 0) && (
+            <span className={styles.noItems}>None</span>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.fieldSection}>
+        <strong className={styles.fieldTitle}>Linked Agents:</strong>
+        <div className={styles.linkedItems}>
+          {(agent.specializedAgentIds || []).map((agentId) => (
+            <span key={agentId} className={styles.linkedItem}>
+              {getAgentName(agentId)}
+            </span>
+          ))}
+          {(!agent.specializedAgentIds || agent.specializedAgentIds.length === 0) && (
+            <span className={styles.noItems}>None</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

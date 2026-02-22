@@ -4,13 +4,13 @@ import { PenpotShapeType } from '../../types/types';
 export function setParamsToShape(shape, params) {
   const { parentX, parentY, parentId, parentIndex, width, height, layoutChild, layoutCell, ...rest } = params;
 
-  if (width && height) {
-    shape.resize(width, height);
-  }
-
   Object.keys(rest).forEach((key) => {
     shape[key] = rest[key];
   });
+
+  if (width || height) {
+    shape.resize(width ?? shape.width, height ?? shape.height);
+  }
 
   if (parentId) {
     const parentShape = penpot.currentPage?.getShapeById(parentId) || penpot.currentPage?.root;

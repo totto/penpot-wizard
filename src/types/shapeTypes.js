@@ -262,10 +262,12 @@ export const rotateShapeSchema = z.object({
 
 export const cloneShapeSchema = z.object({
   shapeId: z.string(),
+  parentId: z.string().optional(),
+  parentIndex: z.number().optional(),
+  parentX: z.number().optional(),
+  parentY: z.number().optional(),
   x: z.number().optional(),
   y: z.number().optional(),
-  width: z.number().optional(),
-  height: z.number().optional(),
 });
 
 export const deleteShapeSchema = z.object({

@@ -35,13 +35,13 @@ import {
 } from './drawHandlers';
 
 import {
-  handleGetProjectData,
   handleGetUserData,
   handleGetFonts,
   handleAddImage,
   handleCreateShapeFromSvg,
   getCurrentPage,
   getSelectedShapes,
+  handleGetShape,
 } from './mainHandlers';
 
 console.log('AI Agent Chat Plugin loaded successfully!')
@@ -198,10 +198,6 @@ penpot.ui.onMessage(async (message) => {
       responseMessage = handleGetUserData();
       break;
 
-    case ClientQueryType.GET_PROJECT_DATA:
-      responseMessage = handleGetProjectData();
-      break;
-
     case ClientQueryType.GET_TOKENS_SETS:
       responseMessage = handleGetTokensSets();
       break;
@@ -216,6 +212,10 @@ penpot.ui.onMessage(async (message) => {
 
     case ClientQueryType.GET_CURRENT_PAGE:
       responseMessage = getCurrentPage();
+      break;
+
+    case ClientQueryType.GET_SHAPE:
+      responseMessage = handleGetShape(payload);
       break;
 
     case ClientQueryType.GET_SELECTED_SHAPES:

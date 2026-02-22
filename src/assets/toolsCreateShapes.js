@@ -1,4 +1,5 @@
 import { drawShape } from '@/utils/pluginUtils';
+import { positionAdvice, parentAdvice, textPropertiesAdvice } from './constants';
 
 import {
   createRectangleSchema,
@@ -14,8 +15,8 @@ export const toolsCreateShapes = [
     name: 'CreateRectangleTool',
     description: `
       Creates a single rectangle in Penpot.
-      Use parentId to place the rectangle inside a board, group, or component.
-      Use parentIndex to define the index at which the rectangle will be inserted in the parent, higher values appear on top of lower values.
+      ${positionAdvice('rectangle')}
+      ${parentAdvice('rectangle')}
     `,
     inputSchema: createRectangleSchema,
     function: async (input) => {
@@ -36,8 +37,8 @@ export const toolsCreateShapes = [
     name: 'CreateEllipseTool',
     description: `
       Creates a single ellipse in Penpot.
-      Use parentId to place the ellipse inside a board, group, or component.
-      Use parentIndex to define the index at which the ellipse will be inserted in the parent, higher values appear on top of lower values.
+      ${positionAdvice('ellipse')}
+      ${parentAdvice('ellipse')}
     `,
     inputSchema: createEllipseSchema,
     function: async (input) => {
@@ -58,14 +59,20 @@ export const toolsCreateShapes = [
     name: 'CreateTextTool',
     description: `
       Creates a single text in Penpot.
-      To define the fontFamily, you should use the tool get-fonts to know the available fonts.
-      Use parentId to place the text inside a board, group, or component.
-      Use parentIndex to define the index at which the text will be inserted in the parent, higher values appear on top of lower values.
+      To define the fontFamily, use the tool get-fonts for available fonts.
+
+      ${positionAdvice('text')}
+      ${parentAdvice('text')}
+      ${textPropertiesAdvice}
     `,
     inputSchema: createTextSchema,
     function: async (input) => {
       try {
-        const response = await drawShape('text', input);
+        const processedInput = { ...input };
+        if (typeof processedInput.characters === 'string') {
+          processedInput.characters = processedInput.characters.replace(/\\n/g, '\n');
+        }
+        const response = await drawShape('text', processedInput);
         return response;
       } catch (error) {
         return {
@@ -82,8 +89,9 @@ export const toolsCreateShapes = [
     description: `
       Creates a single path (vector shape) in Penpot.
       Use content to define the path as an array of SVG path commands (move-to, line-to, curve-to, close-path, etc.).
-      Use parentId to place the path inside a board, group, or component.
-      Use parentIndex to define the index at which the path will be inserted in the parent, higher values appear on top of lower values.
+
+      ${positionAdvice('path')}
+      ${parentAdvice('path')}
     `,
     inputSchema: createPathSchema,
     function: async (input) => {
@@ -104,11 +112,11 @@ export const toolsCreateShapes = [
     name: 'CreateBoardTool',
     description: `
       Creates a single board in Penpot.
-      Use parentId to place the board inside a board, group, or component.
-      Use parentIndex to define the index at which the board will be inserted in the parent, higher values appear on top of lower values.
-      
+      ${positionAdvice('board')}
+      ${parentAdvice('board')}
+
       IMPORTANT!!
-      If you are planning to add items to the board, order them by layoutChild.zIndex or parentIndex in ascending order and then add them to the board.
+      If you are planning to add items to the board, first order them by layoutChild.zIndex or parentIndex in ascending order and then add them to the board.
     `,
     inputSchema: createBoardSchema,
     function: async (input) => {

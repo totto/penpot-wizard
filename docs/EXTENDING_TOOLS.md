@@ -21,6 +21,7 @@ Every tool follows this structure:
 | Type | File | Purpose |
 |------|------|---------|
 | Function | `src/assets/functionTools.js` | Data retrieval, API calls, non-visual operations |
+| Image | `src/assets/imageTools.js` | Generate/set images in shapes |
 | RAG | `src/assets/ragTools.js` | Vector search over embeddings |
 | Create shapes | `src/assets/toolsCreateShapes.js` | Create rectangle, ellipse, text, path, board |
 | Modify shapes | `src/assets/toolsModifyShapes.js` | Modify existing shapes by type |
@@ -146,7 +147,6 @@ After creating a tool, add its `id` to the `toolIds` array of the director agent
   // ...
   toolIds: [
     "get-user-data",
-    "get-project-data",
     "my-custom-tool",  // Add here
     // ...
   ],

@@ -30,7 +30,7 @@ const imageDataSchema = z.object({
   name: z.string().optional(),
   width: z.number(),
   height: z.number(),
-  mtype: z.string().optional(),
+  mtype: z.string(),
   id: z.string(),
   keepAspectRatio: z.boolean().optional(),
 });
@@ -86,7 +86,6 @@ export const Shadow = z.object({
 });
 
 export const Blur = z.object({
-  id: z.string().optional(),
   type: z.enum(['layer-blur']).optional(),
   value: z.number().optional(),
   hidden: z.boolean().optional(),

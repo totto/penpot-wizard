@@ -21,31 +21,6 @@ export function handleGetUserData() {
   }
 }
 
-export function handleGetProjectData() {
-  if (penpot.currentFile && penpot.currentPage) {
-    return {
-      success: true,
-      message: 'Project data successfully retrieved',
-      payload: {
-        name: penpot.currentFile?.name,
-        id: penpot.currentFile?.id,
-        pages: penpot.currentFile?.pages.map((page) => ({
-          name: page.name,
-          id: page.id,
-        })),
-      },
-    };
-  } else {
-    return {
-      success: false,
-      message: 'Error retrieving project data',
-      payload: {
-        error: 'Project data not available',
-      },
-    }
-  }
-}
-
 function getAllShapesFromComponent(component) {
   const shapes = [];
   
@@ -136,6 +111,37 @@ export function getSelectedShapes() {
       selectedShapeIds,
     },
   };
+}
+
+export function handleGetShape(payload) {
+  const { shapeId } = payload;
+
+  try {
+    if (!shapeId || typeof shapeId !== 'string') {
+      throw new Error('shapeId is required');
+    }
+
+    const shape = penpot.currentPage?.getShapeById(shapeId);
+    if (!shape) {
+      throw new Error(`Shape with ID ${shapeId} not found`);
+    }
+
+    return {
+      success: true,
+      message: 'Shape retrieved successfully',
+      payload: {
+        shape: curateShapeOutput(shape),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Error getting shape: ${error instanceof Error ? error.message : String(error)}`,
+      payload: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
 }
 
 function applyBasicShapeParams(shape, params = {}) {

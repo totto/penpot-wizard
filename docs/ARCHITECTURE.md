@@ -27,12 +27,11 @@ Penpot Wizard runs across three layers:
 │  │  └───┬────────────────────────────────────────────────┘   │  │
 │  │      │                                                      │  │
 │  │      │ Uses                                                  │  │
-│  │  ┌───▼──────────────┬──────────────┬──────────────┐        │  │
-│  │  │ Specialized      │ Tools        │ Image         │        │  │
-│  │  │ Agents           │ (function,   │ Generation    │        │  │
-│  │  │                  │ RAG, drawing,│ Agents        │        │  │
-│  │  │                  │ tokens, icons)│               │        │  │
-│  │  └──────────────────┴──────────────┴──────────────┘        │  │
+│  │  ┌───▼──────────────┬────────────────────────────┐        │  │
+│  │  │ Specialized      │ Tools (function, RAG,       │        │  │
+│  │  │ Agents           │ drawing, tokens, icons,    │        │  │
+│  │  │                  │ image tools)                │        │  │
+│  │  └──────────────────┴────────────────────────────┘        │  │
 │  └─────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -40,8 +39,7 @@ State Management (nanostores):
 ├── directorAgentsStore   (director agent instances)
 ├── specializedAgentsStore (specialized agents wrapped as tools)
 ├── coordinatorAgentsStore (coordinator agents)
-├── imageGenerationAgentsStore (image generation agents)
-├── toolsStore            (function, RAG, drawing, tokens, icons tools)
+├── toolsStore            (function, RAG, drawing, tokens, icons, image tools)
 ├── settingsStore         (API keys, models)
 ├── conversationsStore    (metadata, messages)
 └── streamingMessageStore (real-time streaming state)
@@ -53,7 +51,7 @@ State Management (nanostores):
 
 - **Purpose**: Top-level orchestrators that handle direct user interaction
 - **Location**: `src/assets/directorAgents.js`
-- **Capabilities**: Use tools, call specialized agents, call image generation agents
+- **Capabilities**: Use tools (including generate-image, set-image-from-url), call specialized agents
 - **Example**: TestToolsDirector, Penpot Wizard
 
 ### Coordinator Agents
@@ -67,15 +65,8 @@ State Management (nanostores):
 
 - **Purpose**: Focused sub-agents for specific domains (UI design, UX, drawing)
 - **Location**: `src/assets/specializedAgents.js`
-- **Capabilities**: Have inputSchema; can use tools and image generation agents
+- **Capabilities**: Have inputSchema; can use tools (including image tools)
 - **Example**: ui-design-specialist, ux-design-specialist, mobile-view-designer
-
-### Image Generation Agents
-
-- **Purpose**: Generate images from text prompts and return imageId for use in shapes
-- **Location**: `src/assets/imageGenerationAgents.js`
-- **Capabilities**: Create images, add to Penpot project, return imageId as backgroundImage
-- **Example**: image-generator
 
 ## Component Interaction Flow
 
@@ -97,18 +88,16 @@ flowchart TB
     Director[Director Agent]
     Tools[Tools Store]
     Specialized[Specialized Agents]
-    ImageGen[Image Gen Agents]
     Plugin[Penpot Plugin]
-    
+
     User --> Director
     Director --> Tools
     Director --> Specialized
-    Director --> ImageGen
     Tools -->|sendMessageToPlugin| Plugin
     Specialized --> Tools
+    Specialized --> Director
     Plugin -->|response| Tools
     Tools --> Director
-    Specialized --> Director
     Director --> User
 ```
 

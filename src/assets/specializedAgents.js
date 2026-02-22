@@ -1,11 +1,19 @@
-import { z } from 'zod';
-
 export const specializedAgents = [
   {
     id: 'ui-design-specialist',
     name: 'UIDesignSpecialist',
-    description:
-      'Defines the design system for mobile UI projects: colors, typography, spacing, radii, elevation, iconography, image styles and guidelines.',
+    description: `
+      Defines the design system for UI projects: colors, typography, spacing, radii, elevation, iconography, image styles and guidelines.
+
+      <required_input>
+        Send a query that includes:
+        - project.platform: target platform (e.g. "iOS", "Android", "Web")
+        - project.language: content language (e.g. "en", "es")
+        - branding (optional): references (URLs/names), tone (e.g. ["minimal","vibrant"]), preferredColors (hex list), preferredFonts (font names)
+        - accessibility (optional): target level ("AA" or "AAA"), specific requirements
+        - availableFonts (optional): list of font names available in the project
+      </required_input>
+    `,
     system: `
       <role>
         You define a coherent, scalable and accessible design system for mobile UI projects.
@@ -15,28 +23,22 @@ export const specializedAgents = [
         Return structured outputs only. Prefer neutral defaults if branding is missing. Align to platform conventions when helpful.
       </behavior>
     `,
-    inputSchema: z.object({
-      project: z.object({ platform: z.string(), language: z.string() }),
-      branding: z
-        .object({
-          references: z.array(z.string()).optional(),
-          tone: z.array(z.string()).optional(),
-          preferredColors: z.array(z.string()).optional(),
-          preferredFonts: z.array(z.string()).optional(),
-        })
-        .optional(),
-      accessibility: z
-        .object({ target: z.string(), requirements: z.array(z.string()).optional() })
-        .optional(),
-      availableFonts: z.array(z.string()).optional(),
-    }),
     toolIds: ['penpot-user-guide-rag', 'design-styles-rag'],
   },
   {
     id: 'ux-design-specialist',
     name: 'UXDesignSpecialist',
-    description:
-      'Defines the set of views/screens, their purpose, sections and components, including flows and states for a mobile project.',
+    description: `
+      Defines the set of views/screens, their purpose, sections and components, including flows and states for a mobile project.
+
+      <required_input>
+        Send a query that includes:
+        - goals: list of project goals (e.g. ["Enable users to browse products", "Checkout flow"])
+        - features: list of features to support (e.g. ["Search", "Favorites", "Cart"])
+        - targetAudience: who the app is for (e.g. "Young adults 18-35 interested in fashion")
+        - preferredNavigation (optional): navigation pattern ("tabs", "drawer", "stack", "mixed")
+      </required_input>
+    `,
     system: `
       <role>
         You define the required views and user flows for a mobile project.
@@ -46,45 +48,43 @@ export const specializedAgents = [
         Be practical and complete. Provide enough detail to draw each view later.
       </behavior>
     `,
-    inputSchema: z.object({
-      goals: z.array(z.string()),
-      features: z.array(z.string()),
-      targetAudience: z.string(),
-      preferredNavigation: z.string().optional(),
-    }),
     toolIds: ['penpot-user-guide-rag'],
   },
   {
     id: 'project-plan-specialist',
     name: 'ProjectPlanSpecialist',
-    description: 'Plans phased delivery with deliverables and acceptance criteria for a mobile UI project.',
+    description: `
+      Plans phased delivery with deliverables and acceptance criteria for a UI project.
+
+      <required_input>
+        Send a query that includes:
+        - scope: project scope description
+        - risks (optional): list of identified risks
+        - dependencies (optional): list of dependencies
+        - views: array of view objects, each with { id, name, purpose, sections (list), components (list) }
+        - designSystem: the full design system object produced by UIDesignSpecialist
+      </required_input>
+    `,
     system: `
       <role>
         You create an incremental delivery plan that minimizes risk and clarifies dependencies.
         Work in English. Be explicit about acceptance criteria and sequencing.
       </role>
     `,
-    inputSchema: z.object({
-      scope: z.string(),
-      risks: z.array(z.string()).optional(),
-      dependencies: z.array(z.string()).optional(),
-      views: z.array(
-        z.object({
-          id: z.string(),
-          name: z.string(),
-          purpose: z.string(),
-          sections: z.array(z.string()),
-          components: z.array(z.string()),
-        })
-      ),
-      designSystem: z.object({}).passthrough(),
-    }),
   },
   {
     id: 'mobile-view-designer',
     name: 'MobileViewDesigner',
-    description:
-      'Draws mobile views in the Penpot project from concrete instructions, respecting the provided design system and UX specs.',
+    description: `
+      Draws mobile views in the Penpot project from concrete instructions, respecting the provided design system and UX specs.
+
+      <required_input>
+        Send a query that includes:
+        - view: object with { id, name, sections (list of section names), components (list of component names) }
+        - designSystem: the design system as a JSON string (use JSON.stringify on UIDesignSpecialist output). Must include colorPalette, typography, spacing, radii, etc. NEVER omit this when available.
+        - target (optional): { pageId, boardName (default "Screen") }
+      </required_input>
+    `,
     system: `
       <role>
         You are a drawing-only agent. Work in English and focus on executing drawings without giving design advice.
@@ -93,20 +93,17 @@ export const specializedAgents = [
         Respect stacking order strictly: draw foreground elements first and backgrounds last.
         Use boards as screens and place items within their parents appropriately.
         Keep typography and spacing consistent with the received brief. Use available fonts.
+
+        Verification and correction (after creating all shapes of a view/screen):
+        1. Call get-current-page to obtain the real state of created shapes (with actual dimensions calculated by Penpot).
+        2. Verify: no element overflows the parent board (compare x + width vs board width, y + height vs board height). Verify that elements that should be centered are actually centered. Verify that texts and blocks that should be aligned are aligned.
+        3. Correct: if positioning, overflow, or alignment issues are detected, use modification tools (modify-text, modify-rectangle, modify-board) to adjust positions, sizes, or properties. Use align-shapes to align groups of elements.
       </drawing>
       <tool_input_format>
         When designSystem comes as a JSON string, parse it and use it for colors, typography, and spacing. Do not invent or search in RAG if designSystem is already provided.
+        Para centrar texto dentro de un board, usa growType: 'fixed' con un width igual al ancho disponible del board (descontando márgenes). No uses growType: 'auto-width' si quieres centrar texto en el parent, ya que el texto crecerá desde x y no se centrará.
       </tool_input_format>
     `,
-    inputSchema: z.object({
-      view: z.object({ id: z.string(), name: z.string(), sections: z.array(z.string()), components: z.array(z.string()) }),
-      designSystem: z
-        .string()
-        .describe(
-          'Design system as JSON string. The coordinator must pass it serialized (JSON.stringify from UIDesignSpecialist output). Include colorPalette, typography, spacing, radii, etc. Parse it and use for colors, typography, and spacing. Do not invent or use RAG if designSystem is provided.'
-        ),
-      target: z.object({ pageId: z.string().optional(), boardName: z.string().default('Screen') }).optional(),
-    }),
     toolIds: [
       'create-board',
       'create-rectangle',
@@ -115,7 +112,8 @@ export const specializedAgents = [
       'create-path',
       'get-current-page',
       'get-fonts',
-      'add-image',
+      'generate-image',
+      'set-image-from-url',
       'get-icon-list',
       'draw-icon',
       'group-shapes',
@@ -140,13 +138,20 @@ export const specializedAgents = [
       'create-flow',
       'remove-flow',
     ],
-    imageGenerationAgentIds: ['image-generator'],
   },
   {
     id: 'print-view-designer',
     name: 'PrintViewDesigner',
-    description:
-      'Creates print layouts (A4, A3, posters, cards, brochures) in Penpot with correct dimensions, bleed, and safe zones.',
+    description: `
+      Creates print layouts (A4, A3, posters, cards, brochures) in Penpot with correct dimensions, bleed, and safe zones.
+
+      <required_input>
+        Send a query that includes:
+        - view: object with { id, name, purpose, sections (list), components (list), format ("A4"|"A3"|"A2"|"A5"|"Letter"|"custom") }
+        - designSystem: the design system as a JSON string (use JSON.stringify on UIDesignSpecialist output). Must include colorPalette, typography, spacing, radii, etc. NEVER omit this when available.
+        - target (optional): { pageId, boardName (default "Print"), bleed (number), safeZone (number) }
+      </required_input>
+    `,
     system: `
       <role>
         You are a drawing-only agent for print materials. Work in English and focus on executing print layouts.
@@ -156,35 +161,18 @@ export const specializedAgents = [
         Respect stacking order: foreground elements first, backgrounds last.
         Use boards for each print artifact. Apply design system colors, typography, and spacing.
         Consider bleed and safe zones when specified. Use available fonts from the design system.
+
+        Verification and correction (after creating all shapes of a view/screen):
+        1. Call get-current-page to obtain the real state of created shapes (with actual dimensions calculated by Penpot).
+        2. Verify: no element overflows the parent board (compare x + width vs board width, y + height vs board height). Verify that elements that should be centered are actually centered. Verify that texts and blocks that should be aligned are aligned.
+        3. Correct: if positioning, overflow, or alignment issues are detected, use modification tools (modify-text, modify-rectangle, modify-board) to adjust positions, sizes, or properties. Use align-shapes to align groups of elements.
       </drawing>
       <tool_input_format>
         Use create-board to create an empty board with properties (name, width, height, etc.). Use create-rectangle, create-ellipse, create-text, create-path for shapes. To place shapes inside a board, set parentId to the board ID. Create one shape per tool call. Pass objects directly, never JSON strings.
         When designSystem comes as a JSON string, parse it and use it for colors, typography, and spacing. Do not invent or search in RAG if designSystem is already provided.
+        Para centrar texto dentro de un board, usa growType: 'fixed' con un width igual al ancho disponible del board (descontando márgenes). No uses growType: 'auto-width' si quieres centrar texto en el parent, ya que el texto crecerá desde x y no se centrará.
       </tool_input_format>
     `,
-    inputSchema: z.object({
-      view: z.object({
-        id: z.string(),
-        name: z.string(),
-        purpose: z.string(),
-        sections: z.array(z.string()),
-        components: z.array(z.string()),
-        format: z.enum(['A4', 'A3', 'A2', 'A5', 'Letter', 'custom']),
-      }),
-      designSystem: z
-        .string()
-        .describe(
-          'Design system as JSON string. The coordinator must pass it serialized (JSON.stringify from UIDesignSpecialist output). Include colorPalette, typography, spacing, radii, etc. Parse it and use for colors, typography, and spacing. Do not invent or use RAG if designSystem is provided.'
-        ),
-      target: z
-        .object({
-          pageId: z.string().optional(),
-          boardName: z.string().default('Print'),
-          bleed: z.number().optional(),
-          safeZone: z.number().optional(),
-        })
-        .optional(),
-    }),
     toolIds: [
       'get-device-size-presets',
       'create-board',
@@ -195,7 +183,8 @@ export const specializedAgents = [
       'get-current-page',
       'get-fonts',
       'design-styles-rag',
-      'add-image',
+      'generate-image',
+      'set-image-from-url',
       'get-icon-list',
       'draw-icon',
       'group-shapes',
@@ -214,13 +203,20 @@ export const specializedAgents = [
       'convert-to-component',
       'convert-to-board',
     ],
-    imageGenerationAgentIds: ['image-generator'],
   },
   {
     id: 'web-view-designer',
     name: 'WebViewDesigner',
-    description:
-      'Creates web layouts (desktop, tablet, mobile) in Penpot with breakpoints and responsive structure.',
+    description: `
+      Creates web layouts (desktop, tablet, mobile) in Penpot with breakpoints and responsive structure.
+
+      <required_input>
+        Send a query that includes:
+        - view: object with { id, name, purpose, sections (list), components (list), breakpoints (optional, e.g. ["desktop","tablet","mobile"]) }
+        - designSystem: the design system as a JSON string (use JSON.stringify on UIDesignSpecialist output). Must include colorPalette, typography, spacing, radii, etc. NEVER omit this when available.
+        - target (optional): { pageId, boardName (default "Web"), breakpoint }
+      </required_input>
+    `,
     system: `
       <role>
         You are a drawing-only agent for web interfaces. Work in English and focus on executing web layouts.
@@ -230,34 +226,18 @@ export const specializedAgents = [
         Respect stacking order: foreground elements first, backgrounds last.
         Use boards for each viewport/breakpoint. Apply design system consistently.
         Keep typography and spacing aligned with the received brief. Use available fonts.
+
+        Verification and correction (after creating all shapes of a view/screen):
+        1. Call get-current-page to obtain the real state of created shapes (with actual dimensions calculated by Penpot).
+        2. Verify: no element overflows the parent board (compare x + width vs board width, y + height vs board height). Verify that elements that should be centered are actually centered. Verify that texts and blocks that should be aligned are aligned.
+        3. Correct: if positioning, overflow, or alignment issues are detected, use modification tools (modify-text, modify-rectangle, modify-board) to adjust positions, sizes, or properties. Use align-shapes to align groups of elements.
       </drawing>
       <tool_input_format>
         Use create-board to create an empty board with properties (name, width, height, etc.). Use create-rectangle, create-ellipse, create-text, create-path for shapes. To place shapes inside a board, set parentId to the board ID. Create one shape per tool call. Pass objects directly, never JSON strings.
         When designSystem comes as a JSON string, parse it and use it for colors, typography, and spacing. Do not invent or search in RAG if designSystem is already provided.
+        Para centrar texto dentro de un board, usa growType: 'fixed' con un width igual al ancho disponible del board (descontando márgenes). No uses growType: 'auto-width' si quieres centrar texto en el parent, ya que el texto crecerá desde x y no se centrará.
       </tool_input_format>
     `,
-    inputSchema: z.object({
-      view: z.object({
-        id: z.string(),
-        name: z.string(),
-        purpose: z.string(),
-        sections: z.array(z.string()),
-        components: z.array(z.string()),
-        breakpoints: z.array(z.string()).optional(),
-      }),
-      designSystem: z
-        .string()
-        .describe(
-          'Design system as JSON string. The coordinator must pass it serialized (JSON.stringify from UIDesignSpecialist output). Include colorPalette, typography, spacing, radii, etc. Parse it and use for colors, typography, and spacing. Do not invent or use RAG if designSystem is provided.'
-        ),
-      target: z
-        .object({
-          pageId: z.string().optional(),
-          boardName: z.string().default('Web'),
-          breakpoint: z.string().optional(),
-        })
-        .optional(),
-    }),
     toolIds: [
       'get-device-size-presets',
       'create-board',
@@ -267,7 +247,8 @@ export const specializedAgents = [
       'create-path',
       'get-current-page',
       'get-fonts',
-      'add-image',
+      'generate-image',
+      'set-image-from-url',
       'get-icon-list',
       'draw-icon',
       'group-shapes',
@@ -292,13 +273,24 @@ export const specializedAgents = [
       'create-flow',
       'remove-flow',
     ],
-    imageGenerationAgentIds: ['image-generator'],
   },
   {
     id: 'style-application-specialist',
     name: 'StyleApplicationSpecialist',
-    description:
-      'Applies design styles (colors, typography, spacing, radii) to existing shapes. Crucial: the coordinator must pass designSystem as a JSON string approved by the user. Example: {"colors":{"background":"#F5F5F5","accent":"#00D1FF"},"typography":{"fontFamily":"Inter"}}. If designSystem is missing or empty string, the specialist cannot apply correctly and may choose arbitrarily from RAG.',
+    description: `
+      Applies design styles (colors, typography, spacing, radii) to existing shapes.
+      The coordinator must pass designSystem as a JSON string approved by the user.
+      Example: {"colors":{"background":"#F5F5F5","accent":"#00D1FF"},"typography":{"fontFamily":"Inter"}}.
+      If designSystem is missing or empty, the specialist may choose arbitrarily from RAG.
+
+      <required_input>
+        Send a query that includes:
+        - designSystem: JSON string with colors (hex values) and typography (fontFamily). Example: {"colors":{"background":"#F5F5F5","accent":"#00D1FF","text":"#111111"},"typography":{"fontFamily":"Inter"}}
+        - scope: "page" (apply to whole page) or "selection" (apply to selected shapes only)
+        - shapeIds (optional): explicit array of shape IDs to modify; if omitted, scope determines targets
+        - pageId (optional): target page ID
+      </required_input>
+    `,
     system: `
       <role>
         You apply design styles to existing shapes. Work in English. Use design-styles-rag for style references.
@@ -313,23 +305,23 @@ export const specializedAgents = [
         Report modifiedCount in the output.
       </behavior>
     `,
-    inputSchema: z.object({
-      designSystem: z
-        .string()
-        .describe(
-          'Design system as JSON string. Include colors (hex) and typography (fontFamily). Example: {"colors":{"background":"#F5F5F5","accent":"#00D1FF","text":"#111111"},"typography":{"fontFamily":"Inter"}}'
-        ),
-      scope: z.enum(['page', 'selection']),
-      shapeIds: z.array(z.string()).optional().describe('Optional explicit shape IDs; if omitted, use scope to determine'),
-      pageId: z.string().optional(),
-    }),
     toolIds: ['design-styles-rag', 'get-current-page', 'get-selected-shapes', 'modify-rectangle', 'modify-ellipse', 'modify-text', 'modify-path', 'modify-board', 'modify-boolean', 'modify-text-range', 'rotate-shape'],
   },
   {
     id: 'tokens-specialist',
     name: 'TokensSpecialist',
-    description:
-      'Manages design tokens: creates token sets from design systems, applies tokens to shapes, and maintains token lifecycle (activate, modify, remove).',
+    description: `
+      Manages design tokens: creates token sets from design systems, applies tokens to shapes, and maintains token lifecycle (activate, modify, remove).
+
+      <required_input>
+        Send a query that includes:
+        - scope: "create" (generate tokens from designSystem), "apply" (apply tokens to shapes), or "manage" (list/activate/deactivate/modify/remove token sets)
+        - designSystem (optional, used with scope "create"): JSON string with colorPalette, typography, spacing, radii. Example: {"colorPalette":[{"name":"primary","value":"#00D1FF"}],"typography":{"families":["Inter"],"scales":[{"name":"h1","size":32}]},"spacing":[4,8,16,24,32],"radii":[0,4,8,16]}
+        - shapeIds (optional, used with scope "apply"): array of shape IDs to apply tokens to
+        - tokenSetId (optional, used with scope "manage"): ID of the token set to manage
+        - action (optional, used with scope "manage"): "activate", "deactivate", "modify", "remove", or "list"
+      </required_input>
+    `,
     system: `
       <role>
         You manage design tokens in Penpot projects. Work in English.
@@ -348,18 +340,6 @@ export const specializedAgents = [
         - After creating a token set, activate it unless explicitly told not to.
       </rules>
     `,
-    inputSchema: z.object({
-      scope: z.enum(['create', 'apply', 'manage']),
-      designSystem: z
-        .string()
-        .optional()
-        .describe(
-          'Design system as JSON string. Used when scope is "create" to generate tokens from colors, typography, spacing, radii. Example: {"colorPalette":[{"name":"primary","value":"#00D1FF"}],"typography":{"families":["Inter"],"scales":[{"name":"h1","size":32}]},"spacing":[4,8,16,24,32],"radii":[0,4,8,16]}'
-        ),
-      shapeIds: z.array(z.string()).optional().describe('Shape IDs to apply tokens to (when scope is "apply")'),
-      tokenSetId: z.string().optional().describe('Token set ID for manage operations'),
-      action: z.enum(['activate', 'deactivate', 'modify', 'remove', 'list']).optional().describe('Action for manage scope'),
-    }),
     toolIds: [
       'design-styles-rag',
       'get-current-page',
@@ -372,4 +352,3 @@ export const specializedAgents = [
     ],
   },
 ];
-

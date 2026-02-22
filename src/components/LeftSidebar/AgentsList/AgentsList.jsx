@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useStore } from "@nanostores/react";
 import { $directorAgentsData } from "@/stores/directorAgentsStore";
 import { $specializedAgentsData } from "@/stores/specializedAgentsStore";
-import { $imageGenerationAgentsData } from "@/stores/imageGenerationAgentsStore";
 import EditAgentForm from "./EditAgentForm/EditAgentForm";
 import AgentDetailsCard from "./AgentDetailsCard/AgentDetailsCard";
 import EntryAgentSelector from "./EntryAgentSelector/EntryAgentSelector";
@@ -16,7 +15,6 @@ import {
 function AgentsList() {
   const directorAgentsData = useStore($directorAgentsData);
   const specializedAgentsData = useStore($specializedAgentsData);
-  const imageGenerationAgentsData = useStore($imageGenerationAgentsData);
 
   // Combine all agent types for display
   const agentsData = [
@@ -24,11 +22,6 @@ function AgentsList() {
     ...specializedAgentsData.map((agent) => ({
       ...agent,
       type: "specialized",
-    })),
-    ...imageGenerationAgentsData.map((agent) => ({
-      ...agent,
-      type: "imageGeneration",
-      isUserCreated: false, // Image generation agents are always predefined
     })),
   ];
 

@@ -86,7 +86,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for diagrams and details.
 
 ### Agents
 
-There are four agent types: **Director** (main orchestrator), **Coordinator** (project orchestration), **Specialized** (domain experts), and **Image Generation** (creates images). Each has its own file in `src/assets/`. Agents use `toolIds`, `specializedAgentIds`, and `imageGenerationAgentIds` to compose tools and sub-agents.
+There are three agent types: **Director** (main orchestrator), **Coordinator** (project orchestration), and **Specialized** (domain experts). Each has its own file in `src/assets/`. Image generation and placement are handled by tools (`generate-image`, `set-image-from-url`) in `imageTools.js`. Agents use `toolIds` and `specializedAgentIds` to compose tools and sub-agents.
 
 See [docs/AGENTS_GUIDE.md](docs/AGENTS_GUIDE.md) for how to create custom agents.
 

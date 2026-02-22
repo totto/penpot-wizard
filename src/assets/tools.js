@@ -1,4 +1,5 @@
 import { functionTools } from './functionTools';
+import { imageTools } from './imageTools';
 import { toolsCreateShapes } from './toolsCreateShapes';
 import { toolsModifyShapes } from './toolsModifyShapes';
 import { toolsCompoundShapes } from './toolsCompoundShapes';
@@ -12,6 +13,7 @@ import { iconsTool } from './iconsTool';
 
 export const tools = [
   ...functionTools,
+  ...imageTools,
   ...toolsCreateShapes,
   ...toolsModifyShapes,
   ...toolsCompoundShapes,

@@ -6,7 +6,6 @@ import { $selectedLanguageModel, $isConnected } from '@/stores/settingsStore';
 import { createModelInstance } from '@/utils/modelUtils';
 import { getToolsByIds } from '@/stores/toolsStore';
 import { getSpecializedAgentsByIds } from '@/stores/specializedAgentsStore';
-import { getImageGenerationAgentsByIds } from '@/stores/imageGenerationAgentsStore';
 import { $userDirectorAgents } from '@/stores/userAgentsStore';
 
 let modelIdInitialized = '';
@@ -85,11 +84,8 @@ export const initializeDirectorAgents = () => {
         // Get specialized agents for this director
         const specializedAgentTools = getSpecializedAgentsByIds(director.specializedAgentIds || []);
         
-        // Get image generation agents for this director
-        const imageGenerationAgentTools = getImageGenerationAgentsByIds(director.imageGenerationAgentIds || []);
-        
         // Combine all tools
-        const allTools = [...agentTools, ...specializedAgentTools, ...imageGenerationAgentTools];
+        const allTools = [...agentTools, ...specializedAgentTools];
         
         const agentInstance = new ToolLoopAgent({
           model: modelInstance,

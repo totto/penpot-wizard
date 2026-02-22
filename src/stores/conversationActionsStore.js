@@ -48,6 +48,28 @@ import {
 import { StreamHandler } from '@/utils/streamingMessageUtils';
 
 /**
+ * Welcome messages by browser language (navigator.language prefix).
+ * Falls back to English when the language is not in the map.
+ */
+const WELCOME_MESSAGES = {
+  en: 'Hello! How can I help you today?',
+  es: '¡Hola! ¿En qué puedo ayudarte hoy?',
+  fr: "Bonjour ! Comment puis-je vous aider aujourd'hui ?",
+  de: 'Hallo! Wie kann ich Ihnen heute helfen?',
+  pt: 'Olá! Como posso ajudá-lo hoje?',
+  it: 'Ciao! Come posso aiutarti oggi?',
+  ca: 'Hola! Com et puc ajudar avui?',
+  gl: 'Ola! Como podo axudarte hoxe?'
+};
+
+function getWelcomeMessage() {
+  const lang = (typeof navigator !== 'undefined' && navigator.language)
+    ? navigator.language.split('-')[0]
+    : 'en';
+  return WELCOME_MESSAGES[lang] ?? WELCOME_MESSAGES.en;
+}
+
+/**
  * Conversation Actions Store (V2)
  * Orchestrates all conversation-related actions
  * Coordinates between metadata, active conversation, and streaming stores
@@ -68,10 +90,10 @@ export const createNewConversation = async (directorAgentId) => {
   // 3. Load as active conversation
   loadActiveConversation(conversationId);
 
-  // 4. Add welcome message from assistant
+  // 4. Add welcome message from assistant (in browser language)
   addMessageToActive({
     role: 'assistant',
-    content: '¡Hola! ¿En qué puedo ayudarte hoy?'
+    content: getWelcomeMessage()
   });
 
   // 5. Increment message count for welcome message
