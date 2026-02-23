@@ -1,7 +1,6 @@
 import { atom } from 'nanostores';
-import { tool, ToolLoopAgent, stepCountIs, jsonSchema } from 'ai';
-import { specializedAgents as specializedAgentsAssets } from '@/assets/specializedAgents';
-import { coordinatorAgents as coordinatorAgentsAssets } from '@/assets/coordinatorAgents';
+import { tool, ToolLoopAgent, stepCountIs, zodSchema } from 'ai';
+import { capabilityAgents as capabilityAgentsAssets } from '@/assets/agents/agents';
 import { getToolsByIds } from '@/stores/toolsStore';
 import { createModelInstance } from '@/utils/modelUtils';
 import { $isConnected } from '@/stores/settingsStore';
@@ -23,8 +22,7 @@ $userSpecializedAgents.listen(() => {
 });
 
 function getCombinedSpecializedAgents() {
-  const predefined = coordinatorAgentsAssets
-    .concat(specializedAgentsAssets)
+  const predefined = capabilityAgentsAssets
     .map((agent) => ({
       ...agent,
       isUserCreated: false,
@@ -106,11 +104,11 @@ const initializeSpecializedAgent = async (specializedAgentId) => {
     stopWhen: stepCountIs(20),
   });
   
-  const toolInputSchema = specializedAgentDef.inputSchema
-    ? jsonSchema(specializedAgentDef.inputSchema)
-    : z.object({
-      query: z.string().describe('The task description for the agent. Include all relevant context, data, and instructions in natural language.')
-    });
+  // Use zodSchema() so validation runs; jsonSchema(zodSchema) breaks validation (no validate fn)
+  const defaultSchema = z.object({
+    query: z.string().describe('The task description for the agent. Include all relevant context, data, and instructions in natural language.')
+  });
+  const toolInputSchema = zodSchema(specializedAgentDef.inputSchema ?? defaultSchema);
 
   // Wrap the agent in a tool
   const toolInstance = tool({

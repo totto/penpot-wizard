@@ -1,8 +1,9 @@
 import { pathCommandsToSvgString } from '../utils';
 import { PenpotShapeType } from '../../types/types';
+import { applyTokensToShape } from './tokenHandlers';
 
 export function setParamsToShape(shape, params) {
-  const { parentX, parentY, parentId, parentIndex, width, height, layoutChild, layoutCell, ...rest } = params;
+  const { parentX, parentY, parentId, parentIndex, width, height, layoutChild, layoutCell, tokens, ...rest } = params;
 
   Object.keys(rest).forEach((key) => {
     shape[key] = rest[key];
@@ -74,6 +75,10 @@ export function setParamsToShape(shape, params) {
   }
   if (parentY !== undefined) {
     shape.parentY = parentY;
+  }
+
+  if (tokens) {
+    applyTokensToShape(shape, tokens);
   }
 }
 

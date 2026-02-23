@@ -59,7 +59,7 @@ export const TOKEN_ATTRS = [
 
 const tokenAttrEnum = /** @type {[string, ...string[]]} */ (TOKEN_ATTRS);
 
-const tokenAssignmentSchema = z.object({
+export const tokenAssignmentSchema = z.object({
   tokenName: z.string().min(1).describe('Name of the token to apply (e.g. "brand.primary")'),
   attr: z.enum(tokenAttrEnum).describe(
     'Shape attribute to bind the token to. '

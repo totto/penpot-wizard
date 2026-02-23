@@ -220,7 +220,7 @@ Your goal is to intelligently select and use the most appropriate tools to compl
       'create-flow', 'remove-flow',
       'modify-text-range', 'rotate-shape', 'clone-shape', 'delete-shape',
       'bring-to-front-shape', 'bring-forward-shape', 'send-to-back-shape', 'send-backward-shape',
-      'create-tokens-set', 'apply-tokens', 'activate-tokens-set', 'get-tokens-sets', 'remove-tokens-set', 'modify-tokens-set',
+      'create-tokens-set', 'activate-tokens-set', 'get-tokens-sets', 'remove-tokens-set', 'modify-tokens-set',
       'generate-image', 'set-image-from-url',
     ],
   },

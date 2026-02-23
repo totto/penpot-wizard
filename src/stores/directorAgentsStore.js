@@ -1,7 +1,7 @@
 import { atom, computed } from 'nanostores';
 import { persistentAtom } from '@nanostores/persistent';
 import { ToolLoopAgent } from 'ai';
-import { directorAgents } from '@/assets/directorAgents';
+import { directorAgents } from '@/assets/agents/agents';
 import { $selectedLanguageModel, $isConnected } from '@/stores/settingsStore';
 import { createModelInstance } from '@/utils/modelUtils';
 import { getToolsByIds } from '@/stores/toolsStore';

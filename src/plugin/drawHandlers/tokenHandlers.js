@@ -72,6 +72,64 @@ export function handleCreateTokensSet(payload) {
   }
 }
 
+/**
+ * Applies design token assignments to a single shape.
+ * Resolves token names across all sets (active first). Skips assignments for tokens not found.
+ *
+ * @param {object} shape - Penpot shape (proxy)
+ * @param {Array<{ tokenName: string, attr: string }>} assignments - Token assignments
+ * @returns {{ applied: number, errors: Array<{ tokenName?: string, attr?: string, reason: string }> }}
+ */
+export function applyTokensToShape(shape, assignments) {
+  const result = { applied: 0, errors: [] };
+
+  if (!shape || !Array.isArray(assignments) || assignments.length === 0) {
+    return result;
+  }
+
+  const tokensCatalog = penpot.library?.local?.tokens;
+  if (!tokensCatalog) {
+    result.errors.push({ reason: 'Tokens API not available.' });
+    return result;
+  }
+
+  const allSets = Array.from(tokensCatalog.sets);
+  const activeSets = allSets.filter(s => s.active);
+  const inactiveSets = allSets.filter(s => !s.active);
+  const orderedSets = [...activeSets, ...inactiveSets];
+
+  const tokenCache = new Map();
+  function findToken(tokenName) {
+    if (tokenCache.has(tokenName)) return tokenCache.get(tokenName);
+    for (const set of orderedSets) {
+      const tokens = Array.from(set.tokens);
+      const match = tokens.find(t => t.name === tokenName);
+      if (match) {
+        tokenCache.set(tokenName, match);
+        return match;
+      }
+    }
+    tokenCache.set(tokenName, null);
+    return null;
+  }
+
+  for (const { tokenName, attr } of assignments) {
+    const tokenProxy = findToken(tokenName);
+    if (!tokenProxy) {
+      result.errors.push({ tokenName, attr, reason: `Token "${tokenName}" not found in any set` });
+      continue;
+    }
+    try {
+      shape.applyToken(tokenProxy, [attr]);
+      result.applied += 1;
+    } catch (err) {
+      result.errors.push({ tokenName, attr, reason: err?.message || String(err) });
+    }
+  }
+
+  return result;
+}
+
 export function handleApplyTokens(payload) {
   const { shapeIds, assignments } = payload || {};
 

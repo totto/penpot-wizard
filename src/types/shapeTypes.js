@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { tokenAssignmentSchema } from './tokensTypes';
 
 import {
   Blur,
@@ -40,6 +41,7 @@ export const ShapeBase = z.object({
   strokes: z.array(Stroke),
   layoutChild: LayoutChildProperties,
   layoutCell: LayoutCellProperties,
+  tokens: z.array(tokenAssignmentSchema),
 });
 
 export const Text = ShapeBase.extend({
@@ -49,7 +51,7 @@ export const Text = ShapeBase.extend({
   fontSize: z.number(),
   fontWeight: z.number(),
   fontStyle: z.enum(['normal', 'italic', 'mixed']),
-  lineHeight: z.number(),
+  lineHeight: z.number().default(1).describe('separation between lines of text, in pixels'),
   letterSpacing: z.number(),
   textTransform: z.enum(['uppercase', 'capitalize', 'lowercase', 'mixed']),
   textDecoration: z.enum(['underline', 'line-through', 'mixed']),

@@ -44,6 +44,9 @@ import {
   loadMessagesFromStorage
 } from '@/utils/messagesStorageUtils';
 
+// Message conversion for AI SDK
+import { convertMessagesForAgent } from '@/utils/messagesForAgentUtils';
+
 // Streaming utilities
 import { StreamHandler } from '@/utils/streamingMessageUtils';
 
@@ -163,18 +166,9 @@ export const sendUserMessage = async (text, hidden = false) => {
     // 5. Create AbortController for this stream
     const abortController = createAbortController();
 
-    // 6. Prepare messages for the agent
+    // 6. Prepare messages for the agent (includes toolCalls; user message already in getActiveMessages)
     const currentMessages = getActiveMessages();
-    const agentMessages = currentMessages.map(msg => ({
-      role: msg.role,
-      content: msg.content
-    }));
-
-    // Add the new user message to agent context
-    agentMessages.push({
-      role: 'user',
-      content: text
-    });
+    const agentMessages = convertMessagesForAgent(currentMessages);
 
     // 7. Stream response from agent
     const stream = await director.instance.stream({
