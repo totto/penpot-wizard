@@ -3,7 +3,7 @@ import { useStore } from "@nanostores/react";
 import { getToolById } from "@/stores/toolsStore";
 import { $specializedAgentsData } from "@/stores/specializedAgentsStore";
 import { $directorAgentsData } from "@/stores/directorAgentsStore";
-import { parseZodSchema } from "@/utils/zodSchemaParser";
+import { toJSONSchema } from "zod";
 import SchemaVisor from "@/components/LeftSidebar/AgentsList/SchemaVisor/SchemaVisor";
 import styles from "./AgentDetailsContent.module.css";
 
@@ -40,7 +40,7 @@ function AgentDetailsContent({ agent }) {
           if (agent.isUserCreated) {
             setInputJsonSchema(agent.inputSchema || null);
           } else {
-            const inputParsed = agent.inputSchema ? parseZodSchema(agent.inputSchema) : null;
+            const inputParsed = agent.inputSchema ? toJSONSchema(agent.inputSchema) : null;
             setInputJsonSchema(inputParsed);
           }
         } catch (error) {

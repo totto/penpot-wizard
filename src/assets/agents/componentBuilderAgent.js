@@ -9,49 +9,46 @@ export const componentBuilderAgent = {
   id: 'component-builder',
   name: 'ComponentBuilder',
   description: `
-    Creates reusable Penpot components from the Planner's output.
-    Run AFTER Planner when components exist. Run BEFORE Drawer.
-    Each component is built with shapes, grouped, and converted to a Penpot component.
+    Use this tool to create Penpot components.
   `,
 
   inputSchema: z.object({
-    components: z.string().describe('Components from Planner: [{ id, name, content }]. Each content is compact text describing what to draw.'),
-    tokenSet: z.string().describe('Token set from Designer'),
-    style: z.string().describe('Style from Designer: rules, typography, icon/image guidance, special considerations.'),
+    components: z.string().describe('Components list: [{ name, content }]. Each content is compact text describing what to draw.'),
+    tokenSet: z.string().optional().describe('Token set name'),
+    style: z.string().optional().describe('Style definition: rules, typography, icon/image guidance, special considerations.'),
   }),
 
   system: `
   <role>
-    You create reusable Penpot components from the Planner's component specifications. Work in English.
-    You interpret each component's content and create the corresponding shapes, then group and convert to component.
+    In Penpot, components allow reusing visual elements across different views.
+    You are an expert tool for creating Penpot components.
+    Use tokens to apply styles to components.
   </role>
 
   <workflow>
-    1. Call get-current-page. Look for a board named "COMPONENTS". If it does not exist, create it with create-board: name "COMPONENTS", parentId (page/frame id from get-current-page), x: -1000, y: 0, width: 900, height: 800.
-    2. For each component in the list, create shapes INSIDE the COMPONENTS board (set parentId to the COMPONENTS board ID, use parentX/parentY for positions). Place each component at distinct positions: first at parentX 0, parentY 0; second at parentX 300, parentY 0; etc. (increment by 300 horizontally, wrap to next row if needed).
-    3. Group all shapes for that component using group-shapes.
-    4. IMPORTANT!!! Convert the group to a component using convert-to-component. This is the only way to create a component in Penpot.
-    5. After creating all components, return a JSON object: { componentInstanceIds: { [componentId]: shapeId } } where shapeId is the instance ID from convert-to-component.
+    1. Call get-current-page. Look for a board named "COMPONENTS". If it does not exist, create it with create-board: {
+      name "COMPONENTS",
+      parentId: (root frame id from get-current-page),
+      x: -1100,
+      y: 0,
+      width: 1000,
+      height: 800,
+      horizontalSizing: 'fix',
+      verticalSizing: 'auto',
+      flex: { dir: 'row', rowGap: 20, columnGap: 20, wrap: 'wrap', verticalPadding: 20, horizontalPadding: 20, }
+    }.
+    2. Create the components recursively, one after another.
+    3. Return a markdown report of the components created.
   </workflow>
 
-  <structure>
-    - COMPONENTS board: fixed position x: -1000, y: 0 (outside main canvas). Create only if absent.
-    - All component instances live inside the COMPONENTS board. Use parentId, parentX, parentY for shapes.
-    - Each component = shapes → group → convert-to-component. The instance stays in COMPONENTS; the Drawer will clone it.
-  </structure>
-
-  <tokens>
-    Use tokens on EVERY shape you create.
-    Call get-tokens-sets to list available token names. Pass tokens when creating/modifying:
-    - create-rectangle, create-text: include tokens: [{ tokenName: "color.primary", attr: "fill" }, ...]
-    - modify-*: include tokens in propertiesToModify if needed.
-    - Or use apply-tokens after creation: { shapeIds: [...], assignments: [{ tokenName, attr }] }
-    Common: fill → color.bg, color.primary; stroke-color → color.border; font-size → font.size.body; font-family → font.family.main.
-  </tokens>
+  <component-creation-workflow>
+    1. Create a container board with the component name and parentId the COMPONENTS board you created in the previous step. If needed, use a flex or grid layout to organize the shapes.
+    2. Create the component shapes using the board id from step 1 as parentId.
+    3. Convert the container board to component using convert-to-component.
+  </component-creation-workflow>
 
   <output>
-    Your final message MUST be a JSON object: { "componentInstanceIds": { "header": "shape-id-xxx", "button": "shape-id-yyy", ... } }
-    Map each component id to the shape ID of its instance (from convert-to-component response). The Director passes this to the Drawer.
+    Your final message MUST be a markdown string with a list of the components created.
   </output>
   `,
 

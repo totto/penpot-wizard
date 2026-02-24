@@ -80,7 +80,6 @@ async function generateOpenRouterImage(prompt, apiKey, modelId) {
  * @returns {Promise<{uint8Array: Uint8Array, mediaType: string}>}
  */
 export async function generateImageFromPrompt(prompt, options = {}) {
-  console.log('generateImageFromPrompt', prompt, options);
   const { width = 1024, height = 1024 } = options;
   const maxSize = Math.max(width, height);
   const selectedModel = getSelectedImageModel();
@@ -114,35 +113,4 @@ export async function generateImageFromPrompt(prompt, options = {}) {
     uint8Array: imagePayload.uint8Array,
     mediaType: imagePayload.mimeType || imagePayload.mediaType || 'image/png',
   };
-}
-
-/**
- * Fetch an image from a URL and return its binary data and media type.
- * Useful for tools that need to add external images to the Penpot project.
- *
- * @param {string} url - Public URL of the image
- * @returns {Promise<{uint8Array: Uint8Array, mediaType: string}>}
- */
-export async function fetchImageFromUrl(url) {
-  if (!url || typeof url !== 'string') {
-    throw new Error('URL is required');
-  }
-
-  const response = await fetch(url, { mode: 'cors' });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch image: HTTP ${response.status}`);
-  }
-
-  const contentType = response.headers.get('Content-Type') || '';
-  const mediaType = contentType.split(';')[0].trim() || 'image/png';
-
-  if (!mediaType.startsWith('image/')) {
-    throw new Error(`URL does not point to an image (Content-Type: ${mediaType})`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const uint8Array = new Uint8Array(arrayBuffer);
-
-  return { uint8Array, mediaType };
 }

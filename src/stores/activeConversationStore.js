@@ -160,16 +160,3 @@ export const hasActiveConversation = () => {
 export const getActiveConversationId = () => {
   return $activeConversationId.get();
 };
-
-/**
- * Reloads the active conversation from localStorage
- * Useful after external changes to storage
- */
-export const reloadActiveConversation = () => {
-  const activeId = $activeConversationId.get();
-  if (activeId) {
-    const messages = loadMessagesFromStorage(activeId);
-    $activeConversationMessages.set(messages);
-  }
-};
-

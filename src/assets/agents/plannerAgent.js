@@ -9,22 +9,27 @@ export const plannerAgent = {
   id: 'planner',
   name: 'Planner',
   description: `
+    Use this tool to create the complete plan for a design project.
+    This tool creates project development plans including all required views and reusable components.
+    Each view is a unit that can be sent to the drawer tool to be created. It contains the name and contents.
+    The list of reusable components can be sent to the component-builder tool to be created.
+    
     Defines the screens, views or pages to create for a design project.
     Each view is a unit passed to the Drawer. Optional components are reusable across views.
 
-    <required_input>
-      projectDescription: The user's project description. Pass it as-is.
-    </required_input>
-
     <output>
-      views: [{ id, name, content }], components?: [{ id, name, content }]
+      views: [{ name, content }],
+      components?: [{ name, content }]
     </output>
   `,
 
   inputSchema: z.object({
-    projectDescription: z.string().describe(
-      "The user's project description. Pass it as-is. Do NOT add goals, features, or extra structure."
-    ),
+
+    projectDescription: z.string().describe(`
+      The user's project description. including:
+      Project type: web, mobile or print.
+      View Size: desktop, tablet, mobile, print, or whatever value from get-device-size-presets
+    `),
   }),
 
   system: `
@@ -34,9 +39,9 @@ export const plannerAgent = {
     </role>
 
     <output_structure>
-      Return a structured object with:
-      - views: [{ id, name, content }] — each view is a screen/page. content is plain text describing what to draw (e.g. "Header (logo, nav). Hero (headline, CTA). Features (3 cards). Footer.")
-      - components: [{ id, name, content }] — optional reusable elements (header, footer, buttons) shared across views. content is compact text.
+      Return a structured markdown string with:
+      - views: [{ name, size, content }] — each view is a screen/page. content is plain text describing what to draw (e.g. "Header (logo, nav). Hero (headline, CTA). Features (3 cards). Footer.")
+      - components: [{ name, content }] — optional reusable elements (header, footer, buttons) shared across views. content is compact text.
     </output_structure>
 
     <content_format>
@@ -45,5 +50,5 @@ export const plannerAgent = {
     </content_format>
   `,
 
-  toolIds: [],
+  toolIds: ['get-device-size-presets'],
 };

@@ -70,7 +70,7 @@ export const toolsTokens = [
               response.message = response.message.replace(/\.$/, ' and activated.');
             }
           } catch (err) {
-            console.warn('[createTokensSet] deferred activation failed:', err?.message || err);
+            throw new Error(`[createTokensSet] deferred activation failed: ${err?.message || err}`);
           }
         }
         return response;

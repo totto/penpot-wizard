@@ -3,7 +3,6 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import SettingsForm from "./SettingsForm/SettingsForm";
 import AgentsList from "./AgentsList/AgentsList";
 import Tools from "./Tools/Tools";
-import Download from "./Download/Download";
 import { useStore } from "@nanostores/react";
 import { $isConnected } from "@/stores/settingsStore";
 import styles from "@/components/LeftSidebar/LeftSidebar.module.css";
@@ -72,15 +71,6 @@ function LeftSidebar() {
           >
             Tools
           </button>
-          <button
-            className={`${styles.tab} ${
-              activeTab === "download" ? styles.active : ""
-            } ${!isConfigComplete ? styles.disabled : ""}`}
-            onClick={() => setActiveTab("download")}
-            disabled={!isConfigComplete}
-          >
-            Download
-          </button>
         </div>
 
         <div className={styles.tabContent}>
@@ -104,13 +94,6 @@ function LeftSidebar() {
             }`}
           >
             <Tools />
-          </div>
-          <div
-            className={`${styles.tabPanel} ${
-              activeTab === "download" ? styles.active : ""
-            }`}
-          >
-            <Download />
           </div>
         </div>
       </div>

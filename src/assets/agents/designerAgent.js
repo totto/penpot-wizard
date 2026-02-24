@@ -10,20 +10,17 @@ export const designerAgent = {
   id: 'designer',
   name: 'Designer',
   description: `
+    Use this tool to create complete design systems for UI projects.
+    Always use this tool first when working on complex projects.
+    Other creation tools require the complete design system that this tool provides.
+    Use this tool also when you need to modify an existing design system or create variations.
+    Use this tool to apply design tokens to existing shapes.
+
     Creates a complete design system for UI projects. Output includes:
     - Token set: colors, fonts, font sizes, paddings, radii (created and activated in Penpot)
     - Icon styles: recommended icon libraries and styles (for Illustrator)
     - Image styles: guidance for AI-generated images (for Illustrator prompts)
     - Special considerations: project-specific notes
-
-    This agent (along with the Director) is the ONLY one that uses design-styles-rag.
-    Any complex project must start with the Designer.
-
-    <required_input>
-      styleName: Design style from RAG catalog (e.g. minimal, glassmorphism, neubrutalism). Query "what design styles are available" first.
-      projectDescription: Platform, purpose, audience, key features
-      userConsiderations (optional): Branding, accessibility, preferences, constraints
-    </required_input>
 
     <output>
       tokenSetId, tokenSetName, designSystem, iconStyles, imageStyles, specialConsiderations
@@ -34,9 +31,11 @@ export const designerAgent = {
     styleName: z.string().describe(
       'Design style name from design-styles-rag.'
     ),
-    projectDescription: z.string().describe(
-      'Project brief from the user descriptions and the project context'
-    ),
+    projectDescription: z.string().describe(`
+      Project brief from the user descriptions and the project context
+      - Project type: web, mobile or print.
+      - Purpose, Audience and Key Features
+    `),
     userConsiderations: z.string().optional().describe(
       'User-specific requirements'
     ),
@@ -49,10 +48,10 @@ export const designerAgent = {
   </role>
 
   <output_structure>
-    Return a structured object with:
-    - tokenSet: ID and name of the created token set
+    Return a markdown string with:
+    - tokenSet: name of the created token set
     - iconStyles: [{ libraryName, styleName }] — from design-styles-rag icon-libraries chunk
-    - imageStyles: { description, keywords? } — from design-styles-rag imagery chunk
+    - imageStyles: [{ description, keywords? }] — from design-styles-rag imagery chunk
     - specialConsiderations: string — project-specific notes
   </output_structure>
 

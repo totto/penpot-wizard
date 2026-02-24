@@ -69,18 +69,6 @@ export function formatValidationErrorToPayload(errorMessage, zodIssues = null) {
 }
 
 /**
- * Formats validation errors into a human-readable string (legacy, for InvalidToolInputError etc).
- * @param {string} errorMessage - Raw error message
- * @param {Array} [zodIssues] - Optional Zod issues from error.cause?.issues
- * @returns {string}
- */
-export function formatValidationError(errorMessage, zodIssues = null) {
-  const payload = formatValidationErrorToPayload(errorMessage, zodIssues);
-  if (!payload) return errorMessage;
-  return JSON.stringify({ validationError: payload }, null, 2);
-}
-
-/**
  * If the given output is a failed tool result with a validation-style error,
  * returns { success: false, payload: {...} } with structured validation data.
  * @param {Object} output - Tool output, e.g. { success: false, payload: { error: "..." } }

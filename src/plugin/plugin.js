@@ -60,10 +60,6 @@ penpot.on('themechange', (newTheme) => {
   });
 });
 
-penpot.on('selectionchange', () => {
-console.log('selectionchange', penpot.selection);
-});
-
 penpot.ui.onMessage(async (message) => {
   const { type, messageId, payload, source } = message;
 

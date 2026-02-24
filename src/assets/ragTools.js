@@ -6,10 +6,13 @@ const penpotUserGuideRag = {
   id: 'penpot-user-guide-rag',
   name: 'PenpotUserGuideRagTool',
   inputSchema: z.object({
-    query: z.string().describe('The search query to find relevant information in the database'),
+    query: z.string().describe('The search query to find relevant information in the penpot documentation'),
   }),
   description: `
-    Use this tool to search the Penpot user guide and documentation. This tool can find specific information about Penpot features, components, and usage instructions.
+    Always use this tool to resolve questions related to Penpot usage or its technical and user documentation.
+    This tool allows you to search the Penpot technical documentation and user guide.
+    Always use this tool to resolve questions related to the interface, tools, and design concepts of Penpot.
+    This tool can find specific information about Penpot features, components, and usage instructions.
 
     IMPORTANT: All queries to this tool must be in English.
 
@@ -125,12 +128,14 @@ const designStylesRag = {
   id: 'design-styles-rag',
   name: 'DesignStylesRagTool',
   inputSchema: z.object({
-    query: z.string().describe('The search query to find relevant information in the database'),
+    query: z.string().describe('The search query to find relevant information in the design styles catalog'),
   }),
   description: `
-    Use this tool to browse the design styles catalog or request
-    specific guidance for a single style.
-
+    Use this tool to resolve queries about design styles.
+    Always use this tool when you need to resolve questions related to design styles.
+    This tool has access to a design styles catalog.
+    Always use this tool when you need to provide advice related to design styles.
+    
     CATALOG QUERY:
     - Use when the agent needs a list of all styles.
     - Example: "what design styles are available"
@@ -146,11 +151,6 @@ const designStylesRag = {
       - accessibility: accessibility considerations
       - icon-libraries: recommended icon sets (ids from iconsRAGv3)
       - imagery: illustration and imagery guidance
-
-    Examples:
-    - "ai-driven design intent"
-    - "art-deco design palettes"
-    - "glassmorphism design icon-libraries"
   `,
   function: async ({ query }) => {
     try {

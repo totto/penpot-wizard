@@ -186,46 +186,12 @@ export const finalizeStreaming = () => {
 };
 
 /**
- * Cancels streaming without finalizing
- * Used when streaming is interrupted or errors occur
- */
-export const cancelStreaming = () => {
-  $streamingMessage.set(null);
-};
-
-/**
  * Checks if a message is currently streaming
  * @returns True if streaming is active
  */
 export const isStreaming = () => {
   const message = $streamingMessage.get();
   return message !== null && message.isStreaming;
-};
-
-/**
- * Gets the current streaming message
- * @returns The streaming message or null
- */
-export const getStreamingMessage = () => {
-  return $streamingMessage.get();
-};
-
-/**
- * Gets the current streaming content
- * @returns The content string, or empty string if not streaming
- */
-export const getStreamingContent = () => {
-  const message = $streamingMessage.get();
-  return message?.content || '';
-};
-
-/**
- * Gets the streaming message ID
- * @returns The message ID or undefined if not streaming
- */
-export const getStreamingMessageId = () => {
-  const message = $streamingMessage.get();
-  return message?.id;
 };
 
 /**

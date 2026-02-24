@@ -78,8 +78,8 @@ export function handleConvertShapesToComponent(payload) {
       }
       return shape;
     });
-
-    if (shapes.length === 1 && shapes[0].component) {
+    if (shapes.length === 1 && shapes[0].component()) {
+      console.log('shape is already a component', shapes[0].name, shapes[0].component(), shapes[0].isComponentInstance(), shapes[0].isComponentHead(), shapes[0].isComponentMainInstance(), shapes[0].isComponentRoot(), shapes[0].componentRoot());
       return {
         success: true,
         message: 'Shape is already a component',

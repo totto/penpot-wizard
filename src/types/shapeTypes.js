@@ -17,7 +17,7 @@ import {
 
 export const ShapeBase = z.object({
   name: z.string(),
-  parentId: z.string(),
+  parentId: z.uuid().describe('Parent board, group, or component id, do not use the name of the shape'),
   parentIndex: z.number(),
   x: z.number(),
   y: z.number(),
@@ -79,7 +79,7 @@ export const createBoardSchema = Board.partial();
 export const createPathSchema = Path;
 
 const modifyShapeBaseSchema = z.object({
-  shapeId: z.string(),
+  shapeId: z.uuid().describe('Shape id to modify, do not use the shape name'),
   propertiesToRemove: z.array(z.enum(removableProperties)).optional()
     .describe(
       `Property names to remove. Allowed: ${removableProperties.join(', ')}. grid and flex apply only to boards. interactions removes all prototype interactions from the shape.`
@@ -107,24 +107,24 @@ export const modifyBooleanSchema = modifyShapeBaseSchema.extend({
 
 export const groupShapesSchema = z.object({
   ...ShapeBase.partial().shape,
-  shapeIds: z.array(z.string())
+  shapeIds: z.array(z.uuid()).describe('Shape ids to group, do not use the shapes names')
 });
 export const ungroupSchema = z.object({
-  groupId: z.string(),
+  groupId: z.uuid().describe('Group id to ungroup, do not use the group name'),
 });
 export const convertShapesToBoardSchema = z.object({
   name: z.string(),
-  shapeIds: z.array(z.string()).min(1),
+  shapeIds: z.array(z.uuid()).min(1).describe('Shape ids to convert to board, do not use the shapes names'),
 });
 
 export const createBooleanSchema = z.object({
   boolType: z.enum(['union', 'difference', 'exclude', 'intersection']),
-  shapeIds: z.array(z.string()).min(2),
+  shapeIds: z.array(z.uuid()).min(2).describe('Shape ids to create boolean, do not use the shapes names'),
 }).merge(ShapeBase.partial());
 
 export const alignShapesSchema = z
   .object({
-    shapeIds: z.array(z.string()).min(2),
+    shapeIds: z.array(z.uuid()).min(2).describe('Shape ids to align, do not use the shapes names'),
     axis: z.enum(['horizontal', 'vertical']),
     direction: z.enum(['left', 'center', 'right', 'top', 'bottom']),
   })
@@ -139,7 +139,7 @@ export const alignShapesSchema = z
   );
 
 export const distributeShapesSchema = z.object({
-  shapeIds: z.array(z.string()).min(2),
+  shapeIds: z.array(z.uuid()).min(2).describe('Shape ids to distribute, do not use the shapes names'),
   axis: z.enum(['horizontal', 'vertical']),
 });
 
@@ -168,7 +168,7 @@ const baseInteractionRefine = (schema) =>
   );
 
 const baseInteractionFields = {
-  shapeId: z.string(),
+  shapeId: z.uuid().describe('Shape id to add interaction'),
   trigger: triggerSchema,
   delay: z.number().int().min(0).optional(),
 };
@@ -176,7 +176,7 @@ const baseInteractionFields = {
 export const addNavigateToInteractionSchema = baseInteractionRefine(
   z.object({
     ...baseInteractionFields,
-    destinationBoardId: z.string(),
+    destinationBoardId: z.uuid().describe('Destination board id, do not use the name of the board'),
     preserveScrollPosition: z.boolean().optional(),
     animation: animationSchema,
   })
@@ -185,7 +185,7 @@ export const addNavigateToInteractionSchema = baseInteractionRefine(
 export const addCloseOverlayInteractionSchema = baseInteractionRefine(
   z.object({
     ...baseInteractionFields,
-    destinationBoardId: z.string().optional(),
+    destinationBoardId: z.uuid().optional().describe('Destination board id, do not use the name of the board'),
     animation: animationSchema.optional(),
   })
 );
@@ -206,8 +206,8 @@ export const addOpenUrlInteractionSchema = baseInteractionRefine(
 export const addOverlayInteractionSchema = baseInteractionRefine(
   z.object({
     ...baseInteractionFields,
-    destinationBoardId: z.string(),
-    relativeToShapeId: z.string().optional(),
+    destinationBoardId: z.uuid().describe('Destination board id, do not use the name of the board'),
+    relativeToShapeId: z.uuid().optional().describe('Shape id to relative to, do not use the shape name'),
     position: z
       .enum([
         'manual',
@@ -234,7 +234,7 @@ export const addOverlayInteractionSchema = baseInteractionRefine(
 
 export const createFlowSchema = z.object({
   name: z.string().min(1),
-  boardId: z.string(),
+  boardId: z.uuid().describe('Board id to create flow, do not use the name of the board'),
 });
 
 export const removeFlowSchema = z.object({
@@ -244,14 +244,14 @@ export const removeFlowSchema = z.object({
 const textRangePropsSchema = Text.omit({ characters: true }).partial();
 
 export const modifyTextRangeSchema = z.object({
-  shapeId: z.string(),
+  shapeId: z.uuid().describe('Shape id to modify text range, do not use the shape name'),
   start: z.number().int().min(0),
   end: z.number().int().min(0),
   props: textRangePropsSchema,
 });
 
 export const rotateShapeSchema = z.object({
-  shapeId: z.string(),
+  shapeId: z.uuid().describe('Shape id to rotate, do not use the shape name'),
   angle: z.number(),
   center: z
     .object({
@@ -263,8 +263,8 @@ export const rotateShapeSchema = z.object({
 });
 
 export const cloneShapeSchema = z.object({
-  shapeId: z.string(),
-  parentId: z.string().optional(),
+  shapeId: z.uuid().describe('Shape id to clone, do not use the shape name'),
+  parentId: z.uuid().optional().describe('Parent board, group, or component id, do not use the name of the shape'),
   parentIndex: z.number().optional(),
   parentX: z.number().optional(),
   parentY: z.number().optional(),
@@ -273,9 +273,9 @@ export const cloneShapeSchema = z.object({
 });
 
 export const deleteShapeSchema = z.object({
-  shapeId: z.string(),
+  shapeId: z.uuid().describe('Shape id to delete, do not use the shape name'),
 });
 
 export const reorderShapeSchema = z.object({
-  shapeId: z.string(),
+  shapeId: z.uuid().describe('Shape id to reorder, do not use the shape name'),
 });

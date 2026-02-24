@@ -34,6 +34,7 @@ export default defineConfig([
       },
     },
     rules: {
+      'no-console': 'warn',
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',
       'react/jsx-no-comment-textnodes': 'off',

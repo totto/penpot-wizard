@@ -32,23 +32,18 @@ function Chat() {
     }
   }, [activeConversationId])
 
-  // Auto-close dialog if streaming finishes naturally while dialog is open
   useEffect(() => {
     if (showCancelDialog && !streamingMessage) {
-      // Streaming finished, auto-execute pending action
-      console.log('Streaming finished naturally, auto-executing pending action')
       handleCancelStreaming()
     }
   }, [showCancelDialog, streamingMessage])
 
-  // Handle page reload/close during streaming
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (isStreaming()) {
         e.preventDefault()
         e.returnValue = ''
         
-        // Set pending action for reload
         setPendingAction({
           type: 'reload'
         })

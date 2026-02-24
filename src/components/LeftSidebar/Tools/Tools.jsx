@@ -6,7 +6,7 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import { $toolsData } from "@/stores/toolsStore";
-import { parseZodSchema } from "@/utils/zodSchemaParser";
+import { toJSONSchema } from "zod";
 import SchemaVisor from "@/components/LeftSidebar/AgentsList/SchemaVisor/SchemaVisor";
 import styles from "./Tools.module.css";
 
@@ -24,7 +24,7 @@ function Tools() {
       tools.forEach(tool => {
         if (tool.inputSchema) {
           try {
-            const schemaParsed = parseZodSchema(tool.inputSchema);
+            const schemaParsed = tool.inputSchema ? toJSONSchema(tool.inputSchema) : null;
             schemas[tool.id] = schemaParsed;
           } catch (error) {
             console.error(`Error parsing schema for tool ${tool.id}:`, error);

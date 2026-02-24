@@ -21,15 +21,6 @@ export const createUserDirectorAgent = (agent) => {
   $userDirectorAgents.set([...currentAgents, agent]);
 };
 
-export const getUserDirectorAgents = () => {
-  return $userDirectorAgents.get();
-};
-
-export const getUserDirectorAgentById = (id) => {
-  const agents = $userDirectorAgents.get();
-  return agents.find(agent => agent.id === id) || null;
-};
-
 export const updateUserDirectorAgent = (agent) => {
   const currentAgents = $userDirectorAgents.get();
   const updatedAgents = currentAgents.map(a => 
@@ -64,15 +55,6 @@ export const createUserSpecializedAgent = (agent) => {
     throw new Error(`Specialized agent with id "${agent.id}" already exists`);
   }
   $userSpecializedAgents.set([...currentAgents, agent]);
-};
-
-export const getUserSpecializedAgents = () => {
-  return $userSpecializedAgents.get();
-};
-
-export const getUserSpecializedAgentById = (id) => {
-  const agents = $userSpecializedAgents.get();
-  return agents.find(agent => agent.id === id) || null;
 };
 
 export const updateUserSpecializedAgent = (agent) => {

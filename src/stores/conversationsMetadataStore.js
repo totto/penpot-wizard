@@ -1,4 +1,3 @@
-import { computed } from 'nanostores';
 import { persistentAtom } from '@nanostores/persistent';
 
 /**
@@ -29,17 +28,6 @@ export const $conversationsMetadata = persistentAtom(
         return [];
       }
     }
-  }
-);
-
-/**
- * Computed atom for conversation metadata history
- * Returns all metadata sorted by creation date (newest first)
- */
-export const $conversationMetadataHistory = computed(
-  $conversationsMetadata,
-  (metadata) => {
-    return [...metadata].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 );
 
@@ -129,15 +117,6 @@ export const incrementMessageCount = (conversationId) => {
       : conv
   );
   $conversationsMetadata.set(updatedMetadata);
-};
-
-/**
- * Sets the exact message count for a conversation
- * @param conversationId - The conversation ID
- * @param count - The message count
- */
-export const setMessageCount = (conversationId, count) => {
-  updateConversationMetadata(conversationId, { messageCount: count });
 };
 
 /**
