@@ -2,20 +2,33 @@
  * Converts messages from localStorage / getActiveMessages() format
  * to AI SDK format for director.instance.stream({ messages }).
  *
- * Tool calls are preserved so the model knows it invoked tools in previous
- * turns, but tool results are summarized (success/error message only, no
- * payload) to keep context lightweight. The director's prompt requires it
- * to inline all relevant data in its text responses via <response_completeness>.
+ * Only subagent calls are preserved (designer, planner, drawer, etc.); regular
+ * tool calls (RAG, get-current-page, etc.) are filtered out. Tool results are
+ * summarized to keep context lightweight.
  */
+
+import { getSpecializedAgentById } from '@/stores/specializedAgentsStore';
+
+function isSubagentCall(toolName) {
+  return Boolean(getSpecializedAgentById(toolName));
+}
 
 /**
  * Extracts a short summary string from a tool output object.
- * Keeps only the status message, discarding large payloads.
+ * For subagents: includes payload (actual agent response) truncated to 300 chars.
+ * Keeps context lightweight but gives the model enough signal.
  */
 function summarizeToolOutput(output) {
   if (!output) return 'Tool completed.';
   if (typeof output === 'string') {
     return output.length > 300 ? output.substring(0, 300) + '…' : output;
+  }
+  // Subagent output: { success, message, payload } - prefer payload (actual response)
+  if (output.payload !== undefined && output.payload !== null) {
+    const payloadStr = typeof output.payload === 'string'
+      ? output.payload
+      : JSON.stringify(output.payload);
+    return payloadStr.length > 300 ? payloadStr.substring(0, 300) + '…' : payloadStr;
   }
   if (output.message) return output.message;
   return 'Tool completed.';
@@ -28,7 +41,9 @@ function summarizeToolOutput(output) {
  */
 function convertAssistantWithToolCalls(msg) {
   const toolCalls = msg.toolCalls || [];
-  const withOutput = toolCalls.filter(
+  // Keep only subagent calls; filter out regular tool calls (RAG, get-current-page, etc.)
+  const subagentCallsOnly = toolCalls.filter((tc) => isSubagentCall(tc.toolName));
+  const withOutput = subagentCallsOnly.filter(
     (tc) => tc.output !== undefined && tc.output !== null
   );
 
@@ -40,6 +55,12 @@ function convertAssistantWithToolCalls(msg) {
   }));
 
   const textContent = (msg.content && String(msg.content).trim()) || '';
+
+  // If all tool calls were filtered (none are subagents) and no text, skip this message
+  if (withOutput.length === 0 && !textContent) {
+    return [];
+  }
+
   let assistantContent;
 
   if (toolCallParts.length > 0) {

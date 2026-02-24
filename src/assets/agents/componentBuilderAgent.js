@@ -30,7 +30,7 @@ export const componentBuilderAgent = {
     1. Call get-current-page. Look for a board named "COMPONENTS". If it does not exist, create it with create-board: name "COMPONENTS", parentId (page/frame id from get-current-page), x: -1000, y: 0, width: 900, height: 800.
     2. For each component in the list, create shapes INSIDE the COMPONENTS board (set parentId to the COMPONENTS board ID, use parentX/parentY for positions). Place each component at distinct positions: first at parentX 0, parentY 0; second at parentX 300, parentY 0; etc. (increment by 300 horizontally, wrap to next row if needed).
     3. Group all shapes for that component using group-shapes.
-    4. Convert the group to a component using convert-to-component.
+    4. IMPORTANT!!! Convert the group to a component using convert-to-component. This is the only way to create a component in Penpot.
     5. After creating all components, return a JSON object: { componentInstanceIds: { [componentId]: shapeId } } where shapeId is the instance ID from convert-to-component.
   </workflow>
 
