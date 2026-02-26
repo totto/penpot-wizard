@@ -5,6 +5,7 @@ An AI-powered chat assistant plugin for Penpot that uses a multi-agent architect
 ## Table of Contents
 
 - [What is Penpot Wizard?](#what-is-penpot-wizard)
+- [Try it Out](#try-it-out)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
@@ -33,6 +34,16 @@ Penpot Wizard is a plugin for [Penpot](https://penpot.app) that brings AI assist
 - **RAG System**: Search Penpot documentation and design styles
 - **Direct Drawing**: Create shapes, paths, text, boards, components, and icons in Penpot
 - **Chat Interface**: Streaming responses, conversation history, multiple agents
+
+---
+
+## Try it Out
+
+We have a small website explaining the project at **[aipenpotwizard.app](https://aipenpotwizard.app/)**.
+
+A **free hosted version** of the plugin is available at **[penpot-ai-wizard-plugin-website.vercel.app](https://penpot-ai-wizard-plugin-website.vercel.app/)** — no local setup required.
+
+For installation instructions, visit **[aipenpotwizard.app/install](https://aipenpotwizard.app/install.html)**.
 
 ---
 
