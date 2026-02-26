@@ -26,6 +26,7 @@
     "@penpot/plugin-styles": "^1.4.2",
     "@penpot/plugin-types": "^1.4.2",
     "@tensorflow/tfjs-backend-webgl": "^4.15.0",
+    "@vercel/analytics": "^1.6.1",
     "ai": "^6.0.3",
     "jsonrepair": "^3.13.2",
     "nanostores": "^1.1.0",
