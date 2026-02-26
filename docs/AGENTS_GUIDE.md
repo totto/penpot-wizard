@@ -6,16 +6,28 @@ This guide explains the different agent types in Penpot Wizard and how to create
 
 | Type | Location | Purpose |
 |------|----------|---------|
-| Director | `directorAgents.js` | Top-level orchestrator, handles user chat |
+| Director | `agents/penpotWizardAgent.js`, `directorAgents.js` | Top-level orchestrator, handles user chat |
+| Capability | `agents/*.js` | Domain experts (design, drawing, planning, prototyping, etc.) |
 | Coordinator | `coordinatorAgents.js` | Orchestrates complex projects via specialists |
-| Specialized | `specializedAgents.js` | Domain experts (UI, UX, drawing, planning) |
+| Specialized | `specializedAgents.js` | Legacy domain experts (UI, UX, drawing, planning) |
 
 ## Universal Agent Network
 
 Penpot Wizard uses a unified agent network that covers any design project:
 
 ```
-User <--> DesignStudioDirector
+User <--> PenpotWizard (default director)
+            |
+            +-- penpot-user-guide-rag, design-styles-rag (tutorials, questions)
+            +-- designer            (design systems, colors, typography)
+            +-- planner             (project planning, phased delivery)
+            +-- drawer              (shape drawing, layouts)
+            +-- component-builder   (component creation from shapes)
+            +-- prototyper          (prototyping, interactions)
+            +-- illustrator         (illustrations, icons)
+            +-- modifier            (shape modifications)
+
+User <--> DesignStudioDirector (legacy director)
             |
             +-- penpot-user-guide-rag, design-styles-rag (tutorials, questions)
             +-- PrintProjectsCoordinator   (posters, cards, brochures, flyers)
@@ -26,8 +38,21 @@ User <--> DesignStudioDirector
 
 ### Directors
 
-- **DesignStudioDirector** (default): Universal entry point. Answers Penpot questions, creates step-by-step tutorials, and routes to the appropriate coordinator for print, web, mobile, or style projects. Always seeks user approval before proceeding on complex work.
+- **PenpotWizard** (default): Primary entry point. Professional tool for Penpot that helps users resolve design projects. Uses RAG knowledge bases for guidance, orchestrates capability agents for complex tasks. Always seeks user validation before proceeding.
+- **DesignStudioDirector**: Legacy universal entry point. Routes to coordinators for print, web, mobile, or style projects.
 - **TestToolsDirector**: Direct tool use for simple tasks. Uses drawing tools, RAG, and image generation without coordinators.
+
+### Capability Agents
+
+These are the new domain-specific agents used by PenpotWizard, defined in `src/assets/agents/`:
+
+- **designer**: Design system creation (colors, typography, spacing, radii).
+- **planner**: Project planning and phased delivery.
+- **drawer**: Shape drawing and layout execution.
+- **component-builder**: Creates library components from shapes.
+- **prototyper**: Prototyping, interactions, and flows.
+- **illustrator**: Illustrations and icon work.
+- **modifier**: Modifies existing shapes (properties, styles, transforms).
 
 ### Coordinators
 
@@ -36,7 +61,7 @@ User <--> DesignStudioDirector
 - **MobileProjectsCoordinator**: Mobile UI projects. Uses ProjectPlanSpecialist, UIDesignSpecialist, UXDesignSpecialist, MobileViewDesigner.
 - **StyleAdvisorCoordinator**: Design style advice and application. Uses UIDesignSpecialist, StyleApplicationSpecialist.
 
-### Specialists
+### Specialists (Legacy)
 
 - **UIDesignSpecialist**: Design system (colors, typography, spacing, radii).
 - **UXDesignSpecialist**: Views, flows, navigation.
@@ -88,7 +113,8 @@ User request → Director gathers brief → Director presents plan → User conf
 
 Directors are the main entry point. They receive user messages and coordinate tools and sub-agents.
 
-**File**: `src/assets/directorAgents.js`
+**Files**: `src/assets/agents/penpotWizardAgent.js` (primary), `src/assets/directorAgents.js` (legacy)
+**Combined in**: `src/assets/agents/agents.js` — exports `directorAgents` array with PenpotWizard first
 
 **Structure**:
 ```javascript
@@ -112,6 +138,31 @@ Directors are the main entry point. They receive user messages and coordinate to
 - Specify language handling (reply in user's language)
 - List tool selection strategy
 - Define edge cases and limitations
+
+## Capability Agents
+
+Capability agents are domain-specific agents used by the PenpotWizard director. Each is defined in its own file under `src/assets/agents/`.
+
+**Files**: `src/assets/agents/designerAgent.js`, `plannerAgent.js`, `drawerAgent.js`, `componentBuilderAgent.js`, `prototyperAgent.js`, `illustratorAgent.js`, `modifierAgent.js`
+**Combined in**: `src/assets/agents/agents.js` — exports `capabilityAgents` array (capability + legacy specialized + coordinators)
+
+**Structure**:
+```javascript
+{
+  id: "designer",
+  name: "Designer",
+  description: `Professional design system agent...`,
+  system: `<operational_framework>...</operational_framework>`,
+  toolIds: ["design-styles-rag", "create-rectangle", ...],
+  specializedAgentIds: [],  // can delegate to other agents
+}
+```
+
+**Creating a Capability Agent**:
+1. Create a new file in `src/assets/agents/` (e.g., `myAgent.js`)
+2. Export a single agent object with `id`, `name`, `description`, `system`, `toolIds`, `specializedAgentIds`
+3. Import and add it to the `capabilityAgents` array in `src/assets/agents/agents.js`
+4. Add its `id` to the director's `specializedAgentIds` so the director can call it
 
 ## Coordinator Agents
 
@@ -147,9 +198,9 @@ Coordinators orchestrate specialists for end-to-end projects. They receive a nat
 
 **Note**: Coordinators are stored and initialized together with specialized agents in `specializedAgentsStore.js`.
 
-## Specialized Agents
+## Specialized Agents (Legacy)
 
-Specialists are focused sub-agents. They receive a natural language `query` and use their tools to accomplish the task.
+Specialists are focused sub-agents used by coordinators. They receive a natural language `query` and use their tools to accomplish the task.
 
 **File**: `src/assets/specializedAgents.js`
 

@@ -48,6 +48,16 @@ Two build configurations:
 penpot-wizard/
 ├── src/
 │   ├── assets/           # Agents and tools
+│   │   ├── agents/       # Capability agents + barrel
+│   │   │   ├── agents.js # Barrel: combines all directors + capability agents
+│   │   │   ├── penpotWizardAgent.js
+│   │   │   ├── designerAgent.js
+│   │   │   ├── plannerAgent.js
+│   │   │   ├── drawerAgent.js
+│   │   │   ├── componentBuilderAgent.js
+│   │   │   ├── prototyperAgent.js
+│   │   │   ├── illustratorAgent.js
+│   │   │   └── modifierAgent.js
 │   │   ├── directorAgents.js
 │   │   ├── coordinatorAgents.js
 │   │   ├── specializedAgents.js
@@ -83,7 +93,7 @@ penpot-wizard/
 │   │   ├── toolsStore.js
 │   │   ├── settingsStore.js
 │   │   └── ...
-│   ├── types/             # TypeScript-like types
+│   ├── types/             # Zod schemas and type definitions
 │   │   ├── types.js
 │   │   ├── shapeTypes.js
 │   │   ├── shapeTypesSupport.js
