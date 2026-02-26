@@ -24,9 +24,6 @@ export function convertMessagesForAgent(messages) {
       const hasToolCalls = Array.isArray(msg.toolCalls) && msg.toolCalls.length > 0;
       const textContent = (msg.content && String(msg.content).trim()) || '';
 
-      if (textContent) {
-        result.push({ role: 'assistant', content: textContent });
-      }
       if (hasToolCalls) {
         (msg.toolCalls || []).forEach((tc) => {
           if (getSpecializedAgentById(tc.toolName)) {
@@ -42,6 +39,10 @@ export function convertMessagesForAgent(messages) {
             });
           }
         });
+      }
+      
+      if (textContent) {
+        result.push({ role: 'assistant', content: textContent });
       }
     }
   }
