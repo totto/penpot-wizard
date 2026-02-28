@@ -7,8 +7,8 @@ license: "MIT"
 indexing: open
 
 hints:
-  total_token_estimate: 19200
-  unit_count: 13
+  total_token_estimate: 20200
+  unit_count: 15
   recommended_entry_point: readme
   has_summaries: true
   has_chunks: false
@@ -121,6 +121,24 @@ units:
       load_strategy: lazy
       priority: supplementary
       density: standard
+      summary_available: true
+      summary_unit: extending-tools-tldr
+
+  - id: extending-tools-tldr
+    path: docs/EXTENDING_TOOLS-tldr.md
+    kind: knowledge
+    intent: "What is the tool structure (id, name, description, inputSchema, function), where do tools live by type, and what are the 4 steps to add a new function tool and register it with an agent?"
+    scope: project
+    audience: [agent, developer]
+    validated: "2026-02-28"
+    depends_on: [architecture-tldr]
+    triggers: [tool, extend, new tool, function tool, drawing tool, rag tool, icon tool, token tool, toolIds, create tool, add tool, inputSchema, zod]
+    hints:
+      token_estimate: 500
+      load_strategy: lazy
+      priority: supplementary
+      density: standard
+      summary_of: extending-tools
 
   # -- RAG system ----------------------------------------------------------------
 
@@ -157,6 +175,24 @@ units:
       load_strategy: lazy
       priority: supplementary
       density: dense
+      summary_available: true
+      summary_unit: plugin-communication-tldr
+
+  - id: plugin-communication-tldr
+    path: docs/PLUGIN_COMMUNICATION-tldr.md
+    kind: knowledge
+    intent: "How does the postMessage flow work between UI and plugin, and what are the 4 steps (ClientQueryType → handler → plugin.js wire-up → tool) to add a new plugin operation?"
+    scope: project
+    audience: [agent, developer]
+    validated: "2026-02-28"
+    depends_on: [architecture-tldr]
+    triggers: [postmessage, plugin communication, client query type, handler, message flow, sendMessageToPlugin, penpot api, iframe, bidirectional]
+    hints:
+      token_estimate: 500
+      load_strategy: lazy
+      priority: supplementary
+      density: dense
+      summary_of: plugin-communication
 
   # -- Shape schemas (agent-critical) --------------------------------------------
 
@@ -287,4 +323,10 @@ relationships:
     type: context
   - from: agents-guide-tldr
     to: agents-guide
+    type: context
+  - from: extending-tools-tldr
+    to: extending-tools
+    type: context
+  - from: plugin-communication-tldr
+    to: plugin-communication
     type: context
