@@ -1,0 +1,290 @@
+kcp_version: "0.3"
+project: penpot-wizard
+version: 1.0.0
+updated: "2026-02-28"
+language: en
+license: "MIT"
+indexing: open
+
+hints:
+  total_token_estimate: 19200
+  unit_count: 13
+  recommended_entry_point: readme
+  has_summaries: true
+  has_chunks: false
+
+units:
+
+  # -- Entry point ---------------------------------------------------------------
+
+  - id: readme
+    path: README.md
+    kind: knowledge
+    intent: "What is Penpot Wizard, how do I install it, configure API keys, and get a development build running?"
+    scope: global
+    audience: [human, agent, developer]
+    validated: "2026-02-28"
+    update_frequency: monthly
+    triggers: [overview, install, setup, api key, getting started, plugin, penpot]
+    hints:
+      token_estimate: 1800
+      load_strategy: eager
+      priority: critical
+      density: standard
+
+  # -- Architecture and system design --------------------------------------------
+
+  - id: architecture
+    path: docs/ARCHITECTURE.md
+    kind: knowledge
+    intent: "What are the three layers (plugin, UI, stores), the four agent types (director, capability, coordinator, specialized), and how does data flow from user message to Penpot canvas?"
+    scope: global
+    audience: [human, agent, developer, architect]
+    validated: "2026-02-28"
+    update_frequency: monthly
+    depends_on: [readme]
+    triggers: [architecture, layers, plugin, iframe, postmessage, agent types, director, coordinator, data flow, nanostores, stores]
+    hints:
+      token_estimate: 1900
+      load_strategy: eager
+      priority: critical
+      density: dense
+      summary_available: true
+      summary_unit: architecture-tldr
+
+  - id: architecture-tldr
+    path: docs/ARCHITECTURE-tldr.md
+    kind: knowledge
+    intent: "What are the key architectural decisions and component relationships in 400 words?"
+    scope: global
+    audience: [agent, developer]
+    validated: "2026-02-28"
+    depends_on: [readme]
+    triggers: [architecture, summary, quick, overview]
+    hints:
+      token_estimate: 500
+      load_strategy: eager
+      priority: critical
+      density: standard
+      summary_of: architecture
+
+  # -- Agent system --------------------------------------------------------------
+
+  - id: agents-guide
+    path: docs/AGENTS_GUIDE.md
+    kind: knowledge
+    intent: "What agent types exist (director, capability, coordinator, specialized), how do I create a custom agent, what is the approval protocol for complex projects, and how do agents compose via toolIds and specializedAgentIds?"
+    scope: global
+    audience: [human, agent, developer]
+    validated: "2026-02-28"
+    update_frequency: monthly
+    depends_on: [architecture]
+    triggers: [agent, director, capability, coordinator, specialized, penpot wizard, designer, planner, drawer, component builder, prototyper, illustrator, modifier, create agent, custom agent, approval protocol]
+    hints:
+      token_estimate: 3000
+      load_strategy: lazy
+      priority: supplementary
+      density: standard
+      summary_available: true
+      summary_unit: agents-guide-tldr
+
+  - id: agents-guide-tldr
+    path: docs/AGENTS_GUIDE-tldr.md
+    kind: knowledge
+    intent: "What are the agent types and how do they compose, summarized in 400 words?"
+    scope: global
+    audience: [agent, developer]
+    validated: "2026-02-28"
+    depends_on: [architecture-tldr]
+    triggers: [agent, summary, quick reference]
+    hints:
+      token_estimate: 500
+      load_strategy: eager
+      priority: critical
+      density: standard
+      summary_of: agents-guide
+
+  # -- Tool system ---------------------------------------------------------------
+
+  - id: extending-tools
+    path: docs/EXTENDING_TOOLS.md
+    kind: knowledge
+    intent: "How do I add a new tool to Penpot Wizard -- what is the tool structure (id, name, description, inputSchema, function), where are tools defined, and how do I register a tool with an agent?"
+    scope: project
+    audience: [human, agent, developer]
+    validated: "2026-02-28"
+    update_frequency: monthly
+    depends_on: [architecture, plugin-communication]
+    triggers: [tool, extend, new tool, function tool, drawing tool, rag tool, icon tool, token tool, toolIds, create tool, add tool, inputSchema, zod]
+    hints:
+      token_estimate: 1700
+      load_strategy: lazy
+      priority: supplementary
+      density: standard
+
+  # -- RAG system ----------------------------------------------------------------
+
+  - id: creating-rags
+    path: docs/CREATING_RAGS.md
+    kind: knowledge
+    intent: "How do I create a new RAG (Retrieval-Augmented Generation) vector database, generate embeddings with orama-persistence-generator, and add a RAG tool to the plugin?"
+    scope: project
+    audience: [human, agent, developer]
+    validated: "2026-02-28"
+    update_frequency: rarely
+    depends_on: [extending-tools]
+    triggers: [rag, orama, vector search, embeddings, knowledge base, zip, orama-persistence-generator, openai embeddings]
+    hints:
+      token_estimate: 1200
+      load_strategy: lazy
+      priority: supplementary
+      density: standard
+
+  # -- Plugin communication protocol ---------------------------------------------
+
+  - id: plugin-communication
+    path: docs/PLUGIN_COMMUNICATION.md
+    kind: knowledge
+    intent: "How does the postMessage protocol between the React UI iframe and the Penpot plugin context work, what are the ClientQueryType enums, and how do I add a new plugin operation end-to-end?"
+    scope: project
+    audience: [human, agent, developer]
+    validated: "2026-02-28"
+    update_frequency: monthly
+    depends_on: [architecture]
+    triggers: [postmessage, plugin communication, client query type, handler, message flow, sendMessageToPlugin, penpot api, iframe, bidirectional]
+    hints:
+      token_estimate: 1500
+      load_strategy: lazy
+      priority: supplementary
+      density: dense
+
+  # -- Shape schemas (agent-critical) --------------------------------------------
+
+  - id: shape-reference
+    path: docs/SHAPE_REFERENCE.md
+    kind: knowledge
+    intent: "What are the shape schemas (rectangle, ellipse, path, text, board), their properties (fills, strokes, shadows, blur, layout), and the critical stacking order rule (foreground first, backgrounds last)?"
+    scope: module
+    audience: [agent, developer]
+    validated: "2026-02-28"
+    update_frequency: monthly
+    depends_on: [architecture]
+    triggers: [shape, rectangle, ellipse, path, text, board, fill, stroke, shadow, gradient, layout, flex, grid, stacking order, schema, shapeTypes]
+    hints:
+      token_estimate: 950
+      load_strategy: lazy
+      priority: critical
+      density: dense
+
+  # -- Path commands (agent-critical for drawing) --------------------------------
+
+  - id: path-commands
+    path: docs/PATH_COMMANDS_GUIDE.md
+    kind: knowledge
+    intent: "What path commands (M, L, H, V, C, S, Q, T, A, Z) are available for creating vector paths, what parameters does each take, and what are common examples (triangle, star, bezier curve)?"
+    scope: module
+    audience: [agent, developer]
+    validated: "2026-02-28"
+    update_frequency: rarely
+    depends_on: [shape-reference]
+    triggers: [path, bezier, curve, svg, vector, move-to, line-to, arc, close-path, path commands, content array, triangle, star]
+    hints:
+      token_estimate: 800
+      load_strategy: lazy
+      priority: supplementary
+      density: dense
+
+  # -- Development setup ---------------------------------------------------------
+
+  - id: development
+    path: docs/DEVELOPMENT.md
+    kind: knowledge
+    intent: "How is the project structured, what npm scripts are available (dev, build, test, lint), what are the two Vite build configs, and where are agents, tools, stores, types, and plugin code located?"
+    scope: project
+    audience: [human, developer]
+    validated: "2026-02-28"
+    update_frequency: rarely
+    depends_on: [readme]
+    triggers: [development, build, vite, npm, test, vitest, project structure, folder, directory, eslint, scripts]
+    hints:
+      token_estimate: 1100
+      load_strategy: lazy
+      priority: supplementary
+      density: standard
+
+  # -- Schemas as knowledge units ------------------------------------------------
+
+  - id: shape-types-schema
+    path: src/types/shapeTypes.js
+    kind: schema
+    intent: "What are the Zod schema definitions for all shape types (ShapeBase, Text, Path, Board), modification schemas, interaction schemas, group/boolean/align/flow schemas, and clone/delete/reorder schemas?"
+    scope: module
+    audience: [agent, developer]
+    validated: "2026-02-28"
+    update_frequency: monthly
+    depends_on: [shape-reference]
+    triggers: [zod, schema, shapeTypes, createRectangleSchema, createTextSchema, createPathSchema, modifyRectangleSchema, inputSchema, interaction schema, flow schema]
+    hints:
+      token_estimate: 2300
+      load_strategy: lazy
+      priority: reference
+      density: dense
+
+  - id: tokens-types-schema
+    path: src/types/tokensTypes.js
+    kind: schema
+    intent: "What are the Zod schemas for design tokens -- token types (color, spacing, dimension, fontSizes, etc.), token assignment attributes (fill, stroke-color, font-size, etc.), and CRUD schemas for token sets?"
+    scope: module
+    audience: [agent, developer]
+    validated: "2026-02-28"
+    update_frequency: monthly
+    depends_on: [shape-reference]
+    triggers: [tokens, design tokens, DTCG, token types, color, spacing, font, apply tokens, create tokens set, modify tokens set, tokenAssignmentSchema]
+    hints:
+      token_estimate: 1350
+      load_strategy: lazy
+      priority: reference
+      density: dense
+
+relationships:
+  # Architecture is the foundation for all extension guides
+  - from: architecture
+    to: agents-guide
+    type: enables
+  - from: architecture
+    to: extending-tools
+    type: enables
+  - from: architecture
+    to: plugin-communication
+    type: enables
+
+  # Tool extension requires understanding plugin communication
+  - from: plugin-communication
+    to: extending-tools
+    type: context
+
+  # RAG extends the tool system
+  - from: extending-tools
+    to: creating-rags
+    type: enables
+
+  # Shape reference is the schema documentation for the Zod schemas
+  - from: shape-reference
+    to: shape-types-schema
+    type: context
+  - from: shape-reference
+    to: tokens-types-schema
+    type: context
+
+  # Path commands specialize the shape system
+  - from: shape-reference
+    to: path-commands
+    type: enables
+
+  # Summaries
+  - from: architecture-tldr
+    to: architecture
+    type: context
+  - from: agents-guide-tldr
+    to: agents-guide
+    type: context

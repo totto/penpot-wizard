@@ -21,6 +21,7 @@ An AI-powered chat assistant plugin for Penpot that uses a multi-agent architect
 - [Development](#development)
 - [Troubleshooting](#troubleshooting)
 - [Resources](#resources)
+- [Knowledge Context Protocol (KCP)](#knowledge-context-protocol-kcp)
 - [License & Contributing](#license--contributing)
 
 ---
@@ -161,6 +162,74 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for full setup and structure.
 - [nanostores](https://github.com/nanostores/nanostores)
 - [Orama](https://docs.oramasearch.com/)
 - [Zod](https://zod.dev/)
+
+---
+
+## Knowledge Context Protocol (KCP)
+
+This project includes a [`knowledge.yaml`](knowledge.yaml) manifest following the
+[Knowledge Context Protocol](https://github.com/Cantara/knowledge-context-protocol) (v0.3).
+The manifest makes all project documentation navigable by AI agents without loading
+everything into context at once.
+
+### What it provides
+
+- **Intent-based routing**: Each documentation unit has an `intent` field describing what
+  question it answers. Agents match your query to the right document automatically.
+- **Dependency ordering**: `depends_on` chains ensure prerequisite knowledge is loaded
+  first (e.g. architecture before extending tools).
+- **Context budget awareness**: `hints` blocks declare token estimates, load strategies
+  (`eager`/`lazy`/`never`), and eviction priorities so agents can plan context usage.
+- **Summary proxies**: Large documents (`ARCHITECTURE.md`, `AGENTS_GUIDE.md`) have TL;DR
+  companions (~500 tokens each) that load eagerly — agents get the key facts without
+  touching the full 1,900–3,000 token originals unless they need the detail.
+
+### Using with Claude Code / MCP
+
+Install the KCP-MCP bridge:
+
+```bash
+pip install kcp-mcp
+```
+
+Add it as an MCP server in `.claude/settings.json` (or `~/.claude/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "penpot-wizard-knowledge": {
+      "command": "kcp-mcp",
+      "args": ["knowledge.yaml"]
+    }
+  }
+}
+```
+
+Agents can now call `resources/list` to see the full unit index, then load units by
+intent rather than filename. Example: a query containing "stacking order" or "fill" routes
+directly to `shape-reference` (950 tokens); a query about "add a new tool" routes to
+`extending-tools` (1,700 tokens) with `plugin-communication` pre-loaded via `depends_on`.
+
+### Manifest overview
+
+| Unit | Document | Tokens | Strategy |
+|------|----------|--------|----------|
+| `readme` | README.md | ~1,800 | eager |
+| `architecture` | docs/ARCHITECTURE.md | ~1,900 | eager |
+| `architecture-tldr` | docs/ARCHITECTURE-tldr.md | ~500 | eager |
+| `agents-guide` | docs/AGENTS_GUIDE.md | ~3,000 | lazy |
+| `agents-guide-tldr` | docs/AGENTS_GUIDE-tldr.md | ~500 | eager |
+| `extending-tools` | docs/EXTENDING_TOOLS.md | ~1,700 | lazy |
+| `creating-rags` | docs/CREATING_RAGS.md | ~1,200 | lazy |
+| `plugin-communication` | docs/PLUGIN_COMMUNICATION.md | ~1,500 | lazy |
+| `shape-reference` | docs/SHAPE_REFERENCE.md | ~950 | lazy |
+| `path-commands` | docs/PATH_COMMANDS_GUIDE.md | ~800 | lazy |
+| `development` | docs/DEVELOPMENT.md | ~1,100 | lazy |
+| `shape-types-schema` | src/types/shapeTypes.js | ~2,300 | lazy |
+| `tokens-types-schema` | src/types/tokensTypes.js | ~1,350 | lazy |
+
+Total: ~19,200 tokens across 13 units. An agent loading only the eager units gets
+comprehensive orientation in ~5,300 tokens.
 
 ---
 
