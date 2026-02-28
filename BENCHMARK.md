@@ -113,7 +113,7 @@ No backtracking. No mis-reads. No exploratory overhead.
 | `tokens-types-schema` | 1,350 | lazy |
 | **Total** | **20,200** | 4 eager / 11 lazy |
 
-An agent loading only the 4 eager units gets full project orientation in **5,300 tokens** before answering any specific query.
+An agent loading only the 4 eager units gets full project orientation in **4,700 tokens** before answering any specific query.
 
 ---
 

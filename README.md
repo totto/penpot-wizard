@@ -180,9 +180,10 @@ everything into context at once.
   first (e.g. architecture before extending tools).
 - **Context budget awareness**: `hints` blocks declare token estimates, load strategies
   (`eager`/`lazy`/`never`), and eviction priorities so agents can plan context usage.
-- **Summary proxies**: Large documents (`ARCHITECTURE.md`, `AGENTS_GUIDE.md`) have TL;DR
-  companions (~500 tokens each) that load eagerly — agents get the key facts without
-  touching the full 1,900–3,000 token originals unless they need the detail.
+- **Summary proxies**: Four large documents (`ARCHITECTURE.md`, `AGENTS_GUIDE.md`,
+  `EXTENDING_TOOLS.md`, `PLUGIN_COMMUNICATION.md`) have TL;DR companions (~500 tokens each)
+  — agents get the key facts without touching the full 1,500–3,000 token originals unless
+  they need the detail.
 
 ### Using with Claude Code / MCP
 
@@ -208,7 +209,8 @@ Add it as an MCP server in `.claude/settings.json` (or `~/.claude/settings.json`
 Agents can now call `resources/list` to see the full unit index, then load units by
 intent rather than filename. Example: a query containing "stacking order" or "fill" routes
 directly to `shape-reference` (950 tokens); a query about "add a new tool" routes to
-`extending-tools` (1,700 tokens) with `plugin-communication` pre-loaded via `depends_on`.
+`extending-tools-tldr` (500 tokens) and escalates to `extending-tools` (1,700 tokens) only
+if more detail is needed.
 
 ### Manifest overview
 
@@ -220,16 +222,18 @@ directly to `shape-reference` (950 tokens); a query about "add a new tool" route
 | `agents-guide` | docs/AGENTS_GUIDE.md | ~3,000 | lazy |
 | `agents-guide-tldr` | docs/AGENTS_GUIDE-tldr.md | ~500 | eager |
 | `extending-tools` | docs/EXTENDING_TOOLS.md | ~1,700 | lazy |
+| `extending-tools-tldr` | docs/EXTENDING_TOOLS-tldr.md | ~500 | lazy |
 | `creating-rags` | docs/CREATING_RAGS.md | ~1,200 | lazy |
 | `plugin-communication` | docs/PLUGIN_COMMUNICATION.md | ~1,500 | lazy |
+| `plugin-communication-tldr` | docs/PLUGIN_COMMUNICATION-tldr.md | ~500 | lazy |
 | `shape-reference` | docs/SHAPE_REFERENCE.md | ~950 | lazy |
 | `path-commands` | docs/PATH_COMMANDS_GUIDE.md | ~800 | lazy |
 | `development` | docs/DEVELOPMENT.md | ~1,100 | lazy |
 | `shape-types-schema` | src/types/shapeTypes.js | ~2,300 | lazy |
 | `tokens-types-schema` | src/types/tokensTypes.js | ~1,350 | lazy |
 
-Total: ~19,200 tokens across 13 units. An agent loading only the eager units gets
-comprehensive orientation in ~5,300 tokens.
+Total: ~20,200 tokens across 15 units. An agent loading only the 4 eager units gets
+comprehensive orientation in ~4,700 tokens.
 
 ---
 
